@@ -143,13 +143,13 @@ class StreamingToolCallbackHandler extends BaseCallbackHandler {
 // Import existing analytics tools (already defined as DynamicStructuredTool)
 const {
   getDbConnectionTool,
-  extractSchemaTool,
-  generateSqlQueryTool,
-  executeSqlQueryTool,
-  formatResultsTool,
   listAvailableTablesTool,
   selectRelevantTablesTool,
   extractSchemaForTablesTool,
+  generateSqlQueryTool,
+  executeSqlQueryTool,
+  formatResultsTool,
+  incrementQueryCountTool,
 } = require('./analyticsTools');
 
 /**
@@ -466,6 +466,7 @@ async function createReActAgent(analyticsModel, onToolCall = null, onThinking = 
     executeSqlQueryTool,
     fixSqlErrorTool,
     formatResultsTool,
+    incrementQueryCountTool,
   ];
 
   // Wrap tools with callbacks if provided
@@ -501,6 +502,7 @@ async function createReActAgent(analyticsModel, onToolCall = null, onThinking = 
 - execute_sql_query(sql, connectionId)
 - fix_sql_error(sql, error) → returns fixedSql
 - format_results(sql, results)
+- increment_query_count(connectionId) — tracks usage, call after format_results
 
 ## Rules
 - Always use the same connectionId throughout a session

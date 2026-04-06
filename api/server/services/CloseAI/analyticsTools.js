@@ -24,7 +24,7 @@ const {
 
 // Cache for storing table data between tool calls (avoids passing large JSON through LLM)
 const tablesCache = new Map();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours - matches schema validity
 
 function setTablesCache(connectionId, tables) {
   tablesCache.set(connectionId, {
