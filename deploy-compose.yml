@@ -1,0 +1,94 @@
+services:
+  api:
+    image: 'ghcr.io/aiaakash/sqlguroo:latest'
+    container_name: SQLGUROO-API
+    ports:
+      - '3080:3080'
+    depends_on:
+      - mongodb
+      - vectordb
+      - rag_api
+    restart: always
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    env_file:
+      - .env
+    environment:
+      - HOST=0.0.0.0
+      - NODE_ENV=production
+      - 'MONGO_URI=mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/LibreChat?authSource=admin'
+      - 'MEILI_HOST=http://meilisearch:7700'
+      - 'RAG_PORT=${RAG_PORT:-8000}'
+      - 'RAG_API_URL=http://rag_api:${RAG_PORT:-8000}'
+      - VECTORDB_HOST=vectordb
+      - VECTORDB_PORT=5432
+      - VECTORDB_DB=mydatabase
+      - VECTORDB_USER=myuser
+      - 'VECTORDB_PASSWORD=${VECTORDB_PASSWORD}'
+      - USE_VECTORDB_FOR_SKILLS=true
+    volumes:
+      - type: bind
+        source: ./librechat.yaml
+        target: /app/librechat.yaml
+      - './images:/app/client/public/images'
+      - './uploads:/app/uploads'
+      - './logs:/app/api/logs'
+  client:
+    image: 'nginx:1.27.0-alpine'
+    container_name: SQLGUROO-NGINX
+    depends_on:
+      - api
+    restart: always
+    volumes:
+      - './client/nginx.conf:/etc/nginx/conf.d/'
+  mongodb:
+    container_name: chat-mongodb-new
+    image: 'mongo:8.0.17'
+    restart: always
+    env_file:
+      - .env
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: '${MONGO_INITDB_ROOT_USERNAME}'
+      MONGO_INITDB_ROOT_PASSWORD: '${MONGO_INITDB_ROOT_PASSWORD}'
+      MONGO_INITDB_DATABASE: LibreChat
+    volumes:
+      - './data-node-v2:/data/db'
+    command: 'mongod --auth'
+  meilisearch:
+    container_name: SQLGUROO-chat-meilisearch
+    image: 'getmeili/meilisearch:v1.12.3'
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - 'MEILI_HOST=http://meilisearch:7700'
+      - MEILI_NO_ANALYTICS=true
+    volumes:
+      - './meili_data_v1.12:/meili_data'
+  vectordb:
+    image: 'pgvector/pgvector:0.8.0-pg15-trixie'
+    environment:
+      POSTGRES_DB: mydatabase
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: '${VECTORDB_PASSWORD}'
+    restart: always
+    volumes:
+      - 'pgdata2:/var/lib/postgresql/data'
+  rag_api:
+    image: 'ghcr.io/danny-avila/librechat-rag-api-dev-lite:latest'
+    environment:
+      - DB_HOST=vectordb
+      - DB_PORT=5432
+      - POSTGRES_DB=mydatabase
+      - POSTGRES_USER=myuser
+      - 'POSTGRES_PASSWORD=${VECTORDB_PASSWORD}'
+      - 'RAG_PORT=${RAG_PORT:-8000}'
+      - 'RAG_OPENAI_BASEURL=${RAG_OPENAI_BASEURL:-https://openrouter.ai/api/v1}'
+      - 'RAG_OPENAI_API_KEY=${RAG_OPENAI_API_KEY}'
+    restart: always
+    depends_on:
+      - vectordb
+    env_file:
+      - .env
+volumes:
+  pgdata2: null

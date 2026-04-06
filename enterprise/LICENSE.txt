@@ -1,0 +1,37 @@
+SQLGuroo Commercial License
+
+Copyright (c) 2024-2026 SQLGuroo. All rights reserved.
+
+Usage of files in this directory and its subdirectories, and of SQLGuroo
+Enterprise Edition features, is subject to the SQLGuroo Commercial License,
+and conditional on having a fully-paid-up license from SQLGuroo.
+
+Access to files in this directory and its subdirectories does not constitute
+permission to use this code or SQLGuroo Enterprise Edition features.
+
+1. GRANT OF LICENSE
+
+Subject to the terms and conditions of this Agreement, SQLGuroo grants you
+a limited, non-exclusive, non-transferable license to use the Enterprise
+Edition software solely for your internal business purposes.
+
+2. RESTRICTIONS
+
+You may not:
+- Use the Enterprise Edition without a valid license
+- Distribute, sublicense, or transfer the Enterprise Edition
+- Reverse engineer, decompile, or disassemble the Enterprise Edition
+- Remove or alter any proprietary notices
+
+3. SUPPORT AND UPDATES
+
+Enterprise license holders receive:
+- Priority email support
+- Regular security updates
+- Access to all Enterprise features
+
+4. WARRANTY DISCLAIMER
+
+THE ENTERPRISE EDITION IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
+
+Unless otherwise noted, all files Copyright (c) 2024-2026 SQLGuroo.

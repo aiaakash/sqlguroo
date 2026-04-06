@@ -1,0 +1,88 @@
+/**
+ * Fix table_name_embeddings dimension mismatch
+ * Usage: node api/server/services/Analytics/fixTableDimensions.js
+ */
+
+const { Pool } = require('pg');
+
+const config = {
+  host: process.env.VECTORDB_HOST || 'vectordb',
+  port: parseInt(process.env.VECTORDB_PORT || '5432', 10),
+  database: process.env.VECTORDB_DB || 'mydatabase',
+  user: process.env.VECTORDB_USER || 'myuser',
+  password: process.env.VECTORDB_PASSWORD || 'mypassword',
+};
+
+async function main() {
+  console.log('Fixing table_name_embeddings dimensions...\n');
+  
+  const pool = new Pool(config);
+  
+  try {
+    // Test connection
+    await pool.query('SELECT 1;');
+    console.log('✅ Database connection successful\n');
+    
+    // Drop existing table
+    console.log('Dropping existing table_name_embeddings...');
+    await pool.query('DROP TABLE IF EXISTS table_name_embeddings;');
+    console.log('  ✅ Table dropped');
+    
+    // Create table with correct dimensions (1536 for openai/text-embedding-3-small)
+    console.log('\nCreating table_name_embeddings with 1536 dimensions...');
+    await pool.query(`
+      CREATE TABLE table_name_embeddings (
+        id SERIAL PRIMARY KEY,
+        connection_id VARCHAR(255) NOT NULL,
+        table_name VARCHAR(255) NOT NULL,
+        embedding vector(1536),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT unique_connection_table UNIQUE (connection_id, table_name)
+      );
+    `);
+    console.log('  ✅ Table created with 1536 dimensions');
+    
+    // Create indexes
+    await pool.query(`
+      CREATE INDEX idx_table_name_embeddings_connection 
+      ON table_name_embeddings(connection_id);
+    `);
+    console.log('  ✅ Connection index created');
+    
+    // Create HNSW index for fast similarity search (supports up to 16,000 dimensions)
+    // HNSW is available in pgvector 0.5.0+ and supports our 1536-dim embeddings
+    try {
+      await pool.query(`
+        CREATE INDEX idx_table_name_embeddings_hnsw 
+        ON table_name_embeddings 
+        USING hnsw (embedding vector_cosine_ops)
+        WITH (m = 16, ef_construction = 64);
+      `);
+      console.log('  ✅ HNSW vector index created');
+    } catch (indexError) {
+      console.log('  ⚠️  HNSW index creation failed (pgvector may be <0.5.0), using brute-force scan');
+      console.log(`     Error: ${indexError.message}`);
+    }
+    
+    // Verify
+    const result = await pool.query(`
+      SELECT column_name, data_type 
+      FROM information_schema.columns 
+      WHERE table_name = 'table_name_embeddings' AND column_name = 'embedding';
+    `);
+    
+    console.log('\n✅ Table schema:');
+    console.log(`  embedding column: ${result.rows[0].data_type}`);
+    
+    console.log('\n✅ Fix complete! You need to refresh schema for your connections to store embeddings.');
+    
+  } catch (error) {
+    console.error('\n❌ Error:', error.message);
+    process.exit(1);
+  } finally {
+    await pool.end();
+  }
+}
+
+main();
