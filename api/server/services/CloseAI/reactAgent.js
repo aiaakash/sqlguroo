@@ -756,25 +756,13 @@ Sometimes, User's question may be generic and answerable via direct LLM response
     } else {
       try {
         const parsed = JSON.parse(finalOutput);
-        if (parsed.formattedText) {
-          finalOutput = parsed.formattedText;
-          if (!finalOutput.includes('```sql') && executedSql) {
-            finalOutput = `**Generated SQL Query${wasFixed ? ' (Fixed)' : ''}:**\n\`\`\`sql\n${executedSql}\n\`\`\`\n\n${finalOutput}`;
-          }
-        } else if (parsed.narrative) {
-          finalOutput = parsed.narrative;
-        } else if (parsed.message) {
-          finalOutput = parsed.message;
-        }
-        if (parsed.sql) {
-          finalSql = parsed.sql;
-        }
-      } catch {
+        finalOutput = parsed.formattedText || parsed.narrative || parsed.message || finalOutput;
+      }  catch {
         if (executedSql && !finalOutput.includes('```sql')) {
-          finalOutput = `**Generated SQL Query${wasFixed ? ' (Fixed)' : ''}:**\n\`\`\`sql\n${executedSql}\n\`\`\`\n\n${finalOutput}`;
+          finalOutput = `${finalOutput}`;
         }
       }
-    }
+    } 
 
     return {
       success: true,
