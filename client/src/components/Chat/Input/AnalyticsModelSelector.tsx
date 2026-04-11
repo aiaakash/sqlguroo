@@ -27,6 +27,8 @@ const ANALYTICS_MODELS = [
   { id: 'z-ai/glm-5', label: 'Z.AI: GLM 5', provider: 'openrouter' },
   { id: 'z-ai/glm-4.7-flash', label: 'Z.AI: GLM 4.7 Flash', provider: 'openrouter' },
   { id: 'minimax/minimax-m2.7', label: 'MiniMax M2.7', provider: 'openrouter' },
+  { id: 'minimax/minimax-m2.5:nitro', label: 'MiniMax M2.5', provider: 'openrouter' },
+
   { id: 'qwen/qwen3-coder-next', label: 'Qwen3 Coder Next', provider: 'openrouter' },
   { id: 'xiaomi/mimo-v2-flash', label: 'Xiaomi MIMO v2 Flash', provider: 'openrouter' },
   { id: 'z-ai/glm-4.5-air:free', label: 'Z.AI: GLM 4.5 Air', provider: 'openrouter' },
