@@ -14,6 +14,7 @@ import {
   Shield,
   Save,
   FileText,
+  Github,
 } from 'lucide-react';
 import {
   Permissions,
@@ -38,6 +39,7 @@ import PanelSwitch from '~/components/SidePanel/Builder/PanelSwitch';
 import FilesPanel from '~/components/SidePanel/Files/Panel';
 import DatabaseConnectionsPanel from '~/components/SidePanel/DatabaseConnections/DatabaseConnectionsPanel';
 import SkillsPanel from '~/components/SidePanel/Skills/SkillsPanel';
+import GitHubConnectionsPanel from '~/components/SidePanel/GitHubConnections/GitHubConnectionsPanel';
 import { SchemaViewerPanel } from '~/components/SidePanel/SchemaViewer';
 import { useHasAccess } from '~/hooks';
 // MCP Server - Commented out for future use
@@ -125,6 +127,15 @@ export default function useSideNavLinks({
       icon: BookOpen,
       id: 'skills',
       Component: SkillsPanel,
+    });
+
+    // GitHub Connections - SQL queries from GitHub repos as RAG context
+    links.push({
+      title: 'com_sidepanel_github_connections',
+      label: '',
+      icon: Github,
+      id: 'github-connections',
+      Component: GitHubConnectionsPanel,
     });
 
     if (

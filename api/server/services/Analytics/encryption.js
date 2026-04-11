@@ -6,7 +6,9 @@ const { logger } = require('@librechat/data-schemas');
 let ENCRYPTION_KEY = process.env.ANALYTICS_ENCRYPTION_KEY;
 
 if (!ENCRYPTION_KEY) {
-  logger.warn('ANALYTICS_ENCRYPTION_KEY not set. Generating a temporary key. This will prevent decryption of existing data on server restart.');
+  logger.warn(
+    'ANALYTICS_ENCRYPTION_KEY not set. Generating a temporary key. This will prevent decryption of existing data on server restart.',
+  );
   ENCRYPTION_KEY = crypto.randomBytes(32).toString('hex');
 } else if (ENCRYPTION_KEY.length !== 64) {
   throw new Error('ANALYTICS_ENCRYPTION_KEY must be a 64-character hex string (32 bytes)');
@@ -26,6 +28,11 @@ function encryptCredentials(text) {
       return text;
     }
 
+    logger.debug('[Encryption] Encrypting credentials', {
+      textLength: text.length,
+      keyLength: ENCRYPTION_KEY?.length,
+    });
+
     const key = Buffer.from(ENCRYPTION_KEY, 'hex');
     const iv = crypto.randomBytes(IV_LENGTH);
     const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
@@ -36,7 +43,14 @@ function encryptCredentials(text) {
     const authTag = cipher.getAuthTag();
 
     // Combine iv, authTag, and encrypted data
-    return `${iv.toString('base64')}:${authTag.toString('base64')}:${encrypted}`;
+    const result = `${iv.toString('base64')}:${authTag.toString('base64')}:${encrypted}`;
+    logger.debug('[Encryption] Encryption complete', {
+      resultLength: result.length,
+      ivLength: iv.toString('base64').length,
+      authTagLength: authTag.toString('base64').length,
+      encryptedLength: encrypted.length,
+    });
+    return result;
   } catch (error) {
     logger.error('Error encrypting credentials:', error);
     throw new Error('Failed to encrypt credentials');
@@ -54,7 +68,20 @@ function decryptCredentials(encryptedText) {
       return encryptedText;
     }
 
-    const [ivBase64, authTagBase64, encryptedData] = encryptedText.split(':');
+    const parts = encryptedText.split(':');
+
+    if (parts.length !== 3) {
+      logger.error(
+        '[Encryption] Invalid encrypted data format - expected 3 parts separated by colons',
+        {
+          partsCount: parts.length,
+          partsPreview: parts.map((p, i) => (i === 2 ? `${p.substring(0, 20)}...` : p)),
+        },
+      );
+      throw new Error('Invalid encrypted data format');
+    }
+
+    const [ivBase64, authTagBase64, encryptedData] = parts;
 
     if (!ivBase64 || !authTagBase64 || !encryptedData) {
       throw new Error('Invalid encrypted data format');
@@ -72,7 +99,11 @@ function decryptCredentials(encryptedText) {
 
     return decrypted;
   } catch (error) {
-    logger.error('Error decrypting credentials:', error);
+    logger.error('[Encryption] Error decrypting credentials:', {
+      error: error.message,
+      encryptionKeyLength: ENCRYPTION_KEY?.length,
+      keyPrefix: ENCRYPTION_KEY?.substring(0, 8),
+    });
     throw new Error('Failed to decrypt credentials');
   }
 }
@@ -90,4 +121,3 @@ module.exports = {
   decryptCredentials,
   generateEncryptionKey,
 };
-

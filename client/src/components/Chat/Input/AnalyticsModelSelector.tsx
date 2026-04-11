@@ -21,7 +21,7 @@ const ANALYTICS_MODELS = [
   { id: 'moonshotai/kimi-k2.5', label: 'Kimi K2.5', provider: 'openrouter' },
   { id: 'google/gemini-3-pro-preview', label: 'Gemini 3 Pro Preview', provider: 'openrouter' },
   // { id: 'google/gemini-3-flash-preview', label: 'Gemini 3 Flash Preview', provider: 'openrouter' },
-  { id: 'grok-code-fast-1', label: 'Grok Code Fast 1', provider: 'xai' },
+  { id: 'grok-4-1-fast-reasoning', label: 'Grok 4.1 Fast Reasoning', provider: 'xai' },
   // { id: 'mistralai/devstral-2512', label: 'Mistral Devstral 2512', provider: 'openrouter' },
   // { id: 'google/gemma-3-27b-it:free', label: 'Gemma 3 27B IT', provider: 'openrouter' },
   { id: 'z-ai/glm-5', label: 'Z.AI: GLM 5', provider: 'openrouter' },

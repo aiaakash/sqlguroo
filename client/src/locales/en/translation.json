@@ -602,6 +602,7 @@
   "com_sidepanel_attach_files": "Attach Files",
   "com_sidepanel_database_connections": "Database Connections",
   "com_sidepanel_skills": "Skills",
+  "com_sidepanel_github_connections": "GitHub Repos",
   "com_sidepanel_schema_viewer": "Schema Viewer",
   "com_sidepanel_schema_viewer_description": "Browse cached database schemas from your connected data sources",
   "com_sidepanel_search_schema": "Search connections, tables, columns...",

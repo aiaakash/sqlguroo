@@ -7,6 +7,7 @@ const { querySchemaDocumentation } = require('./schemaDocumentationRAG');
 const { initializeSampleDbSchemaDocs, SAMPLE_DB_SYSTEM_USER_ID } = require('./sampleDbService');
 const { filterSchemaWithHybridRAG } = require('./tableRAGService');
 const { generateEmbedding } = require('./embeddingService');
+const { findRelevantGitHubQueries, formatGitHubQueriesForPrompt } = require('./githubQueryRAG');
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -345,6 +346,7 @@ function buildUserPrompt({
   queryMode,
   skillsContext,
   schemaDocContext,
+  githubQueriesContext,
 }) {
   const schemaText = formatSchemaForPrompt(schema);
   const modeText =
@@ -363,6 +365,9 @@ function buildUserPrompt({
 
   // Add schema documentation context if available
   const schemaDocSection = schemaDocContext ? `\n\n${schemaDocContext}\n` : '';
+
+  // Add GitHub queries context if available
+  const githubQueriesSection = githubQueriesContext ? `\n\n${githubQueriesContext}\n` : '';
 
   // Check if schema was filtered
   const isFiltered = schema?._filtered === true;
@@ -400,7 +405,7 @@ Query Mode: ${queryMode}
 ${modeText}
 
 Database Schema:${schemaNote}
-${schemaText}${schemaDocSection}${skillsSection}${contextSection}
+${schemaText}${schemaDocSection}${skillsSection}${githubQueriesSection}${contextSection}
 
 IMPORTANT CONTEXT: The schema above shows a filtered subset of tables and columns 
 that are likely relevant to your question based on semantic analysis. This is NOT 
@@ -696,6 +701,52 @@ async function generateSqlQuery({
       logger.debug('[SQL Generator] No userId provided, skipping skills retrieval');
     }
 
+    // Retrieve relevant GitHub queries if userId is provided
+    let githubQueriesContext = '';
+    let relevantGitHubQueries = [];
+
+    if (userId) {
+      try {
+        const githubThreshold = parseFloat(process.env.ANALYTICS_GITHUB_QUERY_THRESHOLD || '0.3');
+        relevantGitHubQueries = await findRelevantGitHubQueries(
+          userId,
+          userQuestion,
+          3,
+          githubThreshold,
+        );
+
+        if (relevantGitHubQueries.length > 0) {
+          githubQueriesContext = formatGitHubQueriesForPrompt(relevantGitHubQueries);
+          logger.info(
+            `[SQL Generator] Found ${relevantGitHubQueries.length} relevant GitHub queries for user ${userId}`,
+            {
+              question: userQuestion?.substring(0, 100),
+              queries: relevantGitHubQueries.map((q) => ({
+                name: q.name,
+                relevanceScore: q.relevanceScore?.toFixed(4),
+                path: q.path,
+              })),
+            },
+          );
+
+          console.log('[SQL Generator] GitHub queries context formatted:', {
+            githubQueriesContextLength: githubQueriesContext.length,
+            githubQueriesCount: relevantGitHubQueries.length,
+            firstQueryName: relevantGitHubQueries[0]?.name,
+            firstQueryPreview: relevantGitHubQueries[0]?.sqlContent?.substring(0, 100),
+          });
+        } else {
+          console.log('[SQL Generator] No relevant GitHub queries found above threshold');
+          console.log('[SQL Generator] Question was:', userQuestion?.substring(0, 100));
+        }
+      } catch (error) {
+        console.error('[SQL Generator] Error retrieving GitHub queries:', error.message);
+        logger.warn('[SQL Generator] Error retrieving GitHub queries, continuing:', error);
+      }
+    } else {
+      console.log('[SQL Generator] No userId provided, skipping GitHub queries retrieval');
+    }
+
     // Filter schema to only include relevant tables
     // Uses Hybrid RAG (Semantic + LLM) for table selection when enabled
     // Falls back to schema documentation RAG or LLM-based filtering
@@ -942,6 +993,7 @@ async function generateSqlQuery({
       queryMode,
       skillsContext,
       schemaDocContext,
+      githubQueriesContext,
     });
     const selectedModel = model || process.env.ANALYTICS_OPENAI_MODEL || 'z-ai/glm-4.5-air:free';
 

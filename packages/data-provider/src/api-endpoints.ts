@@ -411,6 +411,14 @@ export const analyticsTableDescriptions = (id: string) =>
 /* Skills Endpoints */
 export const analyticsSkills = () => `${BASE_URL}/api/analytics/skills`;
 export const analyticsSkill = (id: string) => `${analyticsSkills()}/${id}`;
+
+/* GitHub Connections Endpoints */
+export const analyticsGitHubConnections = () => `${BASE_URL}/api/analytics/github-connections`;
+export const analyticsGitHubConnection = (id: string) => `${analyticsGitHubConnections()}/${id}`;
+export const analyticsGitHubConnectionTest = () => `${analyticsGitHubConnections()}/test`;
+export const analyticsGitHubConnectionSync = (id: string) =>
+  `${analyticsGitHubConnection(id)}/sync`;
+
 export const analyticsChat = () => `${BASE_URL}/api/analytics/chat`;
 export const analyticsExecuteQuery = () => `${BASE_URL}/api/analytics/chat/execute`;
 export const analyticsHistory = (conversationId: string) =>

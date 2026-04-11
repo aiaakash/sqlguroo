@@ -4,6 +4,7 @@ const { requireJwtAuth, checkBan, configMiddleware } = require('~/server/middlew
 const connections = require('./connections');
 const chat = require('./chat');
 const skills = require('./skills');
+const githubConnections = require('./githubConnections');
 
 const router = express.Router();
 
@@ -35,6 +36,6 @@ router.use(configMiddleware);
 router.use('/connections', connections);
 router.use('/chat', chat);
 router.use('/skills', skills);
+router.use('/github-connections', githubConnections);
 
 module.exports = router;
-

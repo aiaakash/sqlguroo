@@ -41,3 +41,5 @@ export * from './dashboard';
 export * from './subscription';
 /* Saved Queries */
 export * from './savedQuery';
+/* GitHub Repo Connections */
+export * from './githubRepoConnection';

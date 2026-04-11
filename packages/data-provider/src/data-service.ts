@@ -1111,6 +1111,47 @@ export function deleteAnalyticsSkill(id: string): Promise<{ message: string }> {
   return request.delete(endpoints.analyticsSkill(id));
 }
 
+/* GitHub Connections */
+export function getAnalyticsGitHubConnections(): Promise<analytics.TGitHubRepoConnection[]> {
+  return request.get(endpoints.analyticsGitHubConnections());
+}
+
+export function getAnalyticsGitHubConnection(id: string): Promise<analytics.TGitHubRepoConnection> {
+  return request.get(endpoints.analyticsGitHubConnection(id));
+}
+
+export function createAnalyticsGitHubConnection(
+  data: analytics.TCreateGitHubRepoConnectionRequest,
+): Promise<analytics.TGitHubRepoConnection> {
+  return request.post(endpoints.analyticsGitHubConnections(), data);
+}
+
+export function updateAnalyticsGitHubConnection(
+  id: string,
+  data: analytics.TUpdateGitHubRepoConnectionRequest,
+): Promise<analytics.TGitHubRepoConnection> {
+  return request.put(endpoints.analyticsGitHubConnection(id), data);
+}
+
+export function deleteAnalyticsGitHubConnection(id: string): Promise<{ success: boolean }> {
+  return request.delete(endpoints.analyticsGitHubConnection(id));
+}
+
+export function testAnalyticsGitHubConnection(data: {
+  owner: string;
+  repo: string;
+  accessToken: string;
+  branch?: string;
+}): Promise<{ success: boolean; error?: string; metadata?: Record<string, unknown> }> {
+  return request.post(endpoints.analyticsGitHubConnectionTest(), data);
+}
+
+export function syncAnalyticsGitHubConnection(
+  id: string,
+): Promise<{ success: boolean; queriesFound: number; error?: string }> {
+  return request.post(endpoints.analyticsGitHubConnectionSync(id), {});
+}
+
 export function testAnalyticsConnection(id: string): Promise<analytics.TConnectionTestResult> {
   return request.post(endpoints.analyticsConnectionTest(id), {});
 }
@@ -1137,9 +1178,7 @@ export function refreshAnalyticsSchema(
   return request.post(endpoints.analyticsRefreshSchema(id), {});
 }
 
-export function getTableDescriptions(
-  id: string,
-): Promise<{
+export function getTableDescriptions(id: string): Promise<{
   tableDescriptions: Record<string, string>;
   columnDescriptions: Record<string, string>;
 }> {

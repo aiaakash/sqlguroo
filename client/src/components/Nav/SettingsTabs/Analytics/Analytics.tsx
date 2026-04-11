@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Database, Plus, TestTube, Trash2, Edit2, Server, BookOpen } from 'lucide-react';
+import { Database, Plus, TestTube, Trash2, Edit2, Server, BookOpen, Github } from 'lucide-react';
 import { useLocalize } from '~/hooks';
 import { OGDialog, OGDialogTrigger, Spinner } from '@librechat/client';
 import ConnectionForm from './ConnectionForm';
+import GitHubConnectionsPanel from './GitHubConnectionsPanel';
 import { useAnalyticsConnections, useDeleteConnection, useTestConnection } from './hooks';
 
 // Database type to icon mapping
@@ -61,11 +62,13 @@ const DB_ICONS: Record<string, { icon: string; name: string; color: string }> = 
 
 function getDbIcon(type: string) {
   const normalizedType = type.toLowerCase().replace(/\s/g, '');
-  return DB_ICONS[normalizedType] || {
-    icon: '',
-    name: type.toUpperCase(),
-    color: '#6B7280',
-  };
+  return (
+    DB_ICONS[normalizedType] || {
+      icon: '',
+      name: type.toUpperCase(),
+      color: '#6B7280',
+    }
+  );
 }
 
 function DbTypeIcon({ type, className = '' }: { type: string; className?: string }) {
@@ -97,7 +100,8 @@ function DbTypeIcon({ type, className = '' }: { type: string; className?: string
           target.style.display = 'none';
           const parent = target.parentElement;
           if (parent) {
-            parent.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-text-secondary"><rect width="20" height="8" x="2" y="2" rx="2" ry="2"/><rect width="20" height="8" x="2" y="14" rx="2" ry="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/></svg>';
+            parent.innerHTML =
+              '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-text-secondary"><rect width="20" height="8" x="2" y="2" rx="2" ry="2"/><rect width="20" height="8" x="2" y="14" rx="2" ry="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/></svg>';
           }
         }}
       />
@@ -189,20 +193,15 @@ export default function Analytics() {
               className="group relative flex items-center gap-3 rounded-xl border border-border-light bg-surface-secondary p-2.5 transition-all duration-200 hover:border-border-medium hover:bg-surface-tertiary hover:shadow-sm"
             >
               {/* Database Type Icon */}
-              <DbTypeIcon
-                type={connection.type}
-                className="h-9 w-9 shrink-0"
-              />
+              <DbTypeIcon type={connection.type} className="h-9 w-9 shrink-0" />
 
               {/* Connection Info - Compact Layout */}
               <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <div className="flex items-center gap-2">
-                  <span className="truncate font-medium text-text-primary">
-                    {connection.name}
-                  </span>
+                  <span className="truncate font-medium text-text-primary">{connection.name}</span>
                   {/* Status Badge */}
                   <span
-                    className={`shrink-0 inline-flex items-center rounded-full px-1.5 py-0 text-[10px] font-medium ${
+                    className={`inline-flex shrink-0 items-center rounded-full px-1.5 py-0 text-[10px] font-medium ${
                       connection.lastTestSuccess
                         ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
                         : connection.lastTestSuccess === false
@@ -295,7 +294,7 @@ export default function Analytics() {
           ))}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border-light bg-surface-secondary/50 py-8 text-center">
+        <div className="bg-surface-secondary/50 flex flex-col items-center justify-center rounded-xl border border-dashed border-border-light py-8 text-center">
           <Database className="mb-2 h-8 w-8 text-text-tertiary" />
           <p className="text-sm text-text-secondary">No database connections configured</p>
           <p className="text-xs text-text-tertiary">
@@ -303,6 +302,9 @@ export default function Analytics() {
           </p>
         </div>
       )}
+
+      {/* GitHub Connections Section */}
+      <GitHubConnectionsPanel />
 
       {/* Supported Databases Section - DO NOT MODIFY */}
       <div className="mt-4 border-t border-border-medium pt-4">

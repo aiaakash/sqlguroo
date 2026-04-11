@@ -34,6 +34,7 @@ import { createDashboardModel } from './dashboard';
 import { createSubscriptionModel } from './subscription';
 import { createUsageModel } from './usage';
 import { createSavedQueryModel } from './savedQuery';
+import { createGitHubRepoConnectionModel } from './githubRepoConnection';
 
 /**
  * Creates all database models for all collections
@@ -76,5 +77,6 @@ export function createModels(mongoose: typeof import('mongoose')) {
     Subscription: createSubscriptionModel(mongoose),
     Usage: createUsageModel(mongoose),
     SavedQuery: createSavedQueryModel(mongoose),
+    GitHubRepoConnection: createGitHubRepoConnectionModel(mongoose),
   };
 }

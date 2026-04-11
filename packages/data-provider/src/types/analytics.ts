@@ -266,3 +266,50 @@ export interface TListSavedQueriesResponse {
   hasMore: boolean;
 }
 
+/* GitHub Repo Connection Types */
+export enum GitHubProvider {
+  GITHUB = 'github',
+  GITLAB = 'gitlab',
+  BITBUCKET = 'bitbucket',
+}
+
+export interface TGitHubRepoConnection {
+  _id: string;
+  userId: string;
+  name: string;
+  provider: GitHubProvider;
+  owner: string;
+  repo: string;
+  branch: string;
+  queryPath?: string;
+  includePatterns: string[];
+  excludePatterns: string[];
+  isActive: boolean;
+  lastSyncedAt?: string;
+  lastSyncSuccess?: boolean;
+  syncError?: string;
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TCreateGitHubRepoConnectionRequest {
+  name: string;
+  owner: string;
+  repo: string;
+  branch?: string;
+  queryPath?: string;
+  includePatterns?: string[];
+  excludePatterns?: string[];
+  accessToken: string;
+}
+
+export interface TUpdateGitHubRepoConnectionRequest {
+  name?: string;
+  branch?: string;
+  queryPath?: string;
+  includePatterns?: string[];
+  excludePatterns?: string[];
+  accessToken?: string;
+  isActive?: boolean;
+}

@@ -237,3 +237,81 @@ export function useSaveTableDescriptions() {
     },
   });
 }
+
+/* GitHub Connection Hooks */
+import type {
+  TGitHubRepoConnection,
+  TCreateGitHubRepoConnectionRequest,
+  TUpdateGitHubRepoConnectionRequest,
+} from 'librechat-data-provider';
+
+const ANALYTICS_GITHUB_CONNECTIONS_KEY = 'analytics-github-connections';
+
+export function useAnalyticsGitHubConnections() {
+  return useQuery<TGitHubRepoConnection[]>({
+    queryKey: [ANALYTICS_GITHUB_CONNECTIONS_KEY],
+    queryFn: () => dataService.getAnalyticsGitHubConnections(),
+    enabled: true,
+  });
+}
+
+export function useAnalyticsGitHubConnection(id: string, options?: { enabled?: boolean }) {
+  return useQuery<TGitHubRepoConnection>({
+    queryKey: [ANALYTICS_GITHUB_CONNECTIONS_KEY, id],
+    queryFn: () => dataService.getAnalyticsGitHubConnection(id),
+    enabled: options?.enabled !== false && !!id,
+  });
+}
+
+export function useCreateGitHubConnection() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: TCreateGitHubRepoConnectionRequest) =>
+      dataService.createAnalyticsGitHubConnection(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ANALYTICS_GITHUB_CONNECTIONS_KEY] });
+    },
+  });
+}
+
+export function useUpdateGitHubConnection() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: TUpdateGitHubRepoConnectionRequest }) =>
+      dataService.updateAnalyticsGitHubConnection(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ANALYTICS_GITHUB_CONNECTIONS_KEY] });
+    },
+  });
+}
+
+export function useDeleteGitHubConnection() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => dataService.deleteAnalyticsGitHubConnection(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ANALYTICS_GITHUB_CONNECTIONS_KEY] });
+    },
+  });
+}
+
+export function useTestGitHubConnection() {
+  return useMutation({
+    mutationFn: (data: { owner: string; repo: string; accessToken: string; branch?: string }) =>
+      dataService.testAnalyticsGitHubConnection(data),
+  });
+}
+
+export function useSyncGitHubConnection() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => dataService.syncAnalyticsGitHubConnection(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ANALYTICS_GITHUB_CONNECTIONS_KEY] });
+    },
+  });
+}
