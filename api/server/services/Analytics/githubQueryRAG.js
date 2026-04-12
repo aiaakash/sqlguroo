@@ -133,7 +133,13 @@ function getCachedGitHubQueries(userId) {
 /**
  * Find relevant GitHub queries using in-memory similarity search
  */
-async function findRelevantGitHubQueriesInMemory(userId, queryText, topK = 3, threshold = 0.3) {
+async function findRelevantGitHubQueriesInMemory(
+  userId,
+  queryText,
+  topK = 3,
+  threshold = 0.3,
+  preGeneratedEmbedding = null,
+) {
   const queries = getCachedGitHubQueries(userId);
 
   console.log('[GitHub Query RAG] Searching for relevant queries:', {
@@ -149,8 +155,14 @@ async function findRelevantGitHubQueriesInMemory(userId, queryText, topK = 3, th
     return [];
   }
 
-  // Generate embedding for the query
-  const queryEmbedding = await generateEmbedding(queryText);
+  // Use pre-generated embedding or generate a new one
+  let queryEmbedding = preGeneratedEmbedding;
+  if (!queryEmbedding) {
+    console.log('[GitHub Query RAG] Generating embedding for query...');
+    queryEmbedding = await generateEmbedding(queryText);
+  } else {
+    console.log('[GitHub Query RAG] Using pre-generated embedding');
+  }
 
   // Compute similarity scores for all queries
   const queriesWithScores = queries.map((query) => {
@@ -198,7 +210,13 @@ async function findRelevantGitHubQueriesInMemory(userId, queryText, topK = 3, th
 /**
  * Find relevant GitHub queries for a user query using semantic matching
  */
-async function findRelevantGitHubQueries(userId, queryText, topK = 3, threshold = 0.3) {
+async function findRelevantGitHubQueries(
+  userId,
+  queryText,
+  topK = 3,
+  threshold = 0.3,
+  preGeneratedEmbedding = null,
+) {
   try {
     console.log('[GitHub Query RAG] Finding relevant GitHub queries:', {
       userId,
@@ -212,6 +230,7 @@ async function findRelevantGitHubQueries(userId, queryText, topK = 3, threshold 
       queryText,
       topK,
       threshold,
+      preGeneratedEmbedding,
     );
 
     console.log('[GitHub Query RAG] Returning', relevantQueries.length, 'relevant queries');

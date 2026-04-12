@@ -62,10 +62,13 @@ async function generateEmbedding(text) {
       textLength: text?.length || 0,
       textPreview: text?.substring(0, 100) || '',
     });
-    logger.debug(`[Skill Matching] Generating embedding using OpenRouter with model: ${EMBEDDING_MODEL}`, {
-      textLength: text?.length || 0,
-    });
-    
+    logger.debug(
+      `[Skill Matching] Generating embedding using OpenRouter with model: ${EMBEDDING_MODEL}`,
+      {
+        textLength: text?.length || 0,
+      },
+    );
+
     const response = await openRouter.embeddings.create({
       model: EMBEDDING_MODEL,
       input: text.trim(),
@@ -102,8 +105,8 @@ async function getSkillEmbedding(skill) {
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
   // Check if embedding dimension matches the current model
-  const hasCorrectDimension = skill.embedding && 
-    skill.embedding.length === EXPECTED_EMBEDDING_DIMENSION;
+  const hasCorrectDimension =
+    skill.embedding && skill.embedding.length === EXPECTED_EMBEDDING_DIMENSION;
 
   if (
     skill.embedding &&
@@ -133,12 +136,10 @@ async function getSkillEmbedding(skill) {
 
   // Generate new embedding using title + description + content for better semantic matching
   // This captures keywords from title, context from description, and SQL patterns from content
-  const textForEmbedding = [
-    skill.title || '',
-    skill.description || '',
-    skill.content || '',
-  ].filter(Boolean).join('\n\n');
-  
+  const textForEmbedding = [skill.title || '', skill.description || '', skill.content || '']
+    .filter(Boolean)
+    .join('\n\n');
+
   console.log('[Skill Matching] Generating new embedding for skill:', {
     skillId: skill.skillId,
     title: skill.title,
@@ -151,15 +152,15 @@ async function getSkillEmbedding(skill) {
     title: skill.title,
     textLength: textForEmbedding.length,
   });
-  
+
   const embedding = await generateEmbedding(textForEmbedding);
-  
+
   console.log('[Skill Matching] Skill embedding generated:', {
     skillId: skill.skillId,
     title: skill.title,
     embeddingLength: embedding.length,
   });
-  
+
   // Update skill with new embedding (don't await to avoid blocking)
   Skill.findByIdAndUpdate(skill._id, {
     embedding,
@@ -170,17 +171,19 @@ async function getSkillEmbedding(skill) {
 
   // Also update vectordb if enabled (don't await to avoid blocking)
   if (process.env.USE_VECTORDB_FOR_SKILLS !== 'false') {
-    vectordbService.upsertSkillEmbedding({
-      skillId: skill.skillId,
-      userId: skill.userId?.toString ? skill.userId.toString() : skill.userId,
-      title: skill.title,
-      description: skill.description,
-      content: skill.content,
-      embedding,
-      isActive: skill.isActive ?? true,
-    }).catch((err) => {
-      logger.error('Error updating skill embedding in vectordb:', err);
-    });
+    vectordbService
+      .upsertSkillEmbedding({
+        skillId: skill.skillId,
+        userId: skill.userId?.toString ? skill.userId.toString() : skill.userId,
+        title: skill.title,
+        description: skill.description,
+        content: skill.content,
+        embedding,
+        isActive: skill.isActive ?? true,
+      })
+      .catch((err) => {
+        logger.error('Error updating skill embedding in vectordb:', err);
+      });
   }
 
   return embedding;
@@ -235,7 +238,10 @@ async function findRelevantSkillsVectordb(userIdStr, queryEmbedding, topK, thres
 
     return [];
   } catch (error) {
-    logger.warn('[Skill Matching] Vectordb search failed, falling back to in-memory:', error.message);
+    logger.warn(
+      '[Skill Matching] Vectordb search failed, falling back to in-memory:',
+      error.message,
+    );
     throw error; // Re-throw to trigger fallback
   }
 }
@@ -292,7 +298,13 @@ async function findRelevantSkillsInMemory(userIdStr, queryEmbedding, topK, thres
  * @param {number} threshold - Minimum similarity threshold (default: 0.4, lowered from 0.7 for better matching)
  * @returns {Promise<Array>} Array of skills with relevance scores
  */
-async function findRelevantSkills(userId, query, topK = 3, threshold = 0.4) {
+async function findRelevantSkills(
+  userId,
+  query,
+  topK = 3,
+  threshold = 0.4,
+  preGeneratedEmbedding = null,
+) {
   try {
     // Convert userId to string if it's an ObjectId
     const userIdStr = userId?.toString ? userId.toString() : userId;
@@ -311,14 +323,22 @@ async function findRelevantSkills(userId, query, topK = 3, threshold = 0.4) {
       threshold,
     });
 
-    // Generate embedding for the query
-    console.log('[Skill Matching] Generating embedding for user query...');
-    logger.debug('[Skill Matching] Generating query embedding');
-    const queryEmbedding = await generateEmbedding(query);
-    console.log('[Skill Matching] Query embedding generated:', {
-      embeddingLength: queryEmbedding.length,
-      embeddingPreview: queryEmbedding.slice(0, 5),
-    });
+    // Use pre-generated embedding or generate a new one
+    let queryEmbedding = preGeneratedEmbedding;
+    if (!queryEmbedding) {
+      console.log('[Skill Matching] Generating embedding for user query...');
+      logger.debug('[Skill Matching] Generating query embedding');
+      queryEmbedding = await generateEmbedding(query);
+      console.log('[Skill Matching] Query embedding generated:', {
+        embeddingLength: queryEmbedding.length,
+        embeddingPreview: queryEmbedding.slice(0, 5),
+      });
+    } else {
+      console.log('[Skill Matching] Using pre-generated embedding:', {
+        embeddingLength: queryEmbedding.length,
+        embeddingPreview: queryEmbedding.slice(0, 5),
+      });
+    }
 
     // Try vectordb first (if enabled and available)
     const useVectordb = process.env.USE_VECTORDB_FOR_SKILLS !== 'false'; // Default to true
@@ -347,7 +367,10 @@ async function findRelevantSkills(userId, query, topK = 3, threshold = 0.4) {
           console.log('[Skill Matching] Vectordb not available, using in-memory calculation');
         }
       } catch (error) {
-        console.log('[Skill Matching] Vectordb search failed, falling back to in-memory:', error.message);
+        console.log(
+          '[Skill Matching] Vectordb search failed, falling back to in-memory:',
+          error.message,
+        );
         logger.warn('[Skill Matching] Vectordb search failed, using fallback:', error.message);
       }
     }
@@ -355,12 +378,7 @@ async function findRelevantSkills(userId, query, topK = 3, threshold = 0.4) {
     // Fallback to in-memory calculation if vectordb not used
     if (!usedVectordb) {
       console.log('[Skill Matching] Using in-memory similarity calculation');
-      relevantSkills = await findRelevantSkillsInMemory(
-        userIdStr,
-        queryEmbedding,
-        topK,
-        threshold,
-      );
+      relevantSkills = await findRelevantSkillsInMemory(userIdStr, queryEmbedding, topK, threshold);
     }
 
     console.log('[Skill Matching] Final relevant skills selected:', {
@@ -412,14 +430,14 @@ Content: ${skill.content}`,
 
   const formatted = `Context from Skills:
 ${skillsText}`;
-  
+
   console.log('[Skill Matching] Formatted skills for prompt:', {
     skillsCount: skills.length,
     formattedLength: formatted.length,
     formattedPreview: formatted.substring(0, 300),
-    skillTitles: skills.map(s => s.title),
+    skillTitles: skills.map((s) => s.title),
   });
-  
+
   return formatted;
 }
 
@@ -429,4 +447,3 @@ module.exports = {
   generateEmbedding,
   cosineSimilarity,
 };
-

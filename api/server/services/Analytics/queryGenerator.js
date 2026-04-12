@@ -630,6 +630,24 @@ async function generateSqlQuery({
     // Use original question if provided, otherwise extract from conversation context
     const userQuestion = originalQuestion || extractUserQuestion(question);
 
+    // Generate query embedding once for reuse across skill matching, GitHub RAG, and table RAG
+    // This avoids making 3 separate embedding API calls for the same text
+    let queryEmbedding = null;
+    let embeddingGenerated = false;
+    if (userId) {
+      try {
+        console.log('[SQL Generator] Generating single embedding for query reuse');
+        queryEmbedding = await generateEmbedding(userQuestion);
+        embeddingGenerated = true;
+        console.log('[SQL Generator] Query embedding generated:', {
+          embeddingLength: queryEmbedding.length,
+        });
+      } catch (error) {
+        console.error('[SQL Generator] Error generating embedding:', error.message);
+        // Continue without embedding - functions will generate their own if needed
+      }
+    }
+
     // Retrieve relevant skills if userId is provided
     let skillsContext = '';
     let relevantSkills = [];
@@ -654,7 +672,13 @@ async function generateSqlQuery({
         // Lower threshold (0.4) helps match skills even when exact wording differs
         // This is important because embeddings may not always match perfectly
         const skillThreshold = parseFloat(process.env.ANALYTICS_SKILL_THRESHOLD || '0.4');
-        relevantSkills = await findRelevantSkills(userId, userQuestion, 3, skillThreshold);
+        relevantSkills = await findRelevantSkills(
+          userId,
+          userQuestion,
+          3,
+          skillThreshold,
+          queryEmbedding,
+        );
 
         console.log('[SQL Generator] Skills retrieval completed:', {
           userId: userId?.toString ? userId.toString() : userId,
@@ -713,6 +737,7 @@ async function generateSqlQuery({
           userQuestion,
           3,
           githubThreshold,
+          queryEmbedding,
         );
 
         if (relevantGitHubQueries.length > 0) {
@@ -772,14 +797,22 @@ async function generateSqlQuery({
         try {
           console.log('[SQL Generator] Using Hybrid RAG for table selection (Semantic + LLM)');
 
-          // Generate embedding for the user question
-          const queryEmbedding = await generateEmbedding(userQuestion);
+          // Reuse pre-generated embedding or generate new one if not available
+          let tableRAGEmbedding = queryEmbedding;
+          if (!tableRAGEmbedding) {
+            console.log(
+              '[SQL Generator] Generating embedding for table RAG (was not generated earlier)',
+            );
+            tableRAGEmbedding = await generateEmbedding(userQuestion);
+          } else {
+            console.log('[SQL Generator] Reusing pre-generated embedding for table RAG');
+          }
 
           // Use hybrid approach: Semantic search on table names + LLM filtering
           filteredSchema = await filterSchemaWithHybridRAG(
             schema,
             connectionId,
-            queryEmbedding,
+            tableRAGEmbedding,
             userQuestion,
             { maxTables },
           );
