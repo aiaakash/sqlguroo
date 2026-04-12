@@ -966,25 +966,60 @@ IMPORTANT:
         return JSON.stringify({ success: false, error: 'Database connection not found' });
       }
 
-      const decryptedPassword =
-        connectionId === 'sample-db'
-          ? connection.password
-          : decryptCredentials(connection.password);
+      let fullSchema;
+      const schemaAge = connection.schemaCachedAt
+        ? Date.now() - connection.schemaCachedAt.getTime()
+        : Infinity;
+      const SCHEMA_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
-      const fullSchema = await extractSchema({
-        type: connection.type,
-        host: connection.host,
-        port: connection.port,
-        database: connection.database,
-        username: connection.username,
-        password: decryptedPassword,
-        ssl: connection.ssl,
-        sslCertificate: connection.sslCertificate
-          ? connectionId === 'sample-db'
-            ? connection.sslCertificate
-            : decryptCredentials(connection.sslCertificate)
-          : undefined,
-      });
+      // Use MongoDB cachedSchema if valid
+      if (connection.cachedSchema && schemaAge <= SCHEMA_CACHE_TTL_MS) {
+        logger.info('[Analytics Tool] Using MongoDB cachedSchema:', {
+          connectionId,
+          schemaAgeMs: schemaAge,
+          tableCount: connection.cachedSchema?.tables?.length || 0,
+        });
+        fullSchema = connection.cachedSchema;
+      } else {
+        // Fallback: extract from database and update cache
+        logger.info('[Analytics Tool] MongoDB cachedSchema miss/expired, extracting from DB:', {
+          connectionId,
+          hasCachedSchema: !!connection.cachedSchema,
+          schemaAgeMs: schemaAge,
+          isExpired: schemaAge > SCHEMA_CACHE_TTL_MS,
+        });
+
+        const decryptedPassword =
+          connectionId === 'sample-db'
+            ? connection.password
+            : decryptCredentials(connection.password);
+
+        fullSchema = await extractSchema({
+          type: connection.type,
+          host: connection.host,
+          port: connection.port,
+          database: connection.database,
+          username: connection.username,
+          password: decryptedPassword,
+          ssl: connection.ssl,
+          sslCertificate: connection.sslCertificate
+            ? connectionId === 'sample-db'
+              ? connection.sslCertificate
+              : decryptCredentials(connection.sslCertificate)
+            : undefined,
+        });
+
+        // Update MongoDB cache
+        if (fullSchema && fullSchema.tables) {
+          connection.cachedSchema = fullSchema;
+          connection.schemaCachedAt = new Date();
+          await connection.save();
+          logger.info('[Analytics Tool] Updated MongoDB cachedSchema:', {
+            connectionId,
+            tableCount: fullSchema.tables.length,
+          });
+        }
+      }
 
       if (!fullSchema || !fullSchema.tables) {
         return JSON.stringify({ success: false, error: 'Failed to extract schema' });

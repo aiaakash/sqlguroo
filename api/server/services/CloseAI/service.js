@@ -587,7 +587,7 @@ async function streamOpenAIFormat(stream, text, model, completionId) {
   const streamDelayMsRaw = process.env.CLOSEAI_STREAM_DELAY_MS;
   const streamDelayMs = Number.isFinite(Number(streamDelayMsRaw))
     ? Math.max(0, Number(streamDelayMsRaw))
-    : 20;
+    : 3;
 
   // Send initial chunk
   const initialChunk = {

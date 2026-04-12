@@ -28,23 +28,23 @@ async function storeTableEmbeddingsForConnection(connectionId, schema) {
       connectionId,
       tableCount: schema?.tables?.length || 0,
     });
-    
+
     // Delete existing embeddings first
     await deleteTableNameEmbeddingsForConnection(connectionId);
-    
+
     // Store new embeddings
     const count = await storeTableNameEmbeddings(connectionId, schema);
-    
+
     console.log('[Connection Service] Table embeddings stored successfully:', {
       connectionId,
       tableCount: count,
     });
-    
+
     logger.info('[Connection Service] Stored table embeddings for connection:', {
       connectionId,
       tableCount: count,
     });
-    
+
     return count;
   } catch (error) {
     // Log error but don't fail - table RAG is optional
@@ -68,15 +68,15 @@ async function storeTableEmbeddingsForConnection(connectionId, schema) {
  */
 async function extractSchemaAndStoreEmbeddings(config, connectionId) {
   const schema = await extractSchema(config);
-  
+
   // Store table embeddings if connectionId provided
   if (connectionId && schema?.tables?.length > 0) {
     // Fire and forget - don't block on embedding storage
-    storeTableEmbeddingsForConnection(connectionId, schema).catch(err => {
+    storeTableEmbeddingsForConnection(connectionId, schema).catch((err) => {
       logger.debug('[Connection Service] Background table embedding storage failed:', err.message);
     });
   }
-  
+
   return schema;
 }
 
@@ -92,6 +92,7 @@ async function testConnection(config) {
 
 /**
  * Extract schema information from a database
+ * Schema caching is handled at the MongoDB level via connection.cachedSchema
  * @param {Object} config - Connection configuration
  * @returns {Promise<Object>} - Database schema
  */
@@ -141,9 +142,7 @@ function formatSchemaForPrompt(schema) {
       formatted += 'Sample values: ';
       try {
         const sampleCols = Object.keys(table.sampleData[0]).slice(0, 3);
-        const samples = sampleCols
-          .map((col) => `${col}="${table.sampleData[0][col]}"`)
-          .join(', ');
+        const samples = sampleCols.map((col) => `${col}="${table.sampleData[0][col]}"`).join(', ');
         formatted += samples + '\n';
       } catch (err) {
         formatted += 'Error fetching sample values\n';

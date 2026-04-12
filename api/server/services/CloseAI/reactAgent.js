@@ -38,14 +38,50 @@ class StreamingToolCallbackHandler extends BaseCallbackHandler {
 
   async handleLLMStart(llm, prompts, runId, parentRunId, tags, metadata) {
     logLLM('LLM call starting...', { prompts });
+
+    // Stream LLM thinking event to client
+    try {
+      if (this.onThinking) {
+        await this.onThinking({
+          message: '🤖 Agent is thinking...',
+          step: this.stepCount + 1,
+        });
+      }
+    } catch (err) {
+      logger.error('[ReAct Agent Callback] Error in handleLLMStart:', { error: err.message });
+    }
   }
 
   async handleLLMEnd(output, runId, parentRunId, tags, metadata) {
     logLLM('LLM call completed', output);
+
+    // Stream LLM thinking completion to client
+    try {
+      if (this.onThinking) {
+        await this.onThinking({
+          message: '✅ Agent decision complete',
+          step: this.stepCount + 1,
+        });
+      }
+    } catch (err) {
+      logger.error('[ReAct Agent Callback] Error in handleLLMEnd:', { error: err.message });
+    }
   }
 
   async handleLLMError(error, runId, parentRunId, tags, metadata) {
     logLLM('LLM Error', { error: error.message });
+
+    // Stream LLM error to client
+    try {
+      if (this.onThinking) {
+        await this.onThinking({
+          message: `❌ Agent error: ${error.message}`,
+          step: this.stepCount + 1,
+        });
+      }
+    } catch (err) {
+      logger.error('[ReAct Agent Callback] Error in handleLLMError:', { error: err.message });
+    }
   }
 
   async handleToolStart(tool, input, runId, parentRunId, tags, metadata, name) {
@@ -534,7 +570,7 @@ Be methodical and thorough. If a query fails, analyze the error and try again wi
   const executor = new AgentExecutor({
     agent,
     tools,
-    maxIterations: 10,
+    maxIterations: 15,
     verbose: false, // Disable verbose LangChain logging
     returnIntermediateSteps: true,
   });
@@ -757,12 +793,12 @@ Sometimes, User's question may be generic and answerable via direct LLM response
       try {
         const parsed = JSON.parse(finalOutput);
         finalOutput = parsed.formattedText || parsed.narrative || parsed.message || finalOutput;
-      }  catch {
+      } catch {
         if (executedSql && !finalOutput.includes('```sql')) {
           finalOutput = `${finalOutput}`;
         }
       }
-    } 
+    }
 
     return {
       success: true,
