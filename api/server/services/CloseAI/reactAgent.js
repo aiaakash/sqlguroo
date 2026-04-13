@@ -101,7 +101,7 @@ class StreamingToolCallbackHandler extends BaseCallbackHandler {
       extract_schema_for_tables: '📋 Extracting detailed schema for the selected tables...',
       generate_sql_query:
         '✨ Generating SQL query based on your question and the database schema...',
-      execute_sql_query: '⚡ Executing the generated SQL query against the database...',
+      execute_sql_query: '⚡ Executing SQL query and auto-formatting results...',
       fix_sql_error: '🛠️  Detected an error in the SQL query. Analyzing and fixing...',
       format_results: '📝 Formatting query results into a readable response...',
     };
@@ -203,7 +203,7 @@ function getToolThinkingMessage(toolName) {
     select_relevant_tables: '🎯 Analyzing your question to identify relevant tables...',
     extract_schema_for_tables: '📋 Extracting detailed schema for the selected tables...',
     generate_sql_query: '✨ Generating SQL query based on your question and the database schema...',
-    execute_sql_query: '⚡ Executing the generated SQL query against the database...',
+    execute_sql_query: '⚡ Executing SQL query and auto-formatting results...',
     fix_sql_error: '🛠️  Detected an error in the SQL query. Analyzing and fixing...',
     format_results: '📝 Formatting query results into a readable response...',
   };
@@ -622,7 +622,7 @@ Use the below available tools to answer the question:
 4. extract_schema_for_tables(selected tables only)
 5. generate_sql_query(schema, question, analyticsModel, userId, originalQuestion)
 6. execute_sql_query → on error: fix_sql_error → retry
-7. format_results(executedSql, results)
+7. format_results(executedSql, results) — only needed if execute_sql_query fails and you need custom formatting
 
 IMPORTANT: 
 - When calling generate_sql_query, ALWAYS pass these parameters:
@@ -632,6 +632,8 @@ IMPORTANT:
 - Use the SAME connectionId for list_available_tables and select_relevant_tables
 - select_relevant_tables does NOT need a tables parameter (uses internal cache)
 - This saves tokens by only loading relevant table schemas
+- execute_sql_query automatically formats results into markdown. After a SUCCESSFUL execute_sql_query, do NOT call format_results — go directly to your final answer.
+- Only call format_results if you need to re-format results after an error fix or need a custom explanation.
 
 Sometimes, User's question may be generic and answerable via direct LLM response using chat history or context without using any SQL tools`;
 
@@ -702,6 +704,14 @@ Sometimes, User's question may be generic and answerable via direct LLM response
               executedSql = obsParsed.fixedSql;
               wasFixed = true;
               logger.info('[ReAct Agent] SQL was fixed during execution');
+            }
+          }
+          if (action.tool === 'execute_sql_query' && observation) {
+            const obsParsed = JSON.parse(observation);
+            if (obsParsed.success && obsParsed.formattedText) {
+              formattedResults = obsParsed.formattedText;
+              executedSql = executedSql || obsParsed.sql;
+              logger.info('[ReAct Agent] Auto-captured formatted results from execute_sql_query');
             }
           }
           if (action.tool === 'format_results' && observation) {

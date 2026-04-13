@@ -497,17 +497,35 @@ IMPORTANT: Use parameter name "connectionId" (camelCase), NOT "connection_id".`,
         maxRows: 1000,
       });
 
+      const resultsObj = {
+        columns: queryResult.columns,
+        rows: queryResult.rows,
+        rowCount: queryResult.rowCount,
+        executionTimeMs: queryResult.executionTimeMs,
+        truncated: queryResult.truncated,
+        suggestedChartType: queryResult.suggestedChartType,
+      };
+
+      const formattedText = formatResultsInternal({ sql, results: resultsObj });
+
+      const sampleRows = queryResult.rows.slice(0, 3);
+      const sampleResults = {
+        columns: queryResult.columns,
+        rows: sampleRows,
+        rowCount: queryResult.rowCount,
+        executionTimeMs: queryResult.executionTimeMs,
+        truncated: queryResult.truncated,
+        suggestedChartType: queryResult.suggestedChartType,
+      };
+
       return JSON.stringify({
         success: true,
-        results: {
-          columns: queryResult.columns,
-          rows: queryResult.rows,
-          rowCount: queryResult.rowCount,
-          executionTimeMs: queryResult.executionTimeMs,
-          truncated: queryResult.truncated,
-          suggestedChartType: queryResult.suggestedChartType,
-        },
-        message: `Query executed successfully. Returned ${queryResult.rowCount} rows in ${(queryResult.executionTimeMs / 1000).toFixed(2)}s`,
+        results: sampleResults,
+        formattedText,
+        sql,
+        _totalRows: queryResult.rowCount,
+        _rowsInSample: sampleRows.length,
+        message: `Query executed successfully. Returned ${queryResult.rowCount} rows in ${(queryResult.executionTimeMs / 1000).toFixed(2)}s. Results auto-formatted. Provide your final answer now.`,
       });
     } catch (error) {
       logger.error('[Analytics Tool] Error in execute_sql_query:', error);
@@ -518,6 +536,56 @@ IMPORTANT: Use parameter name "connectionId" (camelCase), NOT "connection_id".`,
     }
   },
 });
+
+/**
+ * Internal function to format query results as markdown text
+ * Used by both execute_sql_query (auto-format) and format_results tool
+ */
+function formatResultsInternal({ explanation, sql, results }) {
+  const resultsObj = typeof results === 'string' ? JSON.parse(results) : results;
+
+  let responseText = '';
+
+  if (explanation) {
+    responseText += `${explanation}\n\n`;
+  }
+
+  if (sql) {
+    responseText += `**Generated SQL Query:**\n\`\`\`sql\n${sql}\n\`\`\`\n\n`;
+  }
+
+  if (resultsObj?.columns && resultsObj.columns.length > 0) {
+    responseText += `**Query Results:**\n\n`;
+
+    const headers = resultsObj.columns.map((col) => col.name).join(' | ');
+    responseText += `| ${headers} |\n`;
+    responseText += `|${resultsObj.columns.map(() => '---').join('|')}|\n`;
+
+    resultsObj.rows.slice(0, 50).forEach((row) => {
+      const values = resultsObj.columns
+        .map((col) => {
+          const value = row[col.name];
+          return value !== null && value !== undefined ? String(value) : 'NULL';
+        })
+        .join(' | ');
+      responseText += `| ${values} |\n`;
+    });
+
+    if (resultsObj.rowCount > 50) {
+      responseText += `\n*Showing first 50 of ${resultsObj.rowCount} rows${resultsObj.truncated ? ' (truncated)' : ''}*\n`;
+    } else if (resultsObj.truncated) {
+      responseText += `\n*Results truncated at ${resultsObj.rowCount} rows*\n`;
+    }
+
+    if (resultsObj.executionTimeMs) {
+      responseText += `\n*Query executed in ${(resultsObj.executionTimeMs / 1000).toFixed(2)}s*\n`;
+    }
+  } else {
+    responseText += 'Query executed successfully (no results returned).';
+  }
+
+  return responseText;
+}
 
 /**
  * Format query results as markdown text
@@ -539,56 +607,11 @@ const formatResultsTool = new DynamicStructuredTool({
     try {
       logger.info('[Analytics Tool] format_results called');
 
-      // Parse results if it's a string
-      const resultsObj = typeof results === 'string' ? JSON.parse(results) : results;
-
-      let responseText = '';
-
-      // Add explanation if available
-      if (explanation) {
-        responseText += `${explanation}\n\n`;
-      }
-
-      // Add the generated SQL query
-      if (sql) {
-        responseText += `**Generated SQL Query:**\n\`\`\`sql\n${sql}\n\`\`\`\n\n`;
-      }
-
-      // Add query results
-      if (resultsObj?.columns && resultsObj.columns.length > 0) {
-        responseText += `**Query Results:**\n\n`;
-
-        // Format as table
-        const headers = resultsObj.columns.map((col) => col.name).join(' | ');
-        responseText += `| ${headers} |\n`;
-        responseText += `|${resultsObj.columns.map(() => '---').join('|')}|\n`;
-
-        resultsObj.rows.slice(0, 50).forEach((row) => {
-          const values = resultsObj.columns
-            .map((col) => {
-              const value = row[col.name];
-              return value !== null && value !== undefined ? String(value) : 'NULL';
-            })
-            .join(' | ');
-          responseText += `| ${values} |\n`;
-        });
-
-        if (resultsObj.rowCount > 50) {
-          responseText += `\n*Showing first 50 of ${resultsObj.rowCount} rows${resultsObj.truncated ? ' (truncated)' : ''}*\n`;
-        } else if (resultsObj.truncated) {
-          responseText += `\n*Results truncated at ${resultsObj.rowCount} rows*\n`;
-        }
-
-        if (resultsObj.executionTimeMs) {
-          responseText += `\n*Query executed in ${(resultsObj.executionTimeMs / 1000).toFixed(2)}s*\n`;
-        }
-      } else {
-        responseText += 'Query executed successfully (no results returned).';
-      }
+      const formattedText = formatResultsInternal({ explanation, sql, results });
 
       return JSON.stringify({
         success: true,
-        formattedText: responseText,
+        formattedText,
         message: 'Results formatted successfully',
       });
     } catch (error) {

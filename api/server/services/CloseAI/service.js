@@ -464,8 +464,8 @@ function buildReasoningContent(event) {
         error: 'Failed to generate SQL query.',
       },
       execute_sql_query: {
-        starting: 'Executing the generated SQL query against the database...',
-        completed: 'Query executed successfully.',
+        starting: 'Executing SQL query and auto-formatting results...',
+        completed: 'Query executed and results formatted successfully.',
         error: 'Query execution failed.',
       },
       fix_sql_error: {
