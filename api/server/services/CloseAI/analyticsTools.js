@@ -712,25 +712,60 @@ IMPORTANT: Use parameter name "connectionId" (camelCase), NOT "connection_id".`,
         return JSON.stringify({ success: false, error: 'Database connection not found' });
       }
 
-      const decryptedPassword =
-        connectionId === 'sample-db'
-          ? connection.password
-          : decryptCredentials(connection.password);
+      let schema;
+      const SCHEMA_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+      const schemaAge = connection.schemaCachedAt
+        ? Date.now() - connection.schemaCachedAt.getTime()
+        : Infinity;
 
-      const schema = await extractSchema({
-        type: connection.type,
-        host: connection.host,
-        port: connection.port,
-        database: connection.database,
-        username: connection.username,
-        password: decryptedPassword,
-        ssl: connection.ssl,
-        sslCertificate: connection.sslCertificate
-          ? connectionId === 'sample-db'
-            ? connection.sslCertificate
-            : decryptCredentials(connection.sslCertificate)
-          : undefined,
-      });
+      if (
+        connectionId !== 'sample-db' &&
+        connection.cachedSchema &&
+        schemaAge <= SCHEMA_CACHE_TTL_MS
+      ) {
+        logger.info('[Analytics Tool] list_available_tables using MongoDB cachedSchema:', {
+          connectionId,
+          schemaAgeMs: schemaAge,
+          tableCount: connection.cachedSchema?.tables?.length || 0,
+        });
+        schema = connection.cachedSchema;
+      } else {
+        logger.info('[Analytics Tool] list_available_tables cache miss, extracting from DB:', {
+          connectionId,
+          hasCachedSchema: !!connection.cachedSchema,
+          schemaAgeMs: schemaAge,
+        });
+
+        const decryptedPassword =
+          connectionId === 'sample-db'
+            ? connection.password
+            : decryptCredentials(connection.password);
+
+        schema = await extractSchema({
+          type: connection.type,
+          host: connection.host,
+          port: connection.port,
+          database: connection.database,
+          username: connection.username,
+          password: decryptedPassword,
+          ssl: connection.ssl,
+          sslCertificate: connection.sslCertificate
+            ? connectionId === 'sample-db'
+              ? connection.sslCertificate
+              : decryptCredentials(connection.sslCertificate)
+            : undefined,
+        });
+
+        if (schema && schema.tables && connectionId !== 'sample-db') {
+          connection.cachedSchema = schema;
+          connection.schemaCachedAt = new Date();
+          await connection.save();
+          logger.info('[Analytics Tool] list_available_tables updated MongoDB cachedSchema:', {
+            connectionId,
+            tableCount: schema.tables.length,
+          });
+        }
+      }
 
       if (!schema || !schema.tables) {
         return JSON.stringify({ success: false, error: 'No tables found in database' });
@@ -745,8 +780,6 @@ IMPORTANT: Use parameter name "connectionId" (camelCase), NOT "connection_id".`,
       // Store in cache for select_relevant_tables to use
       setTablesCache(connectionId, compactTables);
 
-      // Return concise response - tables are cached, no need to return all names
-      // This saves significant tokens in LLM context
       return JSON.stringify({
         success: true,
         connectionId: connectionId,
