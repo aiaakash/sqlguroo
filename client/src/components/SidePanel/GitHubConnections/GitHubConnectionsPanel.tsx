@@ -10,6 +10,7 @@ import {
   Clock,
   ChevronDown,
   X,
+  Pencil,
 } from 'lucide-react';
 import { useLocalize } from '~/hooks';
 import { useToastContext } from '@librechat/client';
@@ -27,10 +28,12 @@ import {
   useAnalyticsGitHubConnections,
   useCreateGitHubConnection,
   useDeleteGitHubConnection,
+  useUpdateGitHubConnection,
   useTestGitHubConnection,
   useSyncGitHubConnection,
   useAnalyticsConnections,
 } from '~/components/Nav/SettingsTabs/Analytics/hooks';
+import type { TGitHubRepoConnection } from 'librechat-data-provider';
 
 function GitHubIcon({ className = '' }: { className?: string }) {
   return (
@@ -48,6 +51,7 @@ export default function GitHubConnectionsPanel() {
   const localize = useLocalize();
   const { showToast } = useToastContext();
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingConnection, setEditingConnection] = useState<TGitHubRepoConnection | null>(null);
   const [syncingConnection, setSyncingConnection] = useState<string | null>(null);
   const [syncResult, setSyncResult] = useState<{
     id: string;
@@ -58,8 +62,19 @@ export default function GitHubConnectionsPanel() {
 
   const { data: connections, isLoading, refetch } = useAnalyticsGitHubConnections();
   const createConnection = useCreateGitHubConnection();
+  const updateConnection = useUpdateGitHubConnection();
   const deleteConnection = useDeleteGitHubConnection();
   const syncConnection = useSyncGitHubConnection();
+
+  const handleEdit = (connection: TGitHubRepoConnection) => {
+    setEditingConnection(connection);
+    setIsFormOpen(true);
+  };
+
+  const handleCloseForm = () => {
+    setIsFormOpen(false);
+    setEditingConnection(null);
+  };
 
   const handleDelete = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this GitHub connection?')) {
@@ -129,7 +144,12 @@ export default function GitHubConnectionsPanel() {
           <Github className="h-4 w-4" />
           <span className="font-medium">GitHub Repositories</span>
         </div>
-        <OGDialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+        <OGDialog
+          open={isFormOpen}
+          onOpenChange={(open) => {
+            if (!open) handleCloseForm();
+          }}
+        >
           <OGDialogTrigger asChild>
             <button
               className="flex items-center gap-1 rounded-lg bg-surface-submit px-2 py-1 text-xs text-white hover:bg-surface-submit-hover"
@@ -140,9 +160,11 @@ export default function GitHubConnectionsPanel() {
             </button>
           </OGDialogTrigger>
           <GitHubConnectionForm
-            onClose={() => {
-              setIsFormOpen(false);
+            editingConnection={editingConnection}
+            onClose={handleCloseForm}
+            onSuccess={() => {
               refetch();
+              handleCloseForm();
             }}
           />
         </OGDialog>
@@ -179,6 +201,13 @@ export default function GitHubConnectionsPanel() {
                   </div>
 
                   <div className="flex shrink-0 items-center gap-0.5 opacity-60 transition-opacity group-hover:opacity-100">
+                    <button
+                      onClick={() => handleEdit(connection)}
+                      className="rounded-md p-1.5 text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary"
+                      title="Edit connection"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
                     <button
                       onClick={() => handleSync(connection._id)}
                       disabled={isSyncing}
@@ -252,13 +281,23 @@ export default function GitHubConnectionsPanel() {
   );
 }
 
-function GitHubConnectionForm({ onClose }: { onClose: () => void }) {
-  const [name, setName] = useState('');
-  const [owner, setOwner] = useState('');
-  const [repo, setRepo] = useState('');
-  const [branch, setBranch] = useState('main');
+function GitHubConnectionForm({
+  onClose,
+  editingConnection,
+  onSuccess,
+}: {
+  onClose: () => void;
+  editingConnection?: TGitHubRepoConnection | null;
+  onSuccess?: () => void;
+}) {
+  const [name, setName] = useState(editingConnection?.name || '');
+  const [owner, setOwner] = useState(editingConnection?.owner || '');
+  const [repo, setRepo] = useState(editingConnection?.repo || '');
+  const [branch, setBranch] = useState(editingConnection?.branch || 'main');
   const [accessToken, setAccessToken] = useState('');
-  const [selectedConnectionIds, setSelectedConnectionIds] = useState<string[]>([]);
+  const [selectedConnectionIds, setSelectedConnectionIds] = useState<string[]>(
+    editingConnection?.connectionIds || [],
+  );
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; error?: string } | null>(null);
@@ -267,8 +306,21 @@ function GitHubConnectionForm({ onClose }: { onClose: () => void }) {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const createConnection = useCreateGitHubConnection();
+  const updateConnection = useUpdateGitHubConnection();
   const testConnection = useTestGitHubConnection();
   const { data: connections } = useAnalyticsConnections('default-org');
+
+  const isEditMode = !!editingConnection;
+
+  useEffect(() => {
+    if (editingConnection) {
+      setName(editingConnection.name || '');
+      setOwner(editingConnection.owner || '');
+      setRepo(editingConnection.repo || '');
+      setBranch(editingConnection.branch || 'main');
+      setSelectedConnectionIds(editingConnection.connectionIds || []);
+    }
+  }, [editingConnection]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -299,17 +351,32 @@ function GitHubConnectionForm({ onClose }: { onClose: () => void }) {
     setIsSubmitting(true);
 
     try {
-      await createConnection.mutateAsync({
-        name,
-        owner,
-        repo,
-        branch,
-        accessToken,
-        connectionIds: selectedConnectionIds,
-      });
-      onClose();
+      if (isEditMode) {
+        await updateConnection.mutateAsync({
+          id: editingConnection._id,
+          data: {
+            name,
+            branch,
+            connectionIds: selectedConnectionIds,
+          },
+        });
+      } else {
+        await createConnection.mutateAsync({
+          name,
+          owner,
+          repo,
+          branch,
+          accessToken,
+          connectionIds: selectedConnectionIds,
+        });
+      }
+      onSuccess?.();
     } catch (err: any) {
-      setError(err?.response?.data?.error || err.message || 'Failed to create connection');
+      setError(
+        err?.response?.data?.error ||
+          err.message ||
+          `Failed to ${isEditMode ? 'update' : 'create'} connection`,
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -324,7 +391,9 @@ function GitHubConnectionForm({ onClose }: { onClose: () => void }) {
   return (
     <OGDialogContent className="w-[450px] !bg-card">
       <OGDialogHeader>
-        <OGDialogTitle>Connect GitHub Repository</OGDialogTitle>
+        <OGDialogTitle>
+          {isEditMode ? 'Edit GitHub Repository' : 'Connect GitHub Repository'}
+        </OGDialogTitle>
       </OGDialogHeader>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="space-y-3">
@@ -342,60 +411,78 @@ function GitHubConnectionForm({ onClose }: { onClose: () => void }) {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="mb-1 block text-xs font-medium text-text-secondary">Owner</label>
-              <input
-                type="text"
-                value={owner}
-                onChange={(e) => setOwner(e.target.value)}
-                placeholder="company-name"
-                required
-                className="focus:border-border-focus focus:ring-border-focus w-full rounded-lg border border-border-light bg-surface-primary px-3 py-2 text-sm focus:outline-none focus:ring-1"
-              />
+          {isEditMode ? (
+            <div className="rounded-lg border border-border-light bg-surface-tertiary p-3">
+              <div className="mb-2 text-xs text-text-secondary">
+                Repository:{' '}
+                <span className="font-medium text-text-primary">
+                  {owner}/{repo}
+                </span>
+              </div>
+              <div className="text-xs text-text-tertiary">
+                Owner, repo, and branch cannot be edited after creation
+              </div>
             </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-text-secondary">
-                Repository
-              </label>
-              <input
-                type="text"
-                value={repo}
-                onChange={(e) => setRepo(e.target.value)}
-                placeholder="analytics-queries"
-                required
-                className="focus:border-border-focus focus:ring-border-focus w-full rounded-lg border border-border-light bg-surface-primary px-3 py-2 text-sm focus:outline-none focus:ring-1"
-              />
-            </div>
-          </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-text-secondary">
+                    Owner
+                  </label>
+                  <input
+                    type="text"
+                    value={owner}
+                    onChange={(e) => setOwner(e.target.value)}
+                    placeholder="company-name"
+                    required
+                    className="focus:border-border-focus focus:ring-border-focus w-full rounded-lg border border-border-light bg-surface-primary px-3 py-2 text-sm focus:outline-none focus:ring-1"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-text-secondary">
+                    Repository
+                  </label>
+                  <input
+                    type="text"
+                    value={repo}
+                    onChange={(e) => setRepo(e.target.value)}
+                    placeholder="analytics-queries"
+                    required
+                    className="focus:border-border-focus focus:ring-border-focus w-full rounded-lg border border-border-light bg-surface-primary px-3 py-2 text-sm focus:outline-none focus:ring-1"
+                  />
+                </div>
+              </div>
 
-          <div>
-            <label className="mb-1 block text-xs font-medium text-text-secondary">Branch</label>
-            <input
-              type="text"
-              value={branch}
-              onChange={(e) => setBranch(e.target.value)}
-              placeholder="main"
-              className="focus:border-border-focus focus:ring-border-focus w-full rounded-lg border border-border-light bg-surface-primary px-3 py-2 text-sm focus:outline-none focus:ring-1"
-            />
-          </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-text-secondary">Branch</label>
+                <input
+                  type="text"
+                  value={branch}
+                  onChange={(e) => setBranch(e.target.value)}
+                  placeholder="main"
+                  className="focus:border-border-focus focus:ring-border-focus w-full rounded-lg border border-border-light bg-surface-primary px-3 py-2 text-sm focus:outline-none focus:ring-1"
+                />
+              </div>
 
-          <div>
-            <label className="mb-1 block text-xs font-medium text-text-secondary">
-              GitHub Personal Access Token
-            </label>
-            <input
-              type="password"
-              value={accessToken}
-              onChange={(e) => setAccessToken(e.target.value)}
-              placeholder="ghp_xxxxxxxxxxxx"
-              required
-              className="focus:border-border-focus focus:ring-border-focus w-full rounded-lg border border-border-light bg-surface-primary px-3 py-2 text-sm focus:outline-none focus:ring-1"
-            />
-            <p className="mt-1 text-xs text-text-tertiary">
-              Token needs repo scope for private repos
-            </p>
-          </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-text-secondary">
+                  GitHub Personal Access Token
+                </label>
+                <input
+                  type="password"
+                  value={accessToken}
+                  onChange={(e) => setAccessToken(e.target.value)}
+                  placeholder="ghp_xxxxxxxxxxxx"
+                  required
+                  className="focus:border-border-focus focus:ring-border-focus w-full rounded-lg border border-border-light bg-surface-primary px-3 py-2 text-sm focus:outline-none focus:ring-1"
+                />
+                <p className="mt-1 text-xs text-text-tertiary">
+                  Token needs repo scope for private repos
+                </p>
+              </div>
+            </>
+          )}
 
           <div>
             <label className="mb-1 block text-xs font-medium text-text-secondary">
@@ -494,15 +581,17 @@ function GitHubConnectionForm({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="flex justify-between gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleTest}
-            disabled={testing || !owner || !repo || !accessToken}
-          >
-            {testing ? <Spinner className="h-4 w-4" /> : null}
-            Test
-          </Button>
+          {!isEditMode && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleTest}
+              disabled={testing || !owner || !repo || !accessToken}
+            >
+              {testing ? <Spinner className="h-4 w-4" /> : null}
+              Test
+            </Button>
+          )}
           <div className="flex gap-2">
             <OGDialogClose asChild>
               <Button type="button" variant="outline">
@@ -511,10 +600,10 @@ function GitHubConnectionForm({ onClose }: { onClose: () => void }) {
             </OGDialogClose>
             <Button
               type="submit"
-              disabled={isSubmitting || !name || !owner || !repo || !accessToken}
+              disabled={isSubmitting || !name || (!isEditMode && (!owner || !repo || !accessToken))}
             >
               {isSubmitting ? <Spinner className="h-4 w-4" /> : null}
-              Save
+              {isEditMode ? 'Update' : 'Save'}
             </Button>
           </div>
         </div>

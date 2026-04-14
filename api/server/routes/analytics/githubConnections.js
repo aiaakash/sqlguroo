@@ -277,7 +277,11 @@ router.put('/:id', async (req, res) => {
     if (excludePatterns) updates.excludePatterns = excludePatterns;
     if (isActive !== undefined) updates.isActive = isActive;
     if (accessToken) updates.accessToken = encryptCredentials(accessToken);
-    if (connectionIds !== undefined) updates.connectionIds = connectionIds;
+    if (connectionIds !== undefined) {
+      updates.connectionIds = connectionIds;
+      // Invalidate cache when linked databases change
+      clearGitHubQueriesCache(userId, id);
+    }
 
     const updated = await GitHubRepoConnection.findByIdAndUpdate(id, updates, { new: true }).select(
       '-accessToken',

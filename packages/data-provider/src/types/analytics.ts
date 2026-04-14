@@ -289,6 +289,7 @@ export interface TGitHubRepoConnection {
   lastSyncSuccess?: boolean;
   syncError?: string;
   metadata?: Record<string, unknown>;
+  connectionIds: string[];
   createdAt: string;
   updatedAt: string;
 }
