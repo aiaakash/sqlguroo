@@ -302,6 +302,7 @@ export interface TCreateGitHubRepoConnectionRequest {
   includePatterns?: string[];
   excludePatterns?: string[];
   accessToken: string;
+  connectionIds?: string[];
 }
 
 export interface TUpdateGitHubRepoConnectionRequest {
@@ -312,4 +313,5 @@ export interface TUpdateGitHubRepoConnectionRequest {
   excludePatterns?: string[];
   accessToken?: string;
   isActive?: boolean;
+  connectionIds?: string[];
 }

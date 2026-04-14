@@ -5,6 +5,7 @@
 
 const OpenAI = require('openai');
 const { logger } = require('@librechat/data-schemas');
+const { GitHubRepoConnection } = require('~/db/models');
 
 // Initialize OpenRouter client for embeddings (uses OpenAI-compatible API)
 const openRouter = new OpenAI({
@@ -15,7 +16,7 @@ const openRouter = new OpenAI({
 // Embedding model - use environment variable or default to Qwen/Qwen3-embedding-8b
 const EMBEDDING_MODEL = process.env.ANALYTICS_EMBEDDING_MODEL || 'openai/text-embedding-3-small';
 
-// In-memory cache for GitHub queries (keyed by userId)
+// In-memory cache for GitHub queries (keyed by `${userId}:${githubConnectionId}`)
 const githubQueriesCache = new Map();
 
 /**
@@ -63,15 +64,23 @@ async function generateEmbedding(text) {
 
 /**
  * Store GitHub queries in cache with embeddings
+ * @param {string} userId - User ID
+ * @param {Array} queries - Array of query objects
+ * @param {string} githubConnectionId - GitHub connection ID (MongoDB ObjectId)
  */
-async function storeGitHubQueriesInCache(userId, queries) {
+async function storeGitHubQueriesInCache(userId, queries, githubConnectionId = null) {
   if (!queries || queries.length === 0) {
     console.log('[GitHub Query RAG] No queries to cache');
     return;
   }
 
+  // Use composite key if githubConnectionId provided, otherwise fall back to userId-only key
+  const cacheKey = githubConnectionId ? `${userId}:${githubConnectionId}` : userId;
+
   console.log('[GitHub Query RAG] Storing queries in cache:', {
     userId,
+    githubConnectionId,
+    cacheKey,
     queryCount: queries.length,
   });
 
@@ -98,22 +107,25 @@ async function storeGitHubQueriesInCache(userId, queries) {
 
   // Filter out failed embeddings and store in cache
   const validQueries = queriesWithEmbeddings.filter(Boolean);
-  githubQueriesCache.set(userId, {
+  githubQueriesCache.set(cacheKey, {
     queries: validQueries,
     storedAt: new Date(),
   });
 
   console.log('[GitHub Query RAG] Stored queries in cache:', {
-    userId,
+    cacheKey,
     queryCount: validQueries.length,
   });
 }
 
 /**
- * Get cached GitHub queries for a user
+ * Get cached GitHub queries for a specific GitHub connection
+ * @param {string} userId - User ID
+ * @param {string} githubConnectionId - GitHub connection ID (optional, uses composite key if provided)
  */
-function getCachedGitHubQueries(userId) {
-  const cached = githubQueriesCache.get(userId);
+function getCachedGitHubQueries(userId, githubConnectionId = null) {
+  const cacheKey = githubConnectionId ? `${userId}:${githubConnectionId}` : userId;
+  const cached = githubQueriesCache.get(cacheKey);
   if (!cached) {
     return [];
   }
@@ -123,7 +135,7 @@ function getCachedGitHubQueries(userId) {
   oneHourAgo.setHours(oneHourAgo.getHours() - 1);
 
   if (cached.storedAt < oneHourAgo) {
-    githubQueriesCache.delete(userId);
+    githubQueriesCache.delete(cacheKey);
     return [];
   }
 
@@ -132,6 +144,12 @@ function getCachedGitHubQueries(userId) {
 
 /**
  * Find relevant GitHub queries using in-memory similarity search
+ * @param {string} userId - User ID
+ * @param {string} queryText - Query text to match against
+ * @param {number} topK - Number of top results to return
+ * @param {number} threshold - Similarity threshold
+ * @param {Array} preGeneratedEmbedding - Pre-generated embedding vector
+ * @param {string} connectionId - Database connection ID to filter GitHub repos
  */
 async function findRelevantGitHubQueriesInMemory(
   userId,
@@ -139,11 +157,50 @@ async function findRelevantGitHubQueriesInMemory(
   topK = 3,
   threshold = 0.3,
   preGeneratedEmbedding = null,
+  connectionId = null,
 ) {
-  const queries = getCachedGitHubQueries(userId);
+  let queries = [];
+
+  if (connectionId) {
+    // Find GitHub repos linked to this database connection
+    const githubConnections = await GitHubRepoConnection.find({
+      userId,
+      isActive: true,
+      connectionIds: connectionId,
+    });
+
+    console.log('[GitHub Query RAG] Found GitHub repos linked to connection:', {
+      userId,
+      connectionId,
+      linkedReposCount: githubConnections.length,
+      linkedRepos: githubConnections.map((c) => ({
+        id: c._id,
+        name: c.name,
+        owner: c.owner,
+        repo: c.repo,
+      })),
+    });
+
+    // Collect queries from all linked GitHub repos
+    for (const ghConn of githubConnections) {
+      const cachedQueries = getCachedGitHubQueries(userId, ghConn._id.toString());
+      queries.push(
+        ...cachedQueries.map((q) => ({ ...q, githubConnectionId: ghConn._id.toString() })),
+      );
+    }
+
+    console.log('[GitHub Query RAG] Total cached queries from linked repos:', {
+      connectionId,
+      totalQueries: queries.length,
+    });
+  } else {
+    // Fall back to old behavior if no connectionId
+    queries = getCachedGitHubQueries(userId);
+  }
 
   console.log('[GitHub Query RAG] Searching for relevant queries:', {
     userId,
+    connectionId,
     queryText: queryText?.substring(0, 100),
     cachedQueriesCount: queries.length,
     topK,
@@ -209,6 +266,12 @@ async function findRelevantGitHubQueriesInMemory(
 
 /**
  * Find relevant GitHub queries for a user query using semantic matching
+ * @param {string} userId - User ID
+ * @param {string} queryText - Query text to match against
+ * @param {number} topK - Number of top results to return
+ * @param {number} threshold - Similarity threshold
+ * @param {Array} preGeneratedEmbedding - Pre-generated embedding vector
+ * @param {string} connectionId - Database connection ID to filter GitHub repos
  */
 async function findRelevantGitHubQueries(
   userId,
@@ -216,10 +279,12 @@ async function findRelevantGitHubQueries(
   topK = 3,
   threshold = 0.3,
   preGeneratedEmbedding = null,
+  connectionId = null,
 ) {
   try {
     console.log('[GitHub Query RAG] Finding relevant GitHub queries:', {
       userId,
+      connectionId,
       query: queryText?.substring(0, 100),
       topK,
       threshold,
@@ -231,6 +296,7 @@ async function findRelevantGitHubQueries(
       topK,
       threshold,
       preGeneratedEmbedding,
+      connectionId,
     );
 
     console.log('[GitHub Query RAG] Returning', relevantQueries.length, 'relevant queries');
@@ -266,11 +332,28 @@ function formatGitHubQueriesForPrompt(queries) {
 }
 
 /**
- * Clear cached GitHub queries for a user
+ * Clear cached GitHub queries for a user (optionally for a specific GitHub connection)
+ * @param {string} userId - User ID
+ * @param {string} githubConnectionId - GitHub connection ID (optional)
  */
-function clearGitHubQueriesCache(userId) {
-  githubQueriesCache.delete(userId);
-  console.log('[GitHub Query RAG] Cleared queries cache for user:', userId);
+function clearGitHubQueriesCache(userId, githubConnectionId = null) {
+  if (githubConnectionId) {
+    const cacheKey = `${userId}:${githubConnectionId}`;
+    githubQueriesCache.delete(cacheKey);
+    console.log('[GitHub Query RAG] Cleared queries cache for user and GitHub connection:', {
+      userId,
+      githubConnectionId,
+      cacheKey,
+    });
+  } else {
+    // Clear all caches for this user (legacy behavior)
+    for (const key of githubQueriesCache.keys()) {
+      if (key.startsWith(`${userId}:`)) {
+        githubQueriesCache.delete(key);
+      }
+    }
+    console.log('[GitHub Query RAG] Cleared all queries caches for user:', userId);
+  }
 }
 
 module.exports = {

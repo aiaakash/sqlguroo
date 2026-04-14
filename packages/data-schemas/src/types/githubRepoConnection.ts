@@ -23,6 +23,7 @@ export interface IGitHubRepoConnection extends Document {
   lastSyncSuccess?: boolean;
   syncError?: string;
   metadata?: Record<string, unknown>;
+  connectionIds: Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -37,6 +38,7 @@ export interface CreateGitHubRepoConnectionRequest {
   includePatterns?: string[];
   excludePatterns?: string[];
   accessToken: string;
+  connectionIds?: string[];
 }
 
 export interface UpdateGitHubRepoConnectionRequest {
@@ -47,6 +49,7 @@ export interface UpdateGitHubRepoConnectionRequest {
   excludePatterns?: string[];
   accessToken?: string;
   isActive?: boolean;
+  connectionIds?: string[];
 }
 
 export interface GitHubRepoConnectionResponse {
@@ -65,6 +68,7 @@ export interface GitHubRepoConnectionResponse {
   lastSyncSuccess?: boolean;
   syncError?: string;
   metadata?: Record<string, unknown>;
+  connectionIds: string[];
   createdAt: string;
   updatedAt: string;
 }

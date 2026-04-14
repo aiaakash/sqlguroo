@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Github,
   Plus,
@@ -8,6 +8,8 @@ import {
   CheckCircle,
   XCircle,
   Loader2,
+  ChevronDown,
+  X,
 } from 'lucide-react';
 import { useLocalize } from '~/hooks';
 import {
@@ -27,6 +29,7 @@ import {
   useDeleteGitHubConnection,
   useTestGitHubConnection,
   useSyncGitHubConnection,
+  useAnalyticsConnections,
 } from './hooks';
 
 function GitHubIcon({ className = '' }: { className?: string }) {
@@ -190,13 +193,27 @@ function GitHubConnectionForm({
   const [repo, setRepo] = useState('');
   const [branch, setBranch] = useState('main');
   const [accessToken, setAccessToken] = useState('');
+  const [selectedConnectionIds, setSelectedConnectionIds] = useState<string[]>([]);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; error?: string } | null>(null);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const createConnection = useCreateGitHubConnection();
   const testConnection = useTestGitHubConnection();
+  const { data: connections } = useAnalyticsConnections('default-org');
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleTest = async () => {
     setTesting(true);
@@ -223,6 +240,7 @@ function GitHubConnectionForm({
         repo,
         branch,
         accessToken,
+        connectionIds: selectedConnectionIds,
       });
       onClose();
     } catch (err: any) {
@@ -231,6 +249,12 @@ function GitHubConnectionForm({
       setIsSubmitting(false);
     }
   };
+
+  const databaseOptions =
+    connections?.map((conn) => ({
+      label: conn.name,
+      value: conn._id,
+    })) || [];
 
   return (
     <OGDialogContent className="w-[500px] !bg-card">
@@ -305,6 +329,89 @@ function GitHubConnectionForm({
             />
             <p className="mt-1 text-xs text-text-tertiary">
               Token needs repo scope to access private repositories
+            </p>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-medium text-text-secondary">
+              Link to Databases
+            </label>
+            <div className="relative" ref={dropdownRef}>
+              <button
+                type="button"
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="flex w-full items-center justify-between rounded-lg border border-border-light bg-surface-primary px-3 py-2 text-sm hover:bg-surface-hover"
+              >
+                <span className="truncate text-text-primary">
+                  {selectedConnectionIds.length === 0
+                    ? 'Select databases (optional)'
+                    : `${selectedConnectionIds.length} database${selectedConnectionIds.length > 1 ? 's' : ''} selected`}
+                </span>
+                <ChevronDown
+                  className={`h-4 w-4 text-text-secondary transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}
+                />
+              </button>
+              {isDropdownOpen && (
+                <div className="absolute z-[9999] mt-1 max-h-48 w-full overflow-auto rounded-lg border border-border-light bg-surface-primary shadow-lg">
+                  {databaseOptions.length === 0 ? (
+                    <div className="px-3 py-2 text-xs text-text-tertiary">
+                      No databases available
+                    </div>
+                  ) : (
+                    databaseOptions.map((option) => (
+                      <label
+                        key={option.value}
+                        className="flex cursor-pointer items-center gap-2 px-3 py-2 text-sm hover:bg-surface-hover"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedConnectionIds.includes(option.value)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedConnectionIds([...selectedConnectionIds, option.value]);
+                            } else {
+                              setSelectedConnectionIds(
+                                selectedConnectionIds.filter((id) => id !== option.value),
+                              );
+                            }
+                          }}
+                          className="h-4 w-4 rounded border-border-medium text-primary focus:ring-primary"
+                        />
+                        <span className="truncate text-text-primary">{option.label}</span>
+                      </label>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+            {selectedConnectionIds.length > 0 && (
+              <div className="mt-1.5 flex flex-wrap gap-1">
+                {selectedConnectionIds.map((id) => {
+                  const option = databaseOptions.find((o) => o.value === id);
+                  return (
+                    <span
+                      key={id}
+                      className="inline-flex items-center gap-1 rounded-md bg-surface-tertiary px-2 py-0.5 text-xs text-text-primary"
+                    >
+                      <span className="max-w-[120px] truncate">{option?.label || id}</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSelectedConnectionIds(
+                            selectedConnectionIds.filter((cid) => cid !== id),
+                          )
+                        }
+                        className="ml-0.5 hover:text-red-500"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+            <p className="mt-1 text-xs text-text-tertiary">
+              Link this repo to specific databases for targeted RAG queries
             </p>
           </div>
 

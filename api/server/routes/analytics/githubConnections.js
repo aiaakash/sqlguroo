@@ -86,6 +86,7 @@ router.post('/', async (req, res) => {
       includePatterns,
       excludePatterns,
       accessToken,
+      connectionIds = [],
     } = req.body;
 
     if (!name || !owner || !repo || !accessToken) {
@@ -124,6 +125,7 @@ router.post('/', async (req, res) => {
       includePatterns: includePatterns || ['**/*.sql'],
       excludePatterns: excludePatterns || ['**/node_modules/**', '**/.git/**'],
       accessToken: encryptedToken,
+      connectionIds,
     });
 
     logger.info('[GitHub Connection] Created new GitHub repo connection:', {
@@ -133,6 +135,7 @@ router.post('/', async (req, res) => {
       repo,
       storedTokenLength: connection.accessToken?.length,
       storedTokenIsString: typeof connection.accessToken === 'string',
+      connectionIds: connection.connectionIds,
     });
 
     res.status(201).json(connection.toObject());
@@ -198,8 +201,8 @@ router.post('/:id/sync', async (req, res) => {
     });
 
     if (result.success) {
-      // Store queries in cache for RAG
-      await storeGitHubQueriesInCache(userId, result.queries);
+      // Store queries in cache for RAG (scoped to this GitHub connection)
+      await storeGitHubQueriesInCache(userId, result.queries, id);
 
       // Update connection metadata
       await GitHubRepoConnection.findByIdAndUpdate(id, {
@@ -245,8 +248,16 @@ router.put('/:id', async (req, res) => {
   try {
     const userId = req.user.id;
     const { id } = req.params;
-    const { name, branch, queryPath, includePatterns, excludePatterns, accessToken, isActive } =
-      req.body;
+    const {
+      name,
+      branch,
+      queryPath,
+      includePatterns,
+      excludePatterns,
+      accessToken,
+      isActive,
+      connectionIds,
+    } = req.body;
 
     const connection = await GitHubRepoConnection.findOne({
       _id: id,
@@ -266,6 +277,7 @@ router.put('/:id', async (req, res) => {
     if (excludePatterns) updates.excludePatterns = excludePatterns;
     if (isActive !== undefined) updates.isActive = isActive;
     if (accessToken) updates.accessToken = encryptCredentials(accessToken);
+    if (connectionIds !== undefined) updates.connectionIds = connectionIds;
 
     const updated = await GitHubRepoConnection.findByIdAndUpdate(id, updates, { new: true }).select(
       '-accessToken',
@@ -302,8 +314,8 @@ router.delete('/:id', async (req, res) => {
       isActive: false,
     });
 
-    // Clear cache
-    clearGitHubQueriesCache(userId);
+    // Clear cache for this specific GitHub connection
+    clearGitHubQueriesCache(userId, id);
 
     logger.info('[GitHub Connection] Deleted GitHub repo connection:', {
       userId,

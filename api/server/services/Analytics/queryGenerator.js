@@ -725,11 +725,12 @@ async function generateSqlQuery({
       logger.debug('[SQL Generator] No userId provided, skipping skills retrieval');
     }
 
-    // Retrieve relevant GitHub queries if userId is provided
+    // Retrieve relevant GitHub queries if userId and connectionId are provided
+    // Only searches GitHub repos linked to this specific database connection
     let githubQueriesContext = '';
     let relevantGitHubQueries = [];
 
-    if (userId) {
+    if (userId && connectionId) {
       try {
         const githubThreshold = parseFloat(process.env.ANALYTICS_GITHUB_QUERY_THRESHOLD || '0.3');
         relevantGitHubQueries = await findRelevantGitHubQueries(
@@ -738,14 +739,16 @@ async function generateSqlQuery({
           3,
           githubThreshold,
           queryEmbedding,
+          connectionId,
         );
 
         if (relevantGitHubQueries.length > 0) {
           githubQueriesContext = formatGitHubQueriesForPrompt(relevantGitHubQueries);
           logger.info(
-            `[SQL Generator] Found ${relevantGitHubQueries.length} relevant GitHub queries for user ${userId}`,
+            `[SQL Generator] Found ${relevantGitHubQueries.length} relevant GitHub queries for user ${userId} and connection ${connectionId}`,
             {
               question: userQuestion?.substring(0, 100),
+              connectionId,
               queries: relevantGitHubQueries.map((q) => ({
                 name: q.name,
                 relevanceScore: q.relevanceScore?.toFixed(4),
@@ -769,7 +772,9 @@ async function generateSqlQuery({
         logger.warn('[SQL Generator] Error retrieving GitHub queries, continuing:', error);
       }
     } else {
-      console.log('[SQL Generator] No userId provided, skipping GitHub queries retrieval');
+      console.log(
+        '[SQL Generator] No userId or connectionId provided, skipping GitHub queries retrieval',
+      );
     }
 
     // Filter schema to only include relevant tables

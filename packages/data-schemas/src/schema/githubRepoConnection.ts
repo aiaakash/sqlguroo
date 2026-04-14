@@ -72,6 +72,12 @@ const githubRepoConnectionSchema = new Schema<IGitHubRepoConnection>(
       default: {},
       description: 'Additional metadata (stars, size, etc.)',
     },
+    connectionIds: {
+      type: [Schema.Types.ObjectId],
+      ref: 'DatabaseConnection',
+      default: [],
+      description: 'Linked database connection IDs for targeted RAG',
+    },
   },
   {
     timestamps: true,
@@ -81,5 +87,6 @@ const githubRepoConnectionSchema = new Schema<IGitHubRepoConnection>(
 githubRepoConnectionSchema.index({ userId: 1, isActive: 1 });
 githubRepoConnectionSchema.index({ userId: 1, owner: 1, repo: 1 });
 githubRepoConnectionSchema.index({ lastSyncedAt: 1 });
+githubRepoConnectionSchema.index({ connectionIds: 1 });
 
 export default githubRepoConnectionSchema;
