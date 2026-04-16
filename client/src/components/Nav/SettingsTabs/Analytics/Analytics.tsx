@@ -1,121 +1,80 @@
 import React, { useState } from 'react';
-import { Database, Plus, TestTube, Trash2, Edit2, Server, BookOpen, Github } from 'lucide-react';
+import { Database, Plus } from 'lucide-react';
+import * as Accordion from '@radix-ui/react-accordion';
+import { ChevronDown } from 'lucide-react';
 import { useLocalize } from '~/hooks';
 import { OGDialog, OGDialogTrigger, Spinner } from '@librechat/client';
 import ConnectionForm from './ConnectionForm';
 import GitHubConnectionsPanel from './GitHubConnectionsPanel';
 import { useAnalyticsConnections, useDeleteConnection, useTestConnection } from './hooks';
+import { ConnectionCard, DbTypeIcon } from '~/components/SidePanel/shared';
 
-// Database type to icon mapping
-const DB_ICONS: Record<string, { icon: string; name: string; color: string }> = {
-  clickhouse: {
-    icon: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/clickhouse/clickhouse-original.svg',
+const SUPPORTED_DATABASES = [
+  {
     name: 'ClickHouse',
-    color: '#FFCC00',
+    desc: 'Data warehouse',
+    initials: 'CH',
+    bgClass: 'bg-yellow-100 dark:bg-yellow-900',
+    textClass: 'text-yellow-800 dark:text-yellow-200',
   },
-  mysql: {
-    icon: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/mysql/mysql-original.svg',
+  {
     name: 'MySQL',
-    color: '#00758F',
+    desc: 'Relational database',
+    initials: 'My',
+    bgClass: 'bg-blue-100 dark:bg-blue-900',
+    textClass: 'text-blue-800 dark:text-blue-200',
   },
-  postgresql: {
-    icon: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/postgresql/postgresql-original.svg',
+  {
     name: 'PostgreSQL',
-    color: '#336791',
+    desc: 'Relational database',
+    initials: 'PG',
+    bgClass: 'bg-indigo-100 dark:bg-indigo-900',
+    textClass: 'text-indigo-800 dark:text-indigo-200',
   },
-  pg: {
-    icon: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/postgresql/postgresql-original.svg',
-    name: 'PostgreSQL',
-    color: '#336791',
-  },
-  bigquery: {
-    icon: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/googlebigquery.svg',
+  {
     name: 'BigQuery',
-    color: '#4285F4',
+    desc: 'Data warehouse',
+    initials: 'BQ',
+    bgClass: 'bg-green-100 dark:bg-green-900',
+    textClass: 'text-green-800 dark:text-green-200',
   },
-  redshift: {
-    icon: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/amazonaws.svg',
+  {
     name: 'Redshift',
-    color: '#FF9900',
+    desc: 'Data warehouse',
+    initials: 'RS',
+    bgClass: 'bg-red-100 dark:bg-red-900',
+    textClass: 'text-red-800 dark:text-red-200',
   },
-  snowflake: {
-    icon: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/snowflake.svg',
+  {
     name: 'Snowflake',
-    color: '#29B5E8',
+    desc: 'Data warehouse',
+    initials: 'SF',
+    bgClass: 'bg-cyan-100 dark:bg-cyan-900',
+    textClass: 'text-cyan-800 dark:text-cyan-200',
   },
-  oracle: {
-    icon: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/oracle/oracle-original.svg',
+  {
     name: 'Oracle',
-    color: '#F80000',
+    desc: 'Relational database',
+    initials: 'OR',
+    bgClass: 'bg-orange-100 dark:bg-orange-900',
+    textClass: 'text-orange-800 dark:text-orange-200',
   },
-  mssql: {
-    icon: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/microsoftsqlserver.svg',
+  {
     name: 'SQL Server',
-    color: '#CC2927',
+    desc: 'Relational database',
+    initials: 'MS',
+    bgClass: 'bg-red-100 dark:bg-red-900',
+    textClass: 'text-red-800 dark:text-red-200',
   },
-  sqlserver: {
-    icon: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/microsoftsqlserver.svg',
-    name: 'SQL Server',
-    color: '#CC2927',
-  },
-};
-
-function getDbIcon(type: string) {
-  const normalizedType = type.toLowerCase().replace(/\s/g, '');
-  return (
-    DB_ICONS[normalizedType] || {
-      icon: '',
-      name: type.toUpperCase(),
-      color: '#6B7280',
-    }
-  );
-}
-
-function DbTypeIcon({ type, className = '' }: { type: string; className?: string }) {
-  const dbInfo = getDbIcon(type);
-
-  if (!dbInfo.icon) {
-    return (
-      <div
-        className={`flex items-center justify-center rounded-md bg-surface-tertiary ${className}`}
-        title={dbInfo.name}
-      >
-        <Server className="h-4 w-4 text-text-secondary" />
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className={`flex items-center justify-center rounded-md bg-surface-tertiary p-1 ${className}`}
-      title={dbInfo.name}
-    >
-      <img
-        src={dbInfo.icon}
-        alt={dbInfo.name}
-        className="h-full w-full object-contain"
-        onError={(e) => {
-          // Fallback to generic icon if image fails to load
-          const target = e.target as HTMLImageElement;
-          target.style.display = 'none';
-          const parent = target.parentElement;
-          if (parent) {
-            parent.innerHTML =
-              '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-text-secondary"><rect width="20" height="8" x="2" y="2" rx="2" ry="2"/><rect width="20" height="8" x="2" y="14" rx="2" ry="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/></svg>';
-          }
-        }}
-      />
-    </div>
-  );
-}
+];
 
 export default function Analytics() {
   const localize = useLocalize();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingConnection, setEditingConnection] = useState<string | null>(null);
   const [testingConnection, setTestingConnection] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  // For now, use a default organization ID - in production this would come from auth context
   const organizationId = 'default-org';
 
   const { data: connections, isLoading, refetch } = useAnalyticsConnections(organizationId);
@@ -149,214 +108,144 @@ export default function Analytics() {
   };
 
   return (
-    <div className="flex flex-col gap-3 text-sm text-text-primary">
-      <div className="border-b border-border-medium pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Database className="icon-md" />
-            <span className="font-medium">Database Connections</span>
-          </div>
-          <OGDialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-            <OGDialogTrigger asChild>
-              <button
-                className="flex items-center gap-1 rounded-lg bg-surface-submit px-3 py-1.5 text-sm text-white hover:bg-surface-submit-hover"
-                onClick={() => {
-                  setEditingConnection(null);
-                  setIsFormOpen(true);
-                }}
-              >
-                <Plus className="h-4 w-4" />
-                Add Connection
-              </button>
-            </OGDialogTrigger>
-            <ConnectionForm
-              organizationId={organizationId}
-              connectionId={editingConnection}
-              onClose={handleCloseForm}
-            />
-          </OGDialog>
-        </div>
-        <p className="mt-1 text-xs text-text-secondary">
-          Connect your databases to enable AI-powered analytics queries
-        </p>
-      </div>
-
-      {isLoading ? (
-        <div className="flex items-center justify-center py-8">
-          <Spinner className="h-6 w-6" />
-        </div>
-      ) : connections && connections.length > 0 ? (
-        <div className="flex flex-col gap-2">
-          {connections.map((connection) => (
-            <div
-              key={connection._id}
-              className="group relative flex items-center gap-3 rounded-xl border border-border-light bg-surface-secondary p-2.5 transition-all duration-200 hover:border-border-medium hover:bg-surface-tertiary hover:shadow-sm"
-            >
-              {/* Database Type Icon */}
-              <DbTypeIcon type={connection.type} className="h-9 w-9 shrink-0" />
-
-              {/* Connection Info - Compact Layout */}
-              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <div className="flex items-center gap-2">
-                  <span className="truncate font-medium text-text-primary">{connection.name}</span>
-                  {/* Status Badge */}
-                  <span
-                    className={`inline-flex shrink-0 items-center rounded-full px-1.5 py-0 text-[10px] font-medium ${
-                      connection.lastTestSuccess
-                        ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
-                        : connection.lastTestSuccess === false
-                          ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
-                          : 'bg-surface-tertiary text-text-secondary'
-                    }`}
-                  >
-                    {connection.lastTestSuccess
-                      ? '●'
-                      : connection.lastTestSuccess === false
-                        ? '●'
-                        : '○'}
+    <div className="flex flex-col text-sm text-text-primary">
+      <Accordion.Root
+        type="multiple"
+        defaultValue={['connections', 'github', 'databases']}
+        className="flex flex-col gap-1"
+      >
+        {/* Database Connections Section */}
+        <Accordion.Item value="connections" className="border-b border-border-light">
+          <Accordion.Header>
+            <Accordion.Trigger className="group flex w-full items-center justify-between py-3 text-left font-medium text-text-primary [&[data-state=open]>svg]:rotate-180">
+              <div className="flex items-center gap-2">
+                <Database className="icon-md" />
+                <span>Database Connections</span>
+                {connections && (
+                  <span className="rounded-full bg-surface-tertiary px-2 py-0.5 text-[10px] text-text-secondary">
+                    {connections.length}
                   </span>
-                </div>
-                <div className="flex items-center gap-1.5 text-[11px] text-text-tertiary">
-                  <span className="shrink-0 font-medium text-text-secondary">
-                    {connection.type.toUpperCase()}
-                  </span>
-                  {!connection.isSystem && (
-                    <>
-                      <span className="text-border-medium">|</span>
-                      <span className="truncate">
-                        {connection.host}:{connection.port}
-                      </span>
-                    </>
-                  )}
-                  <span className="text-border-medium">|</span>
-                  <span className="truncate">
-                    {connection.isSystem ? 'demo data' : connection.database}
-                  </span>
-                </div>
-              </div>
-
-              {/* Action Buttons - Compact */}
-              <div className="flex shrink-0 items-center gap-0.5 opacity-60 transition-opacity group-hover:opacity-100">
-                {connection.isSystem ? (
-                  // Sample database - show only test button and badge
-                  <>
-                    <span className="mr-1.5 inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
-                      <BookOpen className="mr-1 h-3 w-3" />
-                      Sample
-                    </span>
-                    <button
-                      onClick={() => handleTest(connection._id)}
-                      disabled={testingConnection === connection._id}
-                      className="rounded-md p-1.5 text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary disabled:opacity-50"
-                      title="Test connection"
-                    >
-                      {testingConnection === connection._id ? (
-                        <Spinner className="h-3.5 w-3.5" />
-                      ) : (
-                        <TestTube className="h-3.5 w-3.5" />
-                      )}
-                    </button>
-                  </>
-                ) : (
-                  // Regular database - show all action buttons
-                  <>
-                    <button
-                      onClick={() => handleTest(connection._id)}
-                      disabled={testingConnection === connection._id}
-                      className="rounded-md p-1.5 text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary disabled:opacity-50"
-                      title="Test connection"
-                    >
-                      {testingConnection === connection._id ? (
-                        <Spinner className="h-3.5 w-3.5" />
-                      ) : (
-                        <TestTube className="h-3.5 w-3.5" />
-                      )}
-                    </button>
-                    <button
-                      onClick={() => handleEdit(connection._id)}
-                      className="rounded-md p-1.5 text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary"
-                      title="Edit connection"
-                    >
-                      <Edit2 className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(connection._id)}
-                      disabled={deleteConnection.isPending}
-                      className="rounded-md p-1.5 text-text-secondary transition-colors hover:bg-red-100 hover:text-red-600 disabled:opacity-50 dark:hover:bg-red-900/30"
-                      title="Delete connection"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </>
                 )}
               </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="bg-surface-secondary/50 flex flex-col items-center justify-center rounded-xl border border-dashed border-border-light py-8 text-center">
-          <Database className="mb-2 h-8 w-8 text-text-tertiary" />
-          <p className="text-sm text-text-secondary">No database connections configured</p>
-          <p className="text-xs text-text-tertiary">
-            Add a connection to start asking questions about your data
-          </p>
-        </div>
-      )}
+              <ChevronDown className="h-4 w-4 text-text-secondary transition-transform duration-200" />
+            </Accordion.Trigger>
+          </Accordion.Header>
+          <Accordion.Content className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+            <div className="pb-4">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-xs text-text-secondary">
+                  Connect your databases to enable AI-powered analytics queries
+                </p>
+                <OGDialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+                  <OGDialogTrigger asChild>
+                    <button
+                      className="flex items-center gap-1 rounded-lg bg-surface-submit px-3 py-1.5 text-sm text-white hover:bg-surface-submit-hover"
+                      onClick={() => {
+                        setEditingConnection(null);
+                        setIsFormOpen(true);
+                      }}
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add Connection
+                    </button>
+                  </OGDialogTrigger>
+                  <ConnectionForm
+                    organizationId={organizationId}
+                    connectionId={editingConnection}
+                    onClose={handleCloseForm}
+                  />
+                </OGDialog>
+              </div>
 
-      {/* GitHub Connections Section */}
-      <GitHubConnectionsPanel />
+              {isLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Spinner className="h-6 w-6" />
+                </div>
+              ) : connections && connections.length > 0 ? (
+                <div className="flex flex-col gap-2">
+                  {connections.map((connection) => (
+                    <ConnectionCard
+                      key={connection._id}
+                      connection={connection}
+                      testingId={testingConnection}
+                      showDetails={expandedId === connection._id}
+                      actions={{
+                        onTest: handleTest,
+                        onEdit: handleEdit,
+                        onDelete: handleDelete,
+                        onToggleDetails: (id) => setExpandedId(expandedId === id ? null : id),
+                      }}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-surface-secondary/50 flex flex-col items-center justify-center rounded-xl border border-dashed border-border-light py-8 text-center">
+                  <Database className="mb-2 h-8 w-8 text-text-tertiary" />
+                  <p className="text-sm text-text-secondary">No database connections configured</p>
+                  <p className="text-xs text-text-tertiary">
+                    Add a connection to start asking questions about your data
+                  </p>
+                </div>
+              )}
+            </div>
+          </Accordion.Content>
+        </Accordion.Item>
 
-      {/* Supported Databases Section - DO NOT MODIFY */}
-      <div className="mt-4 border-t border-border-medium pt-4">
-        <h4 className="mb-2 font-medium">Supported Databases</h4>
-        <div className="grid grid-cols-2 gap-2">
-          <div className="flex items-center gap-2 rounded-lg border border-border-light p-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded bg-yellow-100 dark:bg-yellow-900">
-              <span className="text-sm font-bold text-yellow-800 dark:text-yellow-200">CH</span>
+        {/* GitHub Repositories Section */}
+        <Accordion.Item value="github" className="border-b border-border-light">
+          <Accordion.Header>
+            <Accordion.Trigger className="group flex w-full items-center justify-between py-3 text-left font-medium text-text-primary [&[data-state=open]>svg]:rotate-180">
+              <div className="flex items-center gap-2">
+                <svg className="icon-md" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+                </svg>
+                <span>GitHub Repositories</span>
+              </div>
+              <ChevronDown className="h-4 w-4 text-text-secondary transition-transform duration-200" />
+            </Accordion.Trigger>
+          </Accordion.Header>
+          <Accordion.Content className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+            <div className="pb-4">
+              <GitHubConnectionsPanel />
             </div>
-            <div>
-              <span className="text-sm font-medium">ClickHouse</span>
-              <p className="text-xs text-text-tertiary">Data warehouse</p>
+          </Accordion.Content>
+        </Accordion.Item>
+
+        {/* Supported Databases Section */}
+        <Accordion.Item value="databases">
+          <Accordion.Header>
+            <Accordion.Trigger className="group flex w-full items-center justify-between py-3 text-left font-medium text-text-primary [&[data-state=open]>svg]:rotate-180">
+              <div className="flex items-center gap-2">
+                <DbTypeIcon type="mysql" className="h-4 w-4" />
+                <span>Supported Databases</span>
+              </div>
+              <ChevronDown className="h-4 w-4 text-text-secondary transition-transform duration-200" />
+            </Accordion.Trigger>
+          </Accordion.Header>
+          <Accordion.Content className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+            <div className="pb-4">
+              <div className="grid grid-cols-2 gap-2">
+                {SUPPORTED_DATABASES.map((db) => (
+                  <div
+                    key={db.name}
+                    className="flex items-center gap-2 rounded-lg border border-border-light p-2"
+                  >
+                    <div
+                      className={`flex h-8 w-8 items-center justify-center rounded ${db.bgClass}`}
+                    >
+                      <span className={`text-sm font-bold ${db.textClass}`}>{db.initials}</span>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium">{db.name}</span>
+                      <p className="text-xs text-text-tertiary">{db.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-2 rounded-lg border border-border-light p-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded bg-blue-100 dark:bg-blue-900">
-              <span className="text-sm font-bold text-blue-800 dark:text-blue-200">My</span>
-            </div>
-            <div>
-              <span className="text-sm font-medium">MySQL</span>
-              <p className="text-xs text-text-tertiary">Relational database</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 rounded-lg border border-border-light p-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded bg-indigo-100 dark:bg-indigo-900">
-              <span className="text-sm font-bold text-indigo-800 dark:text-indigo-200">PG</span>
-            </div>
-            <div>
-              <span className="text-sm font-medium">PostgreSQL</span>
-              <p className="text-xs text-text-tertiary">Relational database</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 rounded-lg border border-border-light p-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded bg-green-100 dark:bg-green-900">
-              <span className="text-sm font-bold text-green-800 dark:text-green-200">BQ</span>
-            </div>
-            <div>
-              <span className="text-sm font-medium">BigQuery</span>
-              <p className="text-xs text-text-tertiary">Data warehouse</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 rounded-lg border border-border-light p-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded bg-red-100 dark:bg-red-900">
-              <span className="text-sm font-bold text-red-800 dark:text-red-200">RS</span>
-            </div>
-            <div>
-              <span className="text-sm font-medium">Redshift</span>
-              <p className="text-xs text-text-tertiary">Data warehouse</p>
-            </div>
-          </div>
-        </div>
-      </div>
+          </Accordion.Content>
+        </Accordion.Item>
+      </Accordion.Root>
     </div>
   );
 }

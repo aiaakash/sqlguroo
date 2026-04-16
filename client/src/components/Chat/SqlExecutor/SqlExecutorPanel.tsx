@@ -1,9 +1,23 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@librechat/client';
-import { Play, X, History, ChevronRight, Clock, Rows3 } from 'lucide-react';
+import {
+  Play,
+  X,
+  History,
+  ChevronRight,
+  Clock,
+  Rows3,
+  Database,
+  FileText,
+  MousePointerClick,
+} from 'lucide-react';
 import { useParams } from 'react-router-dom';
 import { useRecoilState } from 'recoil';
-import { useExecuteQuery } from '~/components/Nav/SettingsTabs/Analytics/hooks';
+import {
+  useExecuteQuery,
+  useAnalyticsSchema,
+  useAnalyticsConnections,
+} from '~/components/Nav/SettingsTabs/Analytics/hooks';
 import { Loader2 } from 'lucide-react';
 import ConnectionSelector from './ConnectionSelector';
 import SqlEditor from './SqlEditor';
@@ -20,6 +34,22 @@ interface SqlExecutorPanelProps {
   className?: string;
 }
 
+function getDialectLabel(type: string): string {
+  const labels: Record<string, string> = {
+    mysql: 'MySQL',
+    postgresql: 'PostgreSQL',
+    pg: 'PostgreSQL',
+    clickhouse: 'ClickHouse',
+    bigquery: 'BigQuery',
+    redshift: 'Redshift',
+    snowflake: 'Snowflake',
+    oracle: 'Oracle',
+    mssql: 'SQL Server',
+    sqlserver: 'SQL Server',
+  };
+  return labels[type.toLowerCase()] || type.toUpperCase();
+}
+
 export default function SqlExecutorPanel({ onClose, className }: SqlExecutorPanelProps) {
   const { conversationId } = useParams<{ conversationId?: string }>();
   const localize = useLocalize();
@@ -31,8 +61,17 @@ export default function SqlExecutorPanel({ onClose, className }: SqlExecutorPane
   const [error, setError] = useState<string | undefined>();
   const [errorDetails, setErrorDetails] = useState<TQueryErrorDetails | undefined>();
   const [showHistory, setShowHistory] = useState(false);
+  const [cursorPosition, setCursorPosition] = useState({ line: 1, column: 1 });
 
   const executeQuery = useExecuteQuery();
+  const { data: schemaData } = useAnalyticsSchema(selectedConnectionId || '', {
+    enabled: !!selectedConnectionId,
+  });
+  const { data: connections } = useAnalyticsConnections('default-org');
+
+  const selectedConnection = connections?.find((c) => c._id === selectedConnectionId);
+  const tableCount = schemaData?.schema?.tables?.length ?? 0;
+  const dialect = selectedConnection ? getDialectLabel(selectedConnection.type) : '';
 
   const handleExecute = useCallback(() => {
     if (!sql.trim() || !selectedConnectionId) {
@@ -64,7 +103,6 @@ export default function SqlExecutorPanel({ onClose, className }: SqlExecutorPane
           }
         },
         onError: (err: any) => {
-          // Try to extract detailed error from axios error response
           const errorData = err?.response?.data;
           if (errorData) {
             setError(errorData.error || err?.message || localize('com_ui_failed_to_execute_query'));
@@ -78,12 +116,15 @@ export default function SqlExecutorPanel({ onClose, className }: SqlExecutorPane
     );
   }, [sql, selectedConnectionId, conversationId, executeQuery, localize]);
 
-  // Sync local SQL state with global state
+  const handleCancel = useCallback(() => {
+    executeQuery.reset();
+    setError('Query cancelled by user');
+  }, [executeQuery]);
+
   useEffect(() => {
     setSqlEditorContent(sql);
   }, [sql, setSqlEditorContent]);
 
-  // Sync global state changes to local state (for external updates)
   useEffect(() => {
     if (sqlEditorContent !== sql) {
       setSql(sqlEditorContent);
@@ -128,7 +169,6 @@ export default function SqlExecutorPanel({ onClose, className }: SqlExecutorPane
                 }
               },
               onError: (err: any) => {
-                // Try to extract detailed error from axios error response
                 const errorData = err?.response?.data;
                 if (errorData) {
                   setError(
@@ -148,9 +188,12 @@ export default function SqlExecutorPanel({ onClose, className }: SqlExecutorPane
     [conversationId, executeQuery, localize],
   );
 
+  const handleEditorChange = useCallback((value: string) => {
+    setSql(value);
+  }, []);
+
   return (
     <div className={cn('flex h-full flex-col bg-surface-primary text-text-primary', className)}>
-      {/* Header - Compact toolbar */}
       <div className="flex items-center justify-between border-b border-border-light bg-surface-secondary px-3 py-1.5">
         <div className="flex items-center gap-3">
           <span className="text-[11px] font-medium tracking-wide text-text-secondary">
@@ -224,27 +267,23 @@ export default function SqlExecutorPanel({ onClose, className }: SqlExecutorPane
         </div>
       </div>
 
-      {/* Main content area */}
       <div className="flex-1 overflow-hidden">
         <ResizablePanelGroup direction="vertical">
-          {/* SQL Editor Section */}
           <ResizablePanel defaultSize={55} minSize={25} maxSize={75}>
             <div className="flex h-full flex-col">
               <ResizablePanelGroup
                 direction="horizontal"
                 key={showHistory ? 'with-history' : 'no-history'}
               >
-                {/* SQL Editor */}
                 <ResizablePanel defaultSize={showHistory ? 75 : 100} minSize={50}>
                   <SqlEditor
                     value={sql}
-                    onChange={setSql}
+                    onChange={handleEditorChange}
                     onExecute={handleExecute}
                     connectionId={selectedConnectionId}
                   />
                 </ResizablePanel>
 
-                {/* Query History Sidebar */}
                 {showHistory && (
                   <>
                     <ResizableHandle withHandle className="bg-border-light" />
@@ -262,7 +301,6 @@ export default function SqlExecutorPanel({ onClose, className }: SqlExecutorPane
             </div>
           </ResizablePanel>
 
-          {/* Results Section */}
           <ResizableHandle withHandle className="bg-border-light" />
           <ResizablePanel defaultSize={45} minSize={20}>
             <ResultsViewer
@@ -270,10 +308,41 @@ export default function SqlExecutorPanel({ onClose, className }: SqlExecutorPane
               executionTimeMs={executionTimeMs}
               error={error || (executeQuery.error as any)?.message}
               errorDetails={errorDetails}
-              isLoading={executeQuery.isPending}
+              isLoading={executeQuery.isLoading}
+              onCancel={executeQuery.isLoading ? handleCancel : undefined}
             />
           </ResizablePanel>
         </ResizablePanelGroup>
+      </div>
+
+      {/* Enhanced SQL Status Bar */}
+      <div className="flex items-center justify-between border-t border-border-light bg-surface-secondary px-3 py-0.5 text-[10px] text-text-tertiary">
+        <div className="flex items-center gap-3">
+          {selectedConnection && (
+            <span className="flex items-center gap-1">
+              <Database className="h-3 w-3" />
+              <span className="font-medium text-text-secondary">{selectedConnection.name}</span>
+              <span className="text-text-tertiary">({dialect})</span>
+            </span>
+          )}
+          {tableCount > 0 && (
+            <span className="flex items-center gap-1">
+              <FileText className="h-3 w-3" />
+              {tableCount} {tableCount === 1 ? 'table' : 'tables'}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="flex items-center gap-1">
+            <MousePointerClick className="h-3 w-3" />
+            Ln {cursorPosition.line}, Col {cursorPosition.column}
+          </span>
+          {dialect && (
+            <span className="rounded bg-surface-tertiary px-1.5 py-0.5 font-mono text-text-secondary">
+              {dialect}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );
