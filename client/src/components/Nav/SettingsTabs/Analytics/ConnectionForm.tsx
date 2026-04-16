@@ -8,8 +8,18 @@ import {
   OGDialogClose,
   Spinner,
 } from '@librechat/client';
-import { useCreateConnection, useUpdateConnection, useTestNewConnection, useAnalyticsConnection } from './hooks';
-import type { TCreateDatabaseConnectionRequest, DatabaseType, QueryMode } from 'librechat-data-provider';
+import { useToastContext } from '@librechat/client';
+import {
+  useCreateConnection,
+  useUpdateConnection,
+  useTestNewConnection,
+  useAnalyticsConnection,
+} from './hooks';
+import type {
+  TCreateDatabaseConnectionRequest,
+  DatabaseType,
+  QueryMode,
+} from 'librechat-data-provider';
 
 interface ConnectionFormProps {
   organizationId: string;
@@ -31,7 +41,12 @@ interface FormData {
   maxRows: number;
 }
 
-export default function ConnectionForm({ organizationId, connectionId, onClose }: ConnectionFormProps) {
+export default function ConnectionForm({
+  organizationId,
+  connectionId,
+  onClose,
+}: ConnectionFormProps) {
+  const { showToast } = useToastContext();
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [isTesting, setIsTesting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -41,7 +56,7 @@ export default function ConnectionForm({ organizationId, connectionId, onClose }
   const testNewConnection = useTestNewConnection();
   const { data: existingConnection, isLoading: isLoadingConnection } = useAnalyticsConnection(
     connectionId || '',
-    { enabled: !!connectionId }
+    { enabled: !!connectionId },
   );
 
   const {
@@ -167,16 +182,22 @@ export default function ConnectionForm({ organizationId, connectionId, onClose }
           id: connectionId,
           data: updateData,
         });
+        showToast({ message: 'Connection updated successfully', status: 'success' });
       } else {
         await createConnection.mutateAsync({
           ...submitData,
           organizationId,
         } as TCreateDatabaseConnectionRequest);
+        showToast({ message: 'Connection created successfully', status: 'success' });
       }
       onClose();
     } catch (error: any) {
       console.error('Failed to save connection:', error);
-      const errorMessage = error?.response?.data?.message || error?.response?.data?.error || error?.message || 'Failed to save connection';
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error?.message ||
+        'Failed to save connection';
       setSubmitError(errorMessage);
     }
   };
@@ -191,8 +212,19 @@ export default function ConnectionForm({ organizationId, connectionId, onClose }
         <div className="py-6 text-center">
           <div className="mb-4 flex justify-center">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900/40">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
             </div>
           </div>
@@ -200,8 +232,8 @@ export default function ConnectionForm({ organizationId, connectionId, onClose }
             <strong>{existingConnection.name}</strong> is a shared sample database.
           </p>
           <p className="text-sm text-text-secondary">
-            This connection is managed by the system administrator and cannot be modified.
-            You can use it to run read-only queries and explore the sample data.
+            This connection is managed by the system administrator and cannot be modified. You can
+            use it to run read-only queries and explore the sample data.
           </p>
         </div>
         <div className="flex justify-end">
@@ -245,9 +277,7 @@ export default function ConnectionForm({ organizationId, connectionId, onClose }
               className="w-full rounded-lg border border-border-medium bg-surface-primary px-3 py-2 text-sm focus:border-border-heavy focus:outline-none"
               placeholder="My Database"
             />
-            {errors.name && (
-              <span className="text-xs text-red-500">{errors.name.message}</span>
-            )}
+            {errors.name && <span className="text-xs text-red-500">{errors.name.message}</span>}
           </div>
 
           <div>
@@ -287,21 +317,20 @@ export default function ConnectionForm({ organizationId, connectionId, onClose }
                   className="w-full rounded-lg border border-border-medium bg-surface-primary px-3 py-2 text-sm focus:border-border-heavy focus:outline-none"
                   placeholder="localhost"
                 />
-                {errors.host && (
-                  <span className="text-xs text-red-500">{errors.host.message}</span>
-                )}
+                {errors.host && <span className="text-xs text-red-500">{errors.host.message}</span>}
               </div>
 
               <div>
                 <label className="mb-1 block text-sm font-medium">Port</label>
                 <input
                   type="number"
-                  {...register('port', { required: !isBigQuery && 'Port is required', valueAsNumber: true })}
+                  {...register('port', {
+                    required: !isBigQuery && 'Port is required',
+                    valueAsNumber: true,
+                  })}
                   className="w-full rounded-lg border border-border-medium bg-surface-primary px-3 py-2 text-sm focus:border-border-heavy focus:outline-none"
                 />
-                {errors.port && (
-                  <span className="text-xs text-red-500">{errors.port.message}</span>
-                )}
+                {errors.port && <span className="text-xs text-red-500">{errors.port.message}</span>}
               </div>
             </>
           )}
@@ -319,9 +348,7 @@ export default function ConnectionForm({ organizationId, connectionId, onClose }
               <span className="text-xs text-red-500">{errors.database.message}</span>
             )}
             {isBigQuery && (
-              <p className="mt-1 text-xs text-text-tertiary">
-                Your Google Cloud Project ID
-              </p>
+              <p className="mt-1 text-xs text-text-tertiary">Your Google Cloud Project ID</p>
             )}
           </div>
 
@@ -341,11 +368,14 @@ export default function ConnectionForm({ organizationId, connectionId, onClose }
 
           <div className={isBigQuery ? 'col-span-2' : ''}>
             <label className="mb-1 block text-sm font-medium">
-              {isBigQuery ? 'Service Account Credentials' : 'Password'} {connectionId && !isBigQuery && '(leave blank to keep existing)'}
+              {isBigQuery ? 'Service Account Credentials' : 'Password'}{' '}
+              {connectionId && !isBigQuery && '(leave blank to keep existing)'}
             </label>
             {isBigQuery ? (
               <textarea
-                {...register('password', { required: !connectionId && 'Service account credentials are required' })}
+                {...register('password', {
+                  required: !connectionId && 'Service account credentials are required',
+                })}
                 className="w-full rounded-lg border border-border-medium bg-surface-primary px-3 py-2 text-sm focus:border-border-heavy focus:outline-none"
                 placeholder='{"type": "service_account", "project_id": "...", ...}'
                 rows={4}
@@ -378,7 +408,9 @@ export default function ConnectionForm({ organizationId, connectionId, onClose }
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium">Max Rows <span className="text-text-tertiary">(optional)</span></label>
+            <label className="mb-1 block text-sm font-medium">
+              Max Rows <span className="text-text-tertiary">(optional)</span>
+            </label>
             <input
               type="number"
               placeholder="No limit"
@@ -404,17 +436,18 @@ export default function ConnectionForm({ organizationId, connectionId, onClose }
 
         {testResult && (
           <div
-            className={`rounded-lg p-3 text-sm ${testResult.success
-              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-              : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-              }`}
+            className={`rounded-lg p-3 text-sm ${
+              testResult.success
+                ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300'
+                : 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300'
+            }`}
           >
             {testResult.message}
           </div>
         )}
 
         {submitError && (
-          <div className="rounded-lg bg-red-100 p-3 text-sm text-red-800 dark:bg-red-900 dark:text-red-200">
+          <div className="rounded-lg bg-red-100 p-3 text-sm text-red-800 dark:bg-red-900/40 dark:text-red-300">
             <p className="font-medium">Error</p>
             <p className="mt-1">{submitError}</p>
           </div>
@@ -443,7 +476,7 @@ export default function ConnectionForm({ organizationId, connectionId, onClose }
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex items-center gap-1 rounded-lg !bg-primary !text-primary-foreground px-4 py-2 text-sm hover:!bg-primary/90 disabled:opacity-50"
+              className="hover:!bg-primary/90 flex items-center gap-1 rounded-lg !bg-primary px-4 py-2 text-sm !text-primary-foreground disabled:opacity-50"
             >
               {isSubmitting && <Spinner className="h-4 w-4" />}
               {connectionId ? 'Update' : 'Create'} Connection
@@ -454,4 +487,3 @@ export default function ConnectionForm({ organizationId, connectionId, onClose }
     </OGDialogContent>
   );
 }
-

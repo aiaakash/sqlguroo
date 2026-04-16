@@ -90,62 +90,72 @@ export default function SqlExecutorPanel({ onClose, className }: SqlExecutorPane
     }
   }, [sqlEditorContent]);
 
-  const handleSelectQuery = useCallback((query: TAnalyticsQuery) => {
-    const newSql = query.executedSql || query.generatedSql;
-    setSql(newSql);
-    setSqlEditorContent(newSql);
-    setSelectedConnectionId(query.connectionId);
-    setShowHistory(false);
-  }, [setSqlEditorContent]);
+  const handleSelectQuery = useCallback(
+    (query: TAnalyticsQuery) => {
+      const newSql = query.executedSql || query.generatedSql;
+      setSql(newSql);
+      setSqlEditorContent(newSql);
+      setSelectedConnectionId(query.connectionId);
+      setShowHistory(false);
+    },
+    [setSqlEditorContent],
+  );
 
-  const handleExecuteFromHistory = useCallback((querySql: string, connId: string) => {
-    setSql(querySql);
-    setSqlEditorContent(querySql);
-    setSelectedConnectionId(connId);
-    setShowHistory(false);
-    setTimeout(() => {
+  const handleExecuteFromHistory = useCallback(
+    (querySql: string, connId: string) => {
       setSql(querySql);
-      if (connId) {
-        executeQuery.mutate(
-          {
-            sql: querySql,
-            connectionId: connId,
-            conversationId: conversationId,
-          },
-          {
-            onSuccess: (response) => {
-              if (response.success && response.results) {
-                setResults(response.results);
-                setExecutionTimeMs(response.results.executionTimeMs);
-                setError(undefined);
-              } else {
-                setError(response.error || localize('com_ui_query_execution_failed'));
+      setSqlEditorContent(querySql);
+      setSelectedConnectionId(connId);
+      setShowHistory(false);
+      setTimeout(() => {
+        setSql(querySql);
+        if (connId) {
+          executeQuery.mutate(
+            {
+              sql: querySql,
+              connectionId: connId,
+              conversationId: conversationId,
+            },
+            {
+              onSuccess: (response) => {
+                if (response.success && response.results) {
+                  setResults(response.results);
+                  setExecutionTimeMs(response.results.executionTimeMs);
+                  setError(undefined);
+                } else {
+                  setError(response.error || localize('com_ui_query_execution_failed'));
+                  setResults(null);
+                }
+              },
+              onError: (err: any) => {
+                // Try to extract detailed error from axios error response
+                const errorData = err?.response?.data;
+                if (errorData) {
+                  setError(
+                    errorData.error || err?.message || localize('com_ui_failed_to_execute_query'),
+                  );
+                  setErrorDetails(errorData.errorDetails);
+                } else {
+                  setError(err?.message || localize('com_ui_failed_to_execute_query'));
+                }
                 setResults(null);
-              }
+              },
             },
-            onError: (err: any) => {
-              // Try to extract detailed error from axios error response
-              const errorData = err?.response?.data;
-              if (errorData) {
-                setError(errorData.error || err?.message || localize('com_ui_failed_to_execute_query'));
-                setErrorDetails(errorData.errorDetails);
-              } else {
-                setError(err?.message || localize('com_ui_failed_to_execute_query'));
-              }
-              setResults(null);
-            },
-          },
-        );
-      }
-    }, 100);
-  }, [conversationId, executeQuery, localize]);
+          );
+        }
+      }, 100);
+    },
+    [conversationId, executeQuery, localize],
+  );
 
   return (
     <div className={cn('flex h-full flex-col bg-surface-primary text-text-primary', className)}>
       {/* Header - Compact toolbar */}
       <div className="flex items-center justify-between border-b border-border-light bg-surface-secondary px-3 py-1.5">
         <div className="flex items-center gap-3">
-          <span className="text-[11px] font-medium tracking-wide text-text-secondary">{localize('com_ui_role_editor')}</span>
+          <span className="text-[11px] font-medium tracking-wide text-text-secondary">
+            {localize('com_ui_role_editor')}
+          </span>
           <ConnectionSelector
             selectedConnectionId={selectedConnectionId}
             onConnectionChange={setSelectedConnectionId}
@@ -158,7 +168,7 @@ export default function SqlExecutorPanel({ onClose, className }: SqlExecutorPane
             sqlContent={sql}
             connectionId={selectedConnectionId || undefined}
             conversationId={conversationId}
-            className="flex items-center rounded px-2 py-1 text-text-secondary hover:bg-surface-hover hover:text-text-primary transition-colors"
+            className="flex items-center rounded px-2 py-1 text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary"
           />
 
           <button
@@ -167,14 +177,14 @@ export default function SqlExecutorPanel({ onClose, className }: SqlExecutorPane
               'flex items-center rounded px-2 py-1 transition-colors',
               showHistory
                 ? 'bg-surface-tertiary text-text-primary'
-                : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
+                : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary',
             )}
             title={localize('com_ui_toggle_history')}
           >
             <History className="h-[18px] w-[18px]" />
           </button>
 
-          <div className="h-3 w-px bg-border-light mx-1" />
+          <div className="mx-1 h-3 w-px bg-border-light" />
 
           <button
             onClick={handleExecute}
@@ -182,8 +192,8 @@ export default function SqlExecutorPanel({ onClose, className }: SqlExecutorPane
             className={cn(
               'flex items-center gap-1 rounded px-3 py-1.5 text-sm font-medium transition-all',
               executeQuery.isLoading || !sql.trim() || !selectedConnectionId
-                ? 'bg-surface-tertiary text-text-tertiary cursor-not-allowed'
-                : 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'
+                ? 'cursor-not-allowed bg-surface-tertiary text-text-tertiary'
+                : 'bg-blue-600 text-white shadow-sm hover:bg-blue-700',
             )}
           >
             {executeQuery.isLoading ? (
@@ -201,10 +211,10 @@ export default function SqlExecutorPanel({ onClose, className }: SqlExecutorPane
 
           {onClose && (
             <>
-              <div className="h-3 w-px bg-border-light mx-1" />
+              <div className="mx-1 h-3 w-px bg-border-light" />
               <button
                 onClick={onClose}
-                className="rounded p-1 text-text-secondary hover:bg-surface-hover hover:text-text-primary transition-colors"
+                className="rounded p-1 text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary"
                 title={localize('com_ui_close')}
               >
                 <X className="h-3.5 w-3.5" />
@@ -220,7 +230,10 @@ export default function SqlExecutorPanel({ onClose, className }: SqlExecutorPane
           {/* SQL Editor Section */}
           <ResizablePanel defaultSize={55} minSize={25} maxSize={75}>
             <div className="flex h-full flex-col">
-              <ResizablePanelGroup direction="horizontal" key={showHistory ? 'with-history' : 'no-history'}>
+              <ResizablePanelGroup
+                direction="horizontal"
+                key={showHistory ? 'with-history' : 'no-history'}
+              >
                 {/* SQL Editor */}
                 <ResizablePanel defaultSize={showHistory ? 75 : 100} minSize={50}>
                   <SqlEditor
@@ -257,6 +270,7 @@ export default function SqlExecutorPanel({ onClose, className }: SqlExecutorPane
               executionTimeMs={executionTimeMs}
               error={error || (executeQuery.error as any)?.message}
               errorDetails={errorDetails}
+              isLoading={executeQuery.isPending}
             />
           </ResizablePanel>
         </ResizablePanelGroup>

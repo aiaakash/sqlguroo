@@ -9,7 +9,18 @@ import {
   type ColumnDef,
   type SortingState,
 } from '@tanstack/react-table';
-import { Download, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, AlertCircle, Search, Clock, Rows3, FileSpreadsheet } from 'lucide-react';
+import {
+  Download,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  AlertCircle,
+  Search,
+  Clock,
+  Rows3,
+  FileSpreadsheet,
+} from 'lucide-react';
 import exportFromJSON from 'export-from-json';
 import * as XLSX from 'xlsx';
 import type { TQueryResults, TQueryErrorDetails } from 'librechat-data-provider';
@@ -22,9 +33,17 @@ interface ResultsViewerProps {
   error?: string;
   errorDetails?: TQueryErrorDetails;
   className?: string;
+  isLoading?: boolean;
 }
 
-export default function ResultsViewer({ results, executionTimeMs, error, errorDetails, className }: ResultsViewerProps) {
+export default function ResultsViewer({
+  results,
+  executionTimeMs,
+  error,
+  errorDetails,
+  className,
+  isLoading,
+}: ResultsViewerProps) {
   const localize = useLocalize();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
@@ -41,19 +60,20 @@ export default function ResultsViewer({ results, executionTimeMs, error, errorDe
         header: columnName,
         cell: (info: any) => {
           const value = info.getValue();
-          const stringValue = value === null || value === undefined 
-            ? 'null' 
-            : typeof value === 'object' 
-              ? JSON.stringify(value) 
-              : String(value);
-          
+          const stringValue =
+            value === null || value === undefined
+              ? 'null'
+              : typeof value === 'object'
+                ? JSON.stringify(value)
+                : String(value);
+
           if (value === null || value === undefined) {
-            return <span className="text-text-tertiary italic font-mono text-[11px]">null</span>;
+            return <span className="font-mono text-[11px] italic text-text-tertiary">null</span>;
           }
           if (typeof value === 'object') {
             return (
-              <div 
-                className="max-h-16 overflow-y-auto break-words text-text-primary font-mono text-[11px] leading-tight"
+              <div
+                className="max-h-16 overflow-y-auto break-words font-mono text-[11px] leading-tight text-text-primary"
                 title={stringValue}
               >
                 {stringValue}
@@ -61,8 +81,8 @@ export default function ResultsViewer({ results, executionTimeMs, error, errorDe
             );
           }
           return (
-            <div 
-              className="max-h-16 overflow-y-auto break-words text-text-primary font-mono text-[11px] leading-tight"
+            <div
+              className="max-h-16 overflow-y-auto break-words font-mono text-[11px] leading-tight text-text-primary"
               title={stringValue}
             >
               {stringValue}
@@ -102,20 +122,20 @@ export default function ResultsViewer({ results, executionTimeMs, error, errorDe
 
   const handleExportCSV = () => {
     if (!results) return;
-    
+
     // Limit exports to 1M rows or 100MB file size
     const MAX_EXPORT_ROWS = 1000000;
     const MAX_FILE_SIZE_MB = 100;
     const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
-    
+
     let exportData = results.rows;
     let truncated = false;
-    
+
     if (results.rows.length > MAX_EXPORT_ROWS) {
       exportData = results.rows.slice(0, MAX_EXPORT_ROWS);
       truncated = true;
     }
-    
+
     // Check file size estimate (rough estimate: average 100 bytes per row)
     const estimatedSize = exportData.length * 100;
     if (estimatedSize > MAX_FILE_SIZE_BYTES) {
@@ -123,11 +143,13 @@ export default function ResultsViewer({ results, executionTimeMs, error, errorDe
       exportData = exportData.slice(0, sizeLimitedRows);
       truncated = true;
     }
-    
+
     if (truncated) {
-      console.warn(`Export truncated to ${exportData.length.toLocaleString()} rows due to limit (max: ${MAX_EXPORT_ROWS.toLocaleString()} rows or ${MAX_FILE_SIZE_MB}MB)`);
+      console.warn(
+        `Export truncated to ${exportData.length.toLocaleString()} rows due to limit (max: ${MAX_EXPORT_ROWS.toLocaleString()} rows or ${MAX_FILE_SIZE_MB}MB)`,
+      );
     }
-    
+
     exportFromJSON({
       data: exportData,
       fileName: `query-results-${Date.now()}`,
@@ -137,20 +159,20 @@ export default function ResultsViewer({ results, executionTimeMs, error, errorDe
 
   const handleExportExcel = () => {
     if (!results) return;
-    
+
     // Limit exports to 1M rows or 100MB file size
     const MAX_EXPORT_ROWS = 1000000;
     const MAX_FILE_SIZE_MB = 100;
     const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
-    
+
     let exportData = results.rows;
     let truncated = false;
-    
+
     if (results.rows.length > MAX_EXPORT_ROWS) {
       exportData = results.rows.slice(0, MAX_EXPORT_ROWS);
       truncated = true;
     }
-    
+
     // Check file size estimate (rough estimate: average 150 bytes per row for Excel)
     const estimatedSize = exportData.length * 150;
     if (estimatedSize > MAX_FILE_SIZE_BYTES) {
@@ -158,21 +180,53 @@ export default function ResultsViewer({ results, executionTimeMs, error, errorDe
       exportData = exportData.slice(0, sizeLimitedRows);
       truncated = true;
     }
-    
+
     if (truncated) {
-      console.warn(`Export truncated to ${exportData.length.toLocaleString()} rows due to limit (max: ${MAX_EXPORT_ROWS.toLocaleString()} rows or ${MAX_FILE_SIZE_MB}MB)`);
+      console.warn(
+        `Export truncated to ${exportData.length.toLocaleString()} rows due to limit (max: ${MAX_EXPORT_ROWS.toLocaleString()} rows or ${MAX_FILE_SIZE_MB}MB)`,
+      );
     }
-    
+
     // Create worksheet from data
     const worksheet = XLSX.utils.json_to_sheet(exportData);
-    
+
     // Create workbook and append worksheet
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Results');
-    
+
     // Generate Excel file
     XLSX.writeFile(workbook, `query-results-${Date.now()}.xlsx`);
   };
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className={cn('flex h-full flex-col bg-surface-primary', className)}>
+        <div className="flex items-center justify-between border-b border-border-light bg-surface-secondary px-3 py-1.5">
+          <div className="flex items-center gap-3">
+            <div className="h-3 w-16 animate-pulse rounded bg-surface-tertiary"></div>
+            <div className="h-3 w-12 animate-pulse rounded bg-surface-tertiary"></div>
+            <div className="h-3 w-10 animate-pulse rounded bg-surface-tertiary"></div>
+          </div>
+        </div>
+        <div className="flex-1 overflow-auto p-3">
+          <div className="space-y-2">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="flex gap-2">
+                {Array.from({ length: 5 }).map((_, j) => (
+                  <div
+                    key={j}
+                    className="h-6 flex-1 animate-pulse rounded bg-surface-tertiary"
+                    style={{ animationDelay: `${(i * 5 + j) * 50}ms` }}
+                  ></div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Error state
   if (error) {
@@ -190,20 +244,26 @@ export default function ResultsViewer({ results, executionTimeMs, error, errorDe
 
     return (
       <div className={cn('flex h-full flex-col bg-surface-primary', className)}>
-        <div className="flex items-center justify-between border-b border-border-light px-3 py-1.5 bg-surface-secondary">
-          <span className="text-[11px] font-medium text-text-secondary uppercase tracking-wide">{localize('com_ui_results')}</span>
+        <div className="flex items-center justify-between border-b border-border-light bg-surface-secondary px-3 py-1.5">
+          <span className="text-[11px] font-medium uppercase tracking-wide text-text-secondary">
+            {localize('com_ui_results')}
+          </span>
         </div>
-        <div className="flex flex-1 items-start justify-center p-4 overflow-auto">
-          <div className="w-full max-w-2xl flex flex-col gap-2 rounded border border-red-200 bg-red-50 px-4 py-3 dark:border-red-800 dark:bg-red-900/20">
+        <div className="flex flex-1 items-start justify-center overflow-auto p-4">
+          <div className="flex w-full max-w-2xl flex-col gap-2 rounded border border-red-200 bg-red-50 px-4 py-3 dark:border-red-800 dark:bg-red-900/20">
             <div className="flex items-start gap-2">
               <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-500" />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-red-700 dark:text-red-400">{errorTypeLabel}</p>
-                <p className="mt-1 text-xs text-red-600 dark:text-red-300 whitespace-pre-wrap break-words">{error}</p>
-                
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-red-700 dark:text-red-400">
+                  {errorTypeLabel}
+                </p>
+                <p className="mt-1 whitespace-pre-wrap break-words text-xs text-red-600 dark:text-red-300">
+                  {error}
+                </p>
+
                 {/* Display error details if available */}
                 {errorDetails && (
-                  <div className="mt-2 pt-2 border-t border-red-200 dark:border-red-800/50">
+                  <div className="mt-2 border-t border-red-200 pt-2 dark:border-red-800/50">
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-red-500/80 dark:text-red-400/70">
                       {errorDetails.code && (
                         <span className="font-mono">Code: {errorDetails.code}</span>
@@ -229,11 +289,15 @@ export default function ResultsViewer({ results, executionTimeMs, error, errorDe
   if (!results) {
     return (
       <div className={cn('flex h-full flex-col bg-surface-primary', className)}>
-        <div className="flex items-center justify-between border-b border-border-light px-3 py-1.5 bg-surface-secondary">
-          <span className="text-[11px] font-medium text-text-secondary uppercase tracking-wide">{localize('com_ui_results')}</span>
+        <div className="flex items-center justify-between border-b border-border-light bg-surface-secondary px-3 py-1.5">
+          <span className="text-[11px] font-medium uppercase tracking-wide text-text-secondary">
+            {localize('com_ui_results')}
+          </span>
         </div>
-        <div className="flex flex-1 items-center justify-center">
-          <p className="text-[11px] text-text-tertiary">{localize('com_ui_run_query_to_see_results')}</p>
+        <div className="flex flex-1 flex-col items-center justify-center gap-2 p-4">
+          <Rows3 className="h-8 w-8 text-text-tertiary opacity-50" />
+          <p className="text-sm font-medium text-text-secondary">No results to display</p>
+          <p className="text-xs text-text-tertiary">Run a query to see results here</p>
         </div>
       </div>
     );
@@ -244,28 +308,34 @@ export default function ResultsViewer({ results, executionTimeMs, error, errorDe
       {/* Header - Compact stats and controls */}
       <div className="flex items-center justify-between border-b border-border-light bg-surface-secondary px-3 py-1.5">
         <div className="flex items-center gap-3">
-          <span className="text-[11px] font-medium text-text-secondary uppercase tracking-wide">{localize('com_ui_results')}</span>
-          
+          <span className="text-[11px] font-medium uppercase tracking-wide text-text-secondary">
+            {localize('com_ui_results')}
+          </span>
+
           <div className="flex items-center gap-2 text-[11px]">
             <span className="flex items-center gap-1 text-text-secondary">
               <Rows3 className="h-3 w-3" />
-              <span className="font-medium text-text-primary">{results.rowCount.toLocaleString()}</span>
+              <span className="font-medium text-text-primary">
+                {results.rowCount.toLocaleString()}
+              </span>
               <span className="text-text-tertiary">rows</span>
             </span>
-            
+
             {executionTimeMs !== undefined && (
               <span className="flex items-center gap-1 text-text-secondary">
                 <Clock className="h-3 w-3" />
-                <span className="font-medium text-text-primary">{(executionTimeMs / 1000).toFixed(2)}s</span>
+                <span className="font-medium text-text-primary">
+                  {(executionTimeMs / 1000).toFixed(2)}s
+                </span>
               </span>
             )}
-            
+
             {results.truncated && (
               <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
                 {localize('com_ui_truncated')}
               </span>
             )}
-            
+
             {results.rowCount > DISPLAY_LIMIT && (
               <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
                 Showing {DISPLAY_LIMIT.toLocaleString()} of {results.rowCount.toLocaleString()}
@@ -273,7 +343,7 @@ export default function ResultsViewer({ results, executionTimeMs, error, errorDe
             )}
           </div>
         </div>
-        
+
         <div className="flex items-center gap-2">
           {/* Search */}
           <div className="relative">
@@ -286,12 +356,12 @@ export default function ResultsViewer({ results, executionTimeMs, error, errorDe
               className="h-6 w-32 rounded border border-border-light bg-surface-primary pl-6 pr-2 text-[11px] text-text-primary placeholder:text-text-tertiary focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
-          
+
           {/* Export buttons */}
           <div className="flex items-center gap-1">
             <button
               onClick={handleExportCSV}
-              className="flex items-center gap-1 rounded border border-border-light bg-surface-primary px-2 py-1 text-[11px] text-text-secondary hover:bg-surface-hover hover:text-text-primary transition-colors"
+              className="flex items-center gap-1 rounded border border-border-light bg-surface-primary px-2 py-1 text-[11px] text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary"
               title={localize('com_ui_export_csv')}
             >
               <Download className="h-3 w-3" />
@@ -299,7 +369,7 @@ export default function ResultsViewer({ results, executionTimeMs, error, errorDe
             </button>
             <button
               onClick={handleExportExcel}
-              className="flex items-center gap-1 rounded border border-border-light bg-surface-primary px-2 py-1 text-[11px] text-text-secondary hover:bg-surface-hover hover:text-text-primary transition-colors"
+              className="flex items-center gap-1 rounded border border-border-light bg-surface-primary px-2 py-1 text-[11px] text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary"
               title={localize('com_ui_export_excel')}
             >
               <FileSpreadsheet className="h-3 w-3" />
@@ -324,7 +394,8 @@ export default function ResultsViewer({ results, executionTimeMs, error, errorDe
                       <div
                         className={cn(
                           'flex items-center gap-1',
-                          header.column.getCanSort() && 'cursor-pointer select-none hover:text-text-primary'
+                          header.column.getCanSort() &&
+                            'cursor-pointer select-none hover:text-text-primary',
                         )}
                         onClick={header.column.getToggleSortingHandler()}
                       >
@@ -345,7 +416,10 @@ export default function ResultsViewer({ results, executionTimeMs, error, errorDe
           <tbody>
             {table.getRowModel().rows.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className="px-3 py-4 text-center text-[11px] text-text-tertiary">
+                <td
+                  colSpan={columns.length}
+                  className="px-3 py-4 text-center text-[11px] text-text-tertiary"
+                >
                   {localize('com_ui_no_matching_results')}
                 </td>
               </tr>
@@ -354,15 +428,12 @@ export default function ResultsViewer({ results, executionTimeMs, error, errorDe
                 <tr
                   key={row.id}
                   className={cn(
-                    'border-b border-border-light/50 hover:bg-surface-secondary/50 transition-colors',
-                    index % 2 === 0 ? 'bg-surface-primary' : 'bg-surface-secondary/30'
+                    'border-border-light/50 hover:bg-surface-secondary/50 border-b transition-colors',
+                    index % 2 === 0 ? 'bg-surface-primary' : 'bg-surface-secondary/30',
                   )}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <td 
-                      key={cell.id} 
-                      className="px-2 py-1 align-top"
-                    >
+                    <td key={cell.id} className="px-2 py-1 align-top">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}
@@ -378,39 +449,44 @@ export default function ResultsViewer({ results, executionTimeMs, error, errorDe
         <div className="flex items-center justify-between border-t border-border-light bg-surface-secondary px-3 py-1">
           <div className="flex items-center gap-2 text-[11px] text-text-secondary">
             <span>
-              {localize('com_ui_page')} <span className="font-medium text-text-primary">{table.getState().pagination.pageIndex + 1}</span> {localize('com_ui_of')} {table.getPageCount()}
+              {localize('com_ui_page')}{' '}
+              <span className="font-medium text-text-primary">
+                {table.getState().pagination.pageIndex + 1}
+              </span>{' '}
+              {localize('com_ui_of')} {table.getPageCount()}
             </span>
             <span className="text-text-tertiary">•</span>
             <span>
-              {table.getRowModel().rows.length} {localize('com_ui_of')} {data.length} {localize('com_ui_rows')}
+              {table.getRowModel().rows.length} {localize('com_ui_of')} {data.length}{' '}
+              {localize('com_ui_rows')}
             </span>
           </div>
           <div className="flex items-center gap-0.5">
             <button
               onClick={() => table.setPageIndex(0)}
               disabled={!table.getCanPreviousPage()}
-              className="rounded p-1 text-text-secondary hover:bg-surface-hover hover:text-text-primary disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
+              className="rounded p-1 text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary disabled:opacity-40 disabled:hover:bg-transparent"
             >
               <ChevronsLeft className="h-3.5 w-3.5" />
             </button>
             <button
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
-              className="rounded p-1 text-text-secondary hover:bg-surface-hover hover:text-text-primary disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
+              className="rounded p-1 text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary disabled:opacity-40 disabled:hover:bg-transparent"
             >
               <ChevronLeft className="h-3.5 w-3.5" />
             </button>
             <button
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
-              className="rounded p-1 text-text-secondary hover:bg-surface-hover hover:text-text-primary disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
+              className="rounded p-1 text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary disabled:opacity-40 disabled:hover:bg-transparent"
             >
               <ChevronRight className="h-3.5 w-3.5" />
             </button>
             <button
               onClick={() => table.setPageIndex(table.getPageCount() - 1)}
               disabled={!table.getCanNextPage()}
-              className="rounded p-1 text-text-secondary hover:bg-surface-hover hover:text-text-primary disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
+              className="rounded p-1 text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary disabled:opacity-40 disabled:hover:bg-transparent"
             >
               <ChevronsRight className="h-3.5 w-3.5" />
             </button>

@@ -11,6 +11,7 @@ import {
   ChevronDown,
   X,
   Pencil,
+  AlertTriangle,
 } from 'lucide-react';
 import { useLocalize } from '~/hooks';
 import { useToastContext } from '@librechat/client';
@@ -21,6 +22,7 @@ import {
   OGDialogHeader,
   OGDialogTitle,
   OGDialogClose,
+  OGDialogFooter,
   Spinner,
   Button,
 } from '@librechat/client';
@@ -52,6 +54,8 @@ export default function GitHubConnectionsPanel() {
   const { showToast } = useToastContext();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingConnection, setEditingConnection] = useState<TGitHubRepoConnection | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [connectionToDelete, setConnectionToDelete] = useState<string | null>(null);
   const [syncingConnection, setSyncingConnection] = useState<string | null>(null);
   const [syncResult, setSyncResult] = useState<{
     id: string;
@@ -76,9 +80,16 @@ export default function GitHubConnectionsPanel() {
     setEditingConnection(null);
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this GitHub connection?')) {
-      await deleteConnection.mutateAsync(id);
+  const handleDeleteClick = (id: string) => {
+    setConnectionToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (connectionToDelete) {
+      await deleteConnection.mutateAsync(connectionToDelete);
+      setDeleteDialogOpen(false);
+      setConnectionToDelete(null);
     }
   };
 
@@ -223,9 +234,8 @@ export default function GitHubConnectionsPanel() {
                       )}
                     </button>
                     <button
-                      onClick={() => handleDelete(connection._id)}
-                      disabled={deleteConnection.isPending}
-                      className="rounded-md p-1.5 text-text-secondary transition-colors hover:bg-red-100 hover:text-red-600 disabled:opacity-50"
+                      onClick={() => handleDeleteClick(connection._id)}
+                      className="rounded-md p-1.5 text-text-secondary transition-colors hover:bg-red-100 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 dark:hover:bg-red-900/30 dark:hover:text-red-400"
                       title="Delete connection"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -277,6 +287,36 @@ export default function GitHubConnectionsPanel() {
           <p className="text-xs text-text-secondary">No GitHub repos connected</p>
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <OGDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <OGDialogContent className="w-[400px]">
+          <OGDialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
+                <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
+              </div>
+              <div>
+                <OGDialogTitle>Delete GitHub Connection</OGDialogTitle>
+              </div>
+            </div>
+          </OGDialogHeader>
+          <p className="text-sm text-text-secondary">
+            Are you sure you want to delete this GitHub connection? This action cannot be undone and
+            all synced queries will be removed.
+          </p>
+          <OGDialogFooter>
+            <OGDialogClose asChild>
+              <Button type="button" variant="outline">
+                Cancel
+              </Button>
+            </OGDialogClose>
+            <Button type="button" variant="destructive" onClick={handleDeleteConfirm}>
+              Delete
+            </Button>
+          </OGDialogFooter>
+        </OGDialogContent>
+      </OGDialog>
     </div>
   );
 }
@@ -569,7 +609,7 @@ function GitHubConnectionForm({
 
           {testResult && (
             <div
-              className={`rounded-lg p-2 text-xs ${testResult.success ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
+              className={`rounded-lg p-2 text-xs ${testResult.success ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'}`}
             >
               {testResult.success
                 ? `Connected! Found: ${testResult.metadata?.fullName}`
@@ -577,7 +617,11 @@ function GitHubConnectionForm({
             </div>
           )}
 
-          {error && <div className="rounded-lg bg-red-100 p-2 text-xs text-red-700">{error}</div>}
+          {error && (
+            <div className="rounded-lg bg-red-100 p-2 text-xs text-red-700 dark:bg-red-900/40 dark:text-red-300">
+              {error}
+            </div>
+          )}
         </div>
 
         <div className="flex justify-between gap-2">
