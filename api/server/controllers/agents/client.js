@@ -1126,6 +1126,37 @@ class AgentClient extends BaseClient {
       clientOptions.model = endpointConfig.titleModel;
     }
 
+    // Guard for CloseAI endpoint: the "model" is a database connection ID (e.g., 'sample-db'),
+    // not an LLM model. Title generation requires a real LLM, so redirect to OpenRouter.
+    if (
+      (endpoint === EModelEndpoint.closeAI || endpoint === 'closeAI') &&
+      !endpointConfig?.titleEndpoint
+    ) {
+      const closeAITitleEndpoint = process.env.CLOSEAI_TITLE_ENDPOINT || 'OpenRouter';
+      const closeAITitleModel =
+        endpointConfig?.titleModel || process.env.CLOSEAI_TITLE_MODEL || 'openai/gpt-oss-120b';
+
+      try {
+        titleProviderConfig = getProviderConfig({
+          provider: closeAITitleEndpoint,
+          appConfig,
+        });
+        endpoint = closeAITitleEndpoint;
+        logger.debug(
+          `[api/server/controllers/agents/client.js #titleConvo] Redirecting CloseAI title generation to "${closeAITitleEndpoint}" with model "${closeAITitleModel}"`,
+        );
+      } catch (error) {
+        logger.warn(
+          `[api/server/controllers/agents/client.js #titleConvo] Error getting CloseAI title endpoint config for "${closeAITitleEndpoint}", falling back to OpenRouter`,
+          error,
+        );
+        titleProviderConfig = getProviderConfig({ provider: 'OpenRouter', appConfig });
+        endpoint = 'OpenRouter';
+      }
+
+      clientOptions.model = closeAITitleModel;
+    }
+
     const options = await titleProviderConfig.getOptions({
       req,
       endpoint,
@@ -1137,12 +1168,12 @@ class AgentClient extends BaseClient {
     });
 
     let provider = options.provider ?? titleProviderConfig.overrideProvider ?? agent.provider;
-    
+
     // Map closeAI to openAI for LangChain compatibility (closeAI uses OpenAI-compatible API)
     if (provider === EModelEndpoint.closeAI || provider === 'closeAI') {
       provider = Providers.OPENAI;
     }
-    
+
     if (
       endpoint === EModelEndpoint.azureOpenAI &&
       options.llmConfig?.azureOpenAIApiInstanceName == null

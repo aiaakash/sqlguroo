@@ -800,6 +800,12 @@ async function handleCloseAIChatCompletion(req, res) {
       isConnectionId: isValidConnectionId(model),
     });
 
+    // Detect title generation requests - these should not be processed as analytics queries
+    // Title generation prompts contain specific markers like "5-word-or-less title"
+    const isTitleGenerationRequest =
+      userMessage?.includes('5-word-or-less title') ||
+      userMessage?.includes('title for the conversation');
+
     // Check if model is a connection ID (analytics connection)
     let responseText;
     const completionId = `chatcmpl-${uuidv4()}`;
@@ -812,7 +818,70 @@ async function handleCloseAIChatCompletion(req, res) {
       fromEnv: !agentTypeFromBody && !!process.env.AGENT_TYPE,
     });
 
-    if (isValidConnectionId(model)) {
+    if (isValidConnectionId(model) && isTitleGenerationRequest) {
+      // Title generation requests for CloseAI conversations are mistakenly routed here
+      // because the "model" (connection ID) matches an analytics connection.
+      // The titleConvo() fix should prevent this, but this is a defensive fallback.
+      logger.info(
+        '[CloseAI Service] Detected title generation request, skipping analytics pipeline',
+      );
+      console.log('[CloseAI Service] Skipping analytics for title generation request');
+      responseText = 'New Conversation';
+
+      if (stream) {
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Content-Encoding', 'identity');
+        res.setHeader('Cache-Control', 'no-cache, no-transform');
+        res.setHeader('Connection', 'keep-alive');
+        res.setHeader('X-Accel-Buffering', 'no');
+        if (typeof res.flushHeaders === 'function') {
+          res.flushHeaders();
+        }
+
+        const initialChunk = {
+          id: completionId,
+          object: 'chat.completion.chunk',
+          created: Math.floor(Date.now() / 1000),
+          model: model,
+          choices: [
+            {
+              index: 0,
+              delta: { role: 'assistant', content: '' },
+              finish_reason: null,
+            },
+          ],
+        };
+        res.write(`data: ${JSON.stringify(initialChunk)}\n\n`);
+        if (typeof res.flush === 'function') {
+          res.flush();
+        }
+
+        await streamOpenAIFormat(res, responseText, model, completionId);
+      } else {
+        res.json({
+          id: completionId,
+          object: 'chat.completion',
+          created: Math.floor(Date.now() / 1000),
+          model: model,
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content: responseText,
+              },
+              finish_reason: 'stop',
+            },
+          ],
+          usage: {
+            prompt_tokens: Math.ceil(userMessage.length / 4),
+            completion_tokens: Math.ceil(responseText.length / 4),
+            total_tokens: Math.ceil((userMessage.length + responseText.length) / 4),
+          },
+        });
+      }
+      return;
+    } else if (isValidConnectionId(model)) {
       // This is an analytics connection - process analytics request
       logger.info('[CloseAI Service] Detected analytics connection, processing...', {
         useAgent,
