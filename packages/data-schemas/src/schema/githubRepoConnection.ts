@@ -10,6 +10,12 @@ const githubRepoConnectionSchema = new Schema<IGitHubRepoConnection>(
       required: true,
       index: true,
     },
+    organizationId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Organization',
+      index: true,
+      sparse: true,
+    },
     name: {
       type: String,
       required: [true, 'Connection name is required'],
@@ -88,5 +94,6 @@ githubRepoConnectionSchema.index({ userId: 1, isActive: 1 });
 githubRepoConnectionSchema.index({ userId: 1, owner: 1, repo: 1 });
 githubRepoConnectionSchema.index({ lastSyncedAt: 1 });
 githubRepoConnectionSchema.index({ connectionIds: 1 });
+githubRepoConnectionSchema.index({ organizationId: 1, isActive: 1 });
 
 export default githubRepoConnectionSchema;

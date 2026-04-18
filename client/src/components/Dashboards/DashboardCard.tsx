@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Star, MoreVertical, Copy, Trash2, Edit2, Archive, LayoutDashboard } from 'lucide-react';
 import type { DashboardListItem } from 'librechat-data-provider';
 import DashboardIcon from './DashboardIcon';
+import { OrgBadge } from '~/components/Organization';
 import { cn } from '~/utils';
 
 interface DashboardCardProps {
@@ -103,6 +104,7 @@ export default function DashboardCard({
             <h3 className="min-w-0 flex-1 truncate font-medium text-text-primary">
               {dashboard.name}
             </h3>
+            <OrgBadge organizationId={dashboard.organizationId} />
             {dashboard.starred && (
               <Star className="h-3 w-3 flex-shrink-0 fill-amber-400 text-amber-400" />
             )}

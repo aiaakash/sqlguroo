@@ -2,6 +2,7 @@ const express = require('express');
 const { logger } = require('@librechat/data-schemas');
 const { GitHubRepoConnection } = require('~/db/models');
 const { requireJwtAuth } = require('~/server/middleware');
+const { getUserOrgMembership } = require('~/server/services/OrganizationService');
 const {
   encryptCredentials,
   decryptCredentials,
@@ -29,11 +30,17 @@ router.use(requireJwtAuth);
 router.get('/', async (req, res) => {
   try {
     const userId = req.user.id;
+    const membership = await getUserOrgMembership(userId);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
 
-    const connections = await GitHubRepoConnection.find({
-      userId,
-      isActive: true,
-    }).select('-accessToken');
+    let query;
+    if (userOrgId) {
+      query = { isActive: true, $or: [{ userId }, { organizationId: userOrgId }] };
+    } else {
+      query = { userId, isActive: true };
+    }
+
+    const connections = await GitHubRepoConnection.find(query).select('-accessToken');
 
     res.status(200).json(connections);
   } catch (error) {
@@ -77,6 +84,8 @@ router.post('/test', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const userId = req.user.id;
+    const membership = await getUserOrgMembership(userId);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
     const {
       name,
       owner,
@@ -94,11 +103,13 @@ router.post('/', async (req, res) => {
     }
 
     // Check if connection with same name already exists
-    const existing = await GitHubRepoConnection.findOne({
-      userId,
-      name,
-      isActive: true,
-    });
+    let query;
+    if (userOrgId) {
+      query = { name, isActive: true, $or: [{ userId }, { organizationId: userOrgId }] };
+    } else {
+      query = { userId, name, isActive: true };
+    }
+    const existing = await GitHubRepoConnection.findOne(query);
 
     if (existing) {
       return res.status(409).json({ error: 'A GitHub connection with this name already exists' });
@@ -126,6 +137,7 @@ router.post('/', async (req, res) => {
       excludePatterns: excludePatterns || ['**/node_modules/**', '**/.git/**'],
       accessToken: encryptedToken,
       connectionIds,
+      organizationId: userOrgId || undefined,
     });
 
     logger.info('[GitHub Connection] Created new GitHub repo connection:', {
@@ -154,12 +166,17 @@ router.post('/:id/sync', async (req, res) => {
   try {
     const userId = req.user.id;
     const { id } = req.params;
+    const membership = await getUserOrgMembership(userId);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
 
-    const connection = await GitHubRepoConnection.findOne({
-      _id: id,
-      userId,
-      isActive: true,
-    }).select('+accessToken');
+    let query;
+    if (userOrgId) {
+      query = { _id: id, isActive: true, $or: [{ userId }, { organizationId: userOrgId }] };
+    } else {
+      query = { _id: id, userId, isActive: true };
+    }
+
+    const connection = await GitHubRepoConnection.findOne(query).select('+accessToken');
 
     if (!connection) {
       return res.status(404).json({ error: 'GitHub connection not found' });
@@ -248,6 +265,8 @@ router.put('/:id', async (req, res) => {
   try {
     const userId = req.user.id;
     const { id } = req.params;
+    const membership = await getUserOrgMembership(userId);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
     const {
       name,
       branch,
@@ -259,11 +278,14 @@ router.put('/:id', async (req, res) => {
       connectionIds,
     } = req.body;
 
-    const connection = await GitHubRepoConnection.findOne({
-      _id: id,
-      userId,
-      isActive: true,
-    });
+    let query;
+    if (userOrgId) {
+      query = { _id: id, isActive: true, $or: [{ userId }, { organizationId: userOrgId }] };
+    } else {
+      query = { _id: id, userId, isActive: true };
+    }
+
+    const connection = await GitHubRepoConnection.findOne(query);
 
     if (!connection) {
       return res.status(404).json({ error: 'GitHub connection not found' });
@@ -303,11 +325,17 @@ router.delete('/:id', async (req, res) => {
   try {
     const userId = req.user.id;
     const { id } = req.params;
+    const membership = await getUserOrgMembership(userId);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
 
-    const connection = await GitHubRepoConnection.findOne({
-      _id: id,
-      userId,
-    });
+    let query;
+    if (userOrgId) {
+      query = { _id: id, $or: [{ userId }, { organizationId: userOrgId }] };
+    } else {
+      query = { _id: id, userId };
+    }
+
+    const connection = await GitHubRepoConnection.findOne(query);
 
     if (!connection) {
       return res.status(404).json({ error: 'GitHub connection not found' });

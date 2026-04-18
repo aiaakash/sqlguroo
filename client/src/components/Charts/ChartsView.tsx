@@ -36,6 +36,7 @@ import type { ChartsListResponse } from 'librechat-data-provider';
 import { cn } from '~/utils';
 import { useLocalize, useCustomLink, type TranslationKeys } from '~/hooks';
 import { useDashboardContext } from '~/Providers';
+import { OrgBadge } from '~/components/Organization';
 
 type ChartListItem = ChartsListResponse['charts'][number];
 
@@ -443,9 +444,12 @@ function ChartCard({
       {/* Card Info */}
       <div className="p-3">
         <div className="mb-1 flex items-start justify-between gap-2">
-          <h3 className="line-clamp-1 min-w-0 flex-1 font-medium text-text-primary">
-            {chart.name}
-          </h3>
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            <h3 className="line-clamp-1 flex-1 font-medium text-text-primary">
+              {chart.name}
+            </h3>
+            <OrgBadge organizationId={chart.organizationId} />
+          </div>
           <ChartActions
             onEdit={onEdit}
             onDelete={onDelete}
@@ -499,6 +503,7 @@ function ChartListItem({
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <h3 className="min-w-0 flex-1 truncate font-medium text-text-primary">{chart.name}</h3>
+          <OrgBadge organizationId={chart.organizationId} />
           {chart.pinned && <Pin className="h-3 w-3 flex-shrink-0 text-blue-500" />}
         </div>
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-text-tertiary">

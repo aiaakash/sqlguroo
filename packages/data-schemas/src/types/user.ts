@@ -10,6 +10,7 @@ export interface IUser extends Document {
   avatar?: string;
   provider: string;
   role?: string;
+  organizationId?: Types.ObjectId;
   googleId?: string;
   facebookId?: string;
   openidId?: string;

@@ -168,6 +168,8 @@ const startServer = async () => {
   app.use('/api/dashboards', routes.dashboards);
   app.use('/api/subscription', routes.subscription);
   app.use('/api/admin', routes.admin);
+  app.use('/api/organizations', routes.organizations);
+  app.use('/api/organizations', routes.organizationInvite);
   
   // Paddle webhook route (no auth required - uses signature verification)
   app.use('/api/webhooks/paddle', require('./routes/webhooks/paddle'));

@@ -11,9 +11,8 @@ export default function SchemaViewerPanel() {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedConnections, setExpandedConnections] = useState<Set<string>>(new Set());
   
-  // Use default organization ID
-  const organizationId = 'default-org';
-  const { data: connections, isLoading, error } = useAnalyticsConnections(organizationId);
+  // Load connections
+  const { data: connections, isLoading, error } = useAnalyticsConnections();
 
   const filteredConnections = useMemo(() => {
     if (!connections) return [];

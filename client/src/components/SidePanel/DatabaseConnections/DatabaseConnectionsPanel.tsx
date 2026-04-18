@@ -29,9 +29,7 @@ export default function DatabaseConnectionsPanel() {
   const [testingConnection, setTestingConnection] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const organizationId = 'default-org';
-
-  const { data: connections, isLoading, refetch } = useAnalyticsConnections(organizationId);
+  const { data: connections, isLoading, refetch } = useAnalyticsConnections();
   const deleteConnection = useDeleteConnection();
   const testConnection = useTestConnection();
 
@@ -94,7 +92,6 @@ export default function DatabaseConnectionsPanel() {
               </Button>
             </OGDialogTrigger>
             <ConnectionForm
-              organizationId={organizationId}
               connectionId={editingConnection}
               onClose={handleCloseForm}
             />

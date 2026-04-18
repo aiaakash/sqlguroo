@@ -1,8 +1,13 @@
 const { getBalanceConfig } = require('@librechat/api');
-const { FileSources } = require('librechat-data-provider');
+const { FileSources, SystemRoles } = require('librechat-data-provider');
 const { getStrategyFunctions } = require('~/server/services/Files/strategies');
 const { resizeAvatar } = require('~/server/services/Files/images/avatar');
-const { updateUser, createUser, getUserById } = require('~/models');
+const { updateUser, createUser, getUserById, countUsers } = require('~/models');
+const {
+  createOrganization,
+  addMemberToOrganization,
+  getUserOrganization,
+} = require('~/server/services/OrganizationService');
 
 /**
  * Updates the avatar URL and email of an existing user. If the user's avatar URL does not include the query parameter
@@ -98,7 +103,49 @@ const createSocialUser = async ({
   };
 
   const balanceConfig = getBalanceConfig(appConfig);
+  const userCount = await countUsers();
+  const isFirstRegisteredUser = userCount === 0;
+
+  if (isFirstRegisteredUser) {
+    update.role = SystemRoles.ADMIN;
+  }
+
   const newUserId = await createUser(update, balanceConfig);
+
+  // First social user: create org and add as admin
+  if (isFirstRegisteredUser) {
+    const orgName = `${name || username || email.split('@')[0]}'s Organization`;
+    const newOrg = await createOrganization({
+      name: orgName,
+      createdBy: newUserId,
+    });
+
+    await addMemberToOrganization({
+      organizationId: newOrg._id,
+      userId: newUserId,
+      role: 'admin',
+    });
+
+    await updateUser(newUserId, { organizationId: newOrg._id });
+  } else {
+    // Non-first user: auto-assign to the existing org
+    const firstUser = await getUserById(newUserId);
+    if (!firstUser.organizationId) {
+      const { Organization, OrganizationMembership } = require('~/db/models');
+      const existingOrg = await Organization.findOne().sort({ createdAt: 1 });
+      if (existingOrg) {
+        const existingMembership = await OrganizationMembership.findOne({ userId: newUserId });
+        if (!existingMembership) {
+          await addMemberToOrganization({
+            organizationId: existingOrg._id,
+            userId: newUserId,
+            role: 'member',
+          });
+        }
+      }
+    }
+  }
+
   const fileStrategy = appConfig?.fileStrategy ?? process.env.CDN_PROVIDER;
   const isLocal = fileStrategy === FileSources.local;
 

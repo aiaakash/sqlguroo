@@ -106,8 +106,7 @@ const databaseConnectionSchema = new Schema<IDatabaseConnection>(
       max: [100000, 'Max rows cannot exceed 100000'],
     },
     organizationId: {
-      type: String,
-      required: [true, 'Organization ID is required'],
+      type: Schema.Types.Mixed,
       index: true,
     },
     createdBy: {

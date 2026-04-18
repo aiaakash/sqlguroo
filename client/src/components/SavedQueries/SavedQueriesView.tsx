@@ -27,6 +27,7 @@ import { NotificationSeverity } from '~/common';
 import { useLocalize, useCustomLink } from '~/hooks';
 import { useDashboardContext } from '~/Providers';
 import { cn } from '~/utils';
+import { OrgBadge } from '~/components/Organization';
 
 type ViewMode = 'grid' | 'list';
 
@@ -483,7 +484,10 @@ function QueryCard({
         ) : (
           <>
             <div className="mb-2 flex items-start justify-between gap-2">
-              <h3 className="min-w-0 flex-1 font-medium text-text-primary line-clamp-1">{query.name}</h3>
+              <div className="flex min-w-0 flex-1 items-center gap-2">
+                <h3 className="flex-1 font-medium text-text-primary line-clamp-1">{query.name}</h3>
+                <OrgBadge organizationId={query.organizationId} />
+              </div>
               <QueryActions
                 onEdit={onStartEdit}
                 onDelete={onDelete}
@@ -601,6 +605,7 @@ function QueryListItem({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <h3 className="min-w-0 flex-1 truncate font-medium text-text-primary">{query.name}</h3>
+          <OrgBadge organizationId={query.organizationId} />
         </div>
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-text-tertiary">
           <span className="whitespace-nowrap">{formatDate(query.createdAt)}</span>

@@ -68,6 +68,7 @@ export interface IDashboardPermissions {
 export interface TDashboard {
   _id: string;
   user: string;
+  organizationId?: string;
   name: string;
   description?: string;
   icon: DashboardIcon;

@@ -24,6 +24,8 @@ export { default as transactionSchema } from './transaction';
 export { default as userSchema } from './user';
 export { default as memorySchema } from './memory';
 export { default as groupSchema } from './group';
+export { default as organizationSchema } from './organization';
+export { default as organizationMembershipSchema } from './organizationMembership';
 export { default as databaseConnectionSchema } from './databaseConnection';
 export { default as analyticsQuerySchema } from './analyticsQuery';
 export { default as chartSchema } from './chart';

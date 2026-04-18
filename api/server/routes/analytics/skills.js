@@ -5,6 +5,7 @@ const {
   syncSkillToVectordb,
   deleteSkillFromVectordb,
 } = require('~/server/services/Analytics/migrateSkillsToVectordb');
+const { getUserOrgMembership } = require('~/server/services/OrganizationService');
 
 const router = express.Router();
 
@@ -16,9 +17,16 @@ const router = express.Router();
 router.get('/', async (req, res) => {
   try {
     const { isActive } = req.query;
+    const membership = await getUserOrgMembership(req.user.id);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
 
-    // Base query: only return skills created by the current user
-    let query = { userId: req.user.id };
+    // Base query: personal + org-scoped skills
+    let query;
+    if (userOrgId) {
+      query = { $or: [{ userId: req.user.id }, { organizationId: userOrgId }] };
+    } else {
+      query = { userId: req.user.id };
+    }
 
     // Filter by active status if provided
     if (isActive !== undefined) {
@@ -44,8 +52,17 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    const membership = await getUserOrgMembership(req.user.id);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
 
-    const skill = await Skill.findOne({ skillId: id, userId: req.user.id }).select('-embedding');
+    let query;
+    if (userOrgId) {
+      query = { skillId: id, $or: [{ userId: req.user.id }, { organizationId: userOrgId }] };
+    } else {
+      query = { skillId: id, userId: req.user.id };
+    }
+
+    const skill = await Skill.findOne(query).select('-embedding');
 
     if (!skill) {
       return res.status(404).json({ error: 'Skill not found' });
@@ -66,6 +83,8 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { title, description, content, isActive = true } = req.body;
+    const membership = await getUserOrgMembership(req.user.id);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
 
     // Validation
     if (!title || !title.trim()) {
@@ -92,6 +111,7 @@ router.post('/', async (req, res) => {
       content: content.trim(),
       userId: req.user.id,
       isActive: Boolean(isActive),
+      organizationId: userOrgId || undefined,
     });
 
     // Sync to vectordb (async, don't wait)
@@ -123,8 +143,17 @@ router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { title, description, content, isActive } = req.body;
+    const membership = await getUserOrgMembership(req.user.id);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
 
-    const skill = await Skill.findOne({ skillId: id, userId: req.user.id });
+    let query;
+    if (userOrgId) {
+      query = { skillId: id, $or: [{ userId: req.user.id }, { organizationId: userOrgId }] };
+    } else {
+      query = { skillId: id, userId: req.user.id };
+    }
+
+    const skill = await Skill.findOne(query);
 
     if (!skill) {
       return res.status(404).json({ error: 'Skill not found' });
@@ -200,8 +229,17 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    const membership = await getUserOrgMembership(req.user.id);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
 
-    const skill = await Skill.findOneAndDelete({ skillId: id, userId: req.user.id });
+    let query;
+    if (userOrgId) {
+      query = { skillId: id, $or: [{ userId: req.user.id }, { organizationId: userOrgId }] };
+    } else {
+      query = { skillId: id, userId: req.user.id };
+    }
+
+    const skill = await Skill.findOneAndDelete(query);
 
     if (!skill) {
       return res.status(404).json({ error: 'Skill not found' });

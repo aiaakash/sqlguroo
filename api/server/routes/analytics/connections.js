@@ -25,6 +25,7 @@ const {
   embedSchemaDocumentation,
   deleteSchemaDocumentation,
 } = require('~/server/services/Analytics/schemaDocumentationRAG');
+const { getUserOrgMembership } = require('~/server/services/OrganizationService');
 
 const router = express.Router();
 
@@ -37,11 +38,23 @@ router.get('/', async (req, res) => {
   try {
     const { organizationId } = req.query;
 
-    // Base query: only return connections created by the current user
-    let query = { createdBy: req.user.id, isActive: true };
+    const membership = await getUserOrgMembership(req.user.id);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
+
+    // Return personal + org-scoped connections
+    let query = { isActive: true };
+    if (userOrgId) {
+      query.$or = [
+        { createdBy: req.user.id },
+        { organizationId: userOrgId },
+      ];
+    } else {
+      query.createdBy = req.user.id;
+    }
 
     // If organizationId is provided, also filter by organization
     if (organizationId && organizationId.trim() !== '') {
+      delete query.$or;
       query.organizationId = organizationId.trim();
     }
 
@@ -80,7 +93,20 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Sample database not found or not configured' });
     }
 
-    const connection = await DatabaseConnection.findById(id).select('-password -sslCertificate');
+    const membership = await getUserOrgMembership(req.user.id);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
+
+    let query = { _id: id };
+    if (userOrgId) {
+      query.$or = [
+        { createdBy: req.user.id },
+        { organizationId: userOrgId },
+      ];
+    } else {
+      query.createdBy = req.user.id;
+    }
+
+    const connection = await DatabaseConnection.findOne(query).select('-password -sslCertificate');
 
     if (!connection) {
       return res.status(404).json({ error: 'Connection not found' });
@@ -137,11 +163,22 @@ router.post('/', async (req, res) => {
     // Check for duplicate name for this user (only active connections)
     // Use case-insensitive comparison and trim both sides
     const trimmedName = name.trim();
-    const existing = await DatabaseConnection.findOne({
-      createdBy: req.user.id,
+    const membership = await getUserOrgMembership(req.user.id);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
+
+    const duplicateQuery = {
       name: { $regex: new RegExp(`^${trimmedName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
       isActive: true,
-    });
+    };
+    if (userOrgId) {
+      duplicateQuery.$or = [
+        { createdBy: req.user.id },
+        { organizationId: userOrgId },
+      ];
+    } else {
+      duplicateQuery.createdBy = req.user.id;
+    }
+    const existing = await DatabaseConnection.findOne(duplicateQuery);
     if (existing) {
       return res.status(409).json({ error: 'A connection with this name already exists' });
     }
@@ -172,7 +209,7 @@ router.post('/', async (req, res) => {
       queryMode: queryMode || 'read_only',
       queryTimeout: queryTimeout || 30000,
       maxRows: maxRows || null,
-      organizationId,
+      organizationId: organizationId || userOrgId || undefined,
       createdBy: req.user.id,
       isActive: true,
       connectionParams: connectionParams || {},
@@ -301,7 +338,20 @@ router.put('/:id', async (req, res) => {
       return res.status(403).json({ error: 'Cannot modify the sample database connection' });
     }
 
-    const connection = await DatabaseConnection.findById(id);
+    const membership = await getUserOrgMembership(req.user.id);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
+
+    let query = { _id: id };
+    if (userOrgId) {
+      query.$or = [
+        { createdBy: req.user.id },
+        { organizationId: userOrgId },
+      ];
+    } else {
+      query.createdBy = req.user.id;
+    }
+
+    const connection = await DatabaseConnection.findOne(query);
     if (!connection) {
       return res.status(404).json({ error: 'Connection not found' });
     }
@@ -401,7 +451,20 @@ router.delete('/:id', async (req, res) => {
       return res.status(403).json({ error: 'Cannot delete the sample database connection' });
     }
 
-    const connection = await DatabaseConnection.findById(id);
+    const membership = await getUserOrgMembership(req.user.id);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
+
+    let query = { _id: id };
+    if (userOrgId) {
+      query.$or = [
+        { createdBy: req.user.id },
+        { organizationId: userOrgId },
+      ];
+    } else {
+      query.createdBy = req.user.id;
+    }
+
+    const connection = await DatabaseConnection.findOne(query);
     if (!connection) {
       return res.status(404).json({ error: 'Connection not found' });
     }
@@ -437,7 +500,20 @@ router.post('/:id/test', async (req, res) => {
       return res.status(200).json(result);
     }
 
-    const connection = await DatabaseConnection.findById(id).select('+password +sslCertificate');
+    const membership = await getUserOrgMembership(req.user.id);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
+
+    let query = { _id: id };
+    if (userOrgId) {
+      query.$or = [
+        { createdBy: req.user.id },
+        { organizationId: userOrgId },
+      ];
+    } else {
+      query.createdBy = req.user.id;
+    }
+
+    const connection = await DatabaseConnection.findOne(query).select('+password +sslCertificate');
     if (!connection) {
       return res.status(404).json({ error: 'Connection not found' });
     }
@@ -536,7 +612,20 @@ router.post('/:id/refresh-schema', async (req, res) => {
       return res.status(200).json({ schema, cachedAt: new Date() });
     }
 
-    const connection = await DatabaseConnection.findById(id).select('+password +sslCertificate');
+    const membership = await getUserOrgMembership(req.user.id);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
+
+    let query = { _id: id };
+    if (userOrgId) {
+      query.$or = [
+        { createdBy: req.user.id },
+        { organizationId: userOrgId },
+      ];
+    } else {
+      query.createdBy = req.user.id;
+    }
+
+    const connection = await DatabaseConnection.findOne(query).select('+password +sslCertificate');
     if (!connection) {
       return res.status(404).json({ error: 'Connection not found' });
     }
@@ -614,7 +703,20 @@ router.get('/:id/schema', async (req, res) => {
       return res.status(200).json({ schema, cachedAt: new Date() });
     }
 
-    const connection = await DatabaseConnection.findById(id).select('+password +sslCertificate');
+    const membership = await getUserOrgMembership(req.user.id);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
+
+    let query = { _id: id };
+    if (userOrgId) {
+      query.$or = [
+        { createdBy: req.user.id },
+        { organizationId: userOrgId },
+      ];
+    } else {
+      query.createdBy = req.user.id;
+    }
+
+    const connection = await DatabaseConnection.findOne(query).select('+password +sslCertificate');
     if (!connection) {
       return res.status(404).json({ error: 'Connection not found' });
     }
@@ -755,7 +857,20 @@ router.post('/:id/table-descriptions', async (req, res) => {
     const { id } = req.params;
     const { tableDescriptions, columnDescriptions } = req.body;
 
-    const connection = await DatabaseConnection.findById(id);
+    const membership = await getUserOrgMembership(req.user.id);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
+
+    let query = { _id: id };
+    if (userOrgId) {
+      query.$or = [
+        { createdBy: req.user.id },
+        { organizationId: userOrgId },
+      ];
+    } else {
+      query.createdBy = req.user.id;
+    }
+
+    const connection = await DatabaseConnection.findOne(query);
     if (!connection) {
       return res.status(404).json({ error: 'Connection not found' });
     }
@@ -814,8 +929,21 @@ router.get('/:id/table-descriptions', async (req, res) => {
   try {
     const { id } = req.params;
 
+    const membership = await getUserOrgMembership(req.user.id);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
+
+    let query = { _id: id };
+    if (userOrgId) {
+      query.$or = [
+        { createdBy: req.user.id },
+        { organizationId: userOrgId },
+      ];
+    } else {
+      query.createdBy = req.user.id;
+    }
+
     // Use lean() to get plain JavaScript objects instead of Mongoose documents
-    const connection = await DatabaseConnection.findById(id).lean();
+    const connection = await DatabaseConnection.findOne(query).lean();
     if (!connection) {
       return res.status(404).json({ error: 'Connection not found' });
     }

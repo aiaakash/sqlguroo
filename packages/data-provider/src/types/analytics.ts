@@ -198,6 +198,7 @@ export interface TSkill {
   description: string;
   content: string;
   userId: string;
+  organizationId?: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -222,6 +223,7 @@ export interface TUpdateSkillRequest {
 export interface TSavedQuery {
   _id: string;
   userId: string;
+  organizationId?: string;
   name: string;
   sqlContent: string;
   description?: string;
@@ -276,6 +278,7 @@ export enum GitHubProvider {
 export interface TGitHubRepoConnection {
   _id: string;
   userId: string;
+  organizationId?: string;
   name: string;
   provider: GitHubProvider;
   owner: string;

@@ -35,6 +35,8 @@ import { createSubscriptionModel } from './subscription';
 import { createUsageModel } from './usage';
 import { createSavedQueryModel } from './savedQuery';
 import { createGitHubRepoConnectionModel } from './githubRepoConnection';
+import { createOrganizationModel } from './organization';
+import { createOrganizationMembershipModel } from './organizationMembership';
 
 /**
  * Creates all database models for all collections
@@ -69,6 +71,8 @@ export function createModels(mongoose: typeof import('mongoose')) {
     AccessRole: createAccessRoleModel(mongoose),
     AclEntry: createAclEntryModel(mongoose),
     Group: createGroupModel(mongoose),
+    Organization: createOrganizationModel(mongoose),
+    OrganizationMembership: createOrganizationMembershipModel(mongoose),
     DatabaseConnection: createDatabaseConnectionModel(mongoose),
     AnalyticsQuery: createAnalyticsQueryModel(mongoose),
     Skill: createSkillModel(mongoose),

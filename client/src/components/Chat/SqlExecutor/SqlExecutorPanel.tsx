@@ -67,7 +67,7 @@ export default function SqlExecutorPanel({ onClose, className }: SqlExecutorPane
   const { data: schemaData } = useAnalyticsSchema(selectedConnectionId || '', {
     enabled: !!selectedConnectionId,
   });
-  const { data: connections } = useAnalyticsConnections('default-org');
+  const { data: connections } = useAnalyticsConnections();
 
   const selectedConnection = connections?.find((c) => c._id === selectedConnectionId);
   const tableCount = schemaData?.schema?.tables?.length ?? 0;

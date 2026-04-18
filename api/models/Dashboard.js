@@ -13,15 +13,18 @@ const generateShareId = () => {
  * Get a single dashboard by ID
  * @param {string} userId - User ID
  * @param {string} dashboardId - Dashboard ID
+ * @param {string} organizationId - Optional organization ID
  * @returns {Promise<Object|null>}
  */
-const getDashboard = async (userId, dashboardId) => {
+const getDashboard = async (userId, dashboardId, organizationId) => {
   try {
-    return await Dashboard.findOne({
-      _id: dashboardId,
-      user: userId,
-      isDeleted: false,
-    }).lean();
+    let query = { _id: dashboardId, isDeleted: false };
+    if (organizationId) {
+      query.$or = [{ user: userId }, { organizationId }];
+    } else {
+      query.user = userId;
+    }
+    return await Dashboard.findOne(query).lean();
   } catch (error) {
     logger.error('[getDashboard] Error getting dashboard', error);
     return null;
@@ -50,6 +53,7 @@ const getDashboardByShareId = async (shareId) => {
  * Get all dashboards for a user
  * @param {string} userId - User ID
  * @param {Object} options - Query options
+ * @param {string} options.organizationId - Optional organization ID
  * @returns {Promise<Object>}
  */
 const getDashboards = async (userId, options = {}) => {
@@ -62,13 +66,19 @@ const getDashboards = async (userId, options = {}) => {
       archivedOnly,
       sortBy = 'updatedAt',
       sortOrder = 'desc',
+      organizationId,
     } = options;
     const skip = (page - 1) * pageSize;
 
     const query = {
-      user: userId,
       isDeleted: false,
     };
+
+    if (organizationId) {
+      query.$or = [{ user: userId }, { organizationId }];
+    } else {
+      query.user = userId;
+    }
 
     if (archivedOnly) {
       query.isArchived = true;
@@ -190,9 +200,10 @@ const getSharedDashboards = async (userId, options = {}) => {
  * Create a new dashboard
  * @param {string} userId - User ID
  * @param {Object} dashboardData - Dashboard data
+ * @param {string} organizationId - Optional organization ID
  * @returns {Promise<Object>}
  */
-const createDashboard = async (userId, dashboardData) => {
+const createDashboard = async (userId, dashboardData, organizationId) => {
   try {
     const dashboard = new Dashboard({
       user: userId,
@@ -211,6 +222,7 @@ const createDashboard = async (userId, dashboardData) => {
       },
       tags: dashboardData.tags || [],
       gridCols: dashboardData.gridCols || 12,
+      organizationId: organizationId || undefined,
     });
 
     await dashboard.save();
@@ -226,9 +238,10 @@ const createDashboard = async (userId, dashboardData) => {
  * @param {string} userId - User ID
  * @param {string} dashboardId - Dashboard ID
  * @param {Object} updates - Fields to update
+ * @param {string} organizationId - Optional organization ID
  * @returns {Promise<Object|null>}
  */
-const updateDashboard = async (userId, dashboardId, updates) => {
+const updateDashboard = async (userId, dashboardId, updates, organizationId) => {
   try {
     const allowedUpdates = [
       'name',
@@ -251,14 +264,17 @@ const updateDashboard = async (userId, dashboardId, updates) => {
       }
     }
 
+    let query = { _id: dashboardId, isDeleted: false };
+    if (organizationId) {
+      query.$or = [{ user: userId }, { organizationId }];
+    } else {
+      query.user = userId;
+    }
+
     // Handle permissions separately to avoid MongoDB update conflicts
     // Can't mix updating the entire 'permissions' object with 'permissions.shareId' dot notation
     if (updates.permissions !== undefined) {
-      const existingDashboard = await Dashboard.findOne({
-        _id: dashboardId,
-        user: userId,
-        isDeleted: false,
-      });
+      const existingDashboard = await Dashboard.findOne(query);
 
       if (existingDashboard) {
         // Merge new permissions with existing, generating shareId if making public
@@ -277,7 +293,7 @@ const updateDashboard = async (userId, dashboardId, updates) => {
     }
 
     return await Dashboard.findOneAndUpdate(
-      { _id: dashboardId, user: userId, isDeleted: false },
+      query,
       { $set: updateObj },
       { new: true }
     ).lean();
@@ -292,22 +308,32 @@ const updateDashboard = async (userId, dashboardId, updates) => {
  * @param {string} userId - User ID
  * @param {string} dashboardId - Dashboard ID
  * @param {Object} chartItem - Chart item with position data
+ * @param {string} organizationId - Optional organization ID
  * @returns {Promise<Object|null>}
  */
-const addChartToDashboard = async (userId, dashboardId, chartItem) => {
+const addChartToDashboard = async (userId, dashboardId, chartItem, organizationId) => {
   try {
     // Verify chart exists and belongs to user
-    const chart = await Chart.findOne({
-      _id: chartItem.chartId,
-      user: userId,
-      isDeleted: false,
-    });
+    let chartQuery = { _id: chartItem.chartId, isDeleted: false };
+    if (organizationId) {
+      chartQuery.$or = [{ user: userId }, { organizationId }];
+    } else {
+      chartQuery.user = userId;
+    }
+    const chart = await Chart.findOne(chartQuery);
     if (!chart) {
       throw new Error('Chart not found');
     }
 
+    let query = { _id: dashboardId, isDeleted: false };
+    if (organizationId) {
+      query.$or = [{ user: userId }, { organizationId }];
+    } else {
+      query.user = userId;
+    }
+
     return await Dashboard.findOneAndUpdate(
-      { _id: dashboardId, user: userId, isDeleted: false },
+      query,
       {
         $push: {
           charts: {
@@ -334,12 +360,19 @@ const addChartToDashboard = async (userId, dashboardId, chartItem) => {
  * @param {string} userId - User ID
  * @param {string} dashboardId - Dashboard ID
  * @param {string} chartId - Chart ID to remove
+ * @param {string} organizationId - Optional organization ID
  * @returns {Promise<Object|null>}
  */
-const removeChartFromDashboard = async (userId, dashboardId, chartId) => {
+const removeChartFromDashboard = async (userId, dashboardId, chartId, organizationId) => {
   try {
+    let query = { _id: dashboardId, isDeleted: false };
+    if (organizationId) {
+      query.$or = [{ user: userId }, { organizationId }];
+    } else {
+      query.user = userId;
+    }
     return await Dashboard.findOneAndUpdate(
-      { _id: dashboardId, user: userId, isDeleted: false },
+      query,
       { $pull: { charts: { chartId } } },
       { new: true }
     ).lean();
@@ -354,12 +387,19 @@ const removeChartFromDashboard = async (userId, dashboardId, chartId) => {
  * @param {string} userId - User ID
  * @param {string} dashboardId - Dashboard ID
  * @param {Array} charts - Updated chart items with positions
+ * @param {string} organizationId - Optional organization ID
  * @returns {Promise<Object|null>}
  */
-const updateDashboardLayout = async (userId, dashboardId, charts) => {
+const updateDashboardLayout = async (userId, dashboardId, charts, organizationId) => {
   try {
+    let query = { _id: dashboardId, isDeleted: false };
+    if (organizationId) {
+      query.$or = [{ user: userId }, { organizationId }];
+    } else {
+      query.user = userId;
+    }
     return await Dashboard.findOneAndUpdate(
-      { _id: dashboardId, user: userId, isDeleted: false },
+      query,
       { $set: { charts } },
       { new: true }
     ).lean();
@@ -374,15 +414,18 @@ const updateDashboardLayout = async (userId, dashboardId, charts) => {
  * @param {string} userId - User ID
  * @param {string} dashboardId - Dashboard ID to duplicate
  * @param {string} newName - Optional new name
+ * @param {string} organizationId - Optional organization ID
  * @returns {Promise<Object|null>}
  */
-const duplicateDashboard = async (userId, dashboardId, newName) => {
+const duplicateDashboard = async (userId, dashboardId, newName, organizationId) => {
   try {
-    const original = await Dashboard.findOne({
-      _id: dashboardId,
-      user: userId,
-      isDeleted: false,
-    }).lean();
+    let query = { _id: dashboardId, isDeleted: false };
+    if (organizationId) {
+      query.$or = [{ user: userId }, { organizationId }];
+    } else {
+      query.user = userId;
+    }
+    const original = await Dashboard.findOne(query).lean();
 
     if (!original) {
       return null;
@@ -402,6 +445,7 @@ const duplicateDashboard = async (userId, dashboardId, newName) => {
         isPublic: false,
       },
       starred: false,
+      organizationId: organizationId || undefined,
     });
 
     await duplicate.save();
@@ -416,12 +460,19 @@ const duplicateDashboard = async (userId, dashboardId, newName) => {
  * Soft delete a dashboard
  * @param {string} userId - User ID
  * @param {string} dashboardId - Dashboard ID
+ * @param {string} organizationId - Optional organization ID
  * @returns {Promise<boolean>}
  */
-const deleteDashboard = async (userId, dashboardId) => {
+const deleteDashboard = async (userId, dashboardId, organizationId) => {
   try {
+    let query = { _id: dashboardId, isDeleted: false };
+    if (organizationId) {
+      query.$or = [{ user: userId }, { organizationId }];
+    } else {
+      query.user = userId;
+    }
     const result = await Dashboard.findOneAndUpdate(
-      { _id: dashboardId, user: userId, isDeleted: false },
+      query,
       { $set: { isDeleted: true } }
     );
     return !!result;
@@ -435,15 +486,18 @@ const deleteDashboard = async (userId, dashboardId) => {
  * Get dashboard with populated chart data
  * @param {string} userId - User ID
  * @param {string} dashboardId - Dashboard ID
+ * @param {string} organizationId - Optional organization ID
  * @returns {Promise<Object|null>}
  */
-const getDashboardWithCharts = async (userId, dashboardId) => {
+const getDashboardWithCharts = async (userId, dashboardId, organizationId) => {
   try {
-    const dashboard = await Dashboard.findOne({
-      _id: dashboardId,
-      user: userId,
-      isDeleted: false,
-    }).lean();
+    let query = { _id: dashboardId, isDeleted: false };
+    if (organizationId) {
+      query.$or = [{ user: userId }, { organizationId }];
+    } else {
+      query.user = userId;
+    }
+    const dashboard = await Dashboard.findOne(query).lean();
 
     if (!dashboard) {
       return null;
@@ -540,15 +594,18 @@ const getPublicDashboardWithCharts = async (shareId) => {
  * Toggle starred status
  * @param {string} userId - User ID
  * @param {string} dashboardId - Dashboard ID
+ * @param {string} organizationId - Optional organization ID
  * @returns {Promise<Object|null>}
  */
-const toggleDashboardStar = async (userId, dashboardId) => {
+const toggleDashboardStar = async (userId, dashboardId, organizationId) => {
   try {
-    const dashboard = await Dashboard.findOne({
-      _id: dashboardId,
-      user: userId,
-      isDeleted: false,
-    });
+    let query = { _id: dashboardId, isDeleted: false };
+    if (organizationId) {
+      query.$or = [{ user: userId }, { organizationId }];
+    } else {
+      query.user = userId;
+    }
+    const dashboard = await Dashboard.findOne(query);
 
     if (!dashboard) {
       return null;

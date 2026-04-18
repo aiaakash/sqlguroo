@@ -9,18 +9,16 @@ import { useLocalize } from '~/hooks';
 interface ConnectionSelectorProps {
   selectedConnectionId: string | null;
   onConnectionChange: (connectionId: string) => void;
-  organizationId?: string;
   className?: string;
 }
 
 export default function ConnectionSelector({
   selectedConnectionId,
   onConnectionChange,
-  organizationId = 'default-org',
   className,
 }: ConnectionSelectorProps) {
   const localize = useLocalize();
-  const { data: connections, isLoading } = useAnalyticsConnections(organizationId);
+  const { data: connections, isLoading } = useAnalyticsConnections();
   const [searchQuery, setSearchQuery] = useState('');
 
   const selectedConnection = connections?.find((conn) => conn._id === selectedConnectionId);

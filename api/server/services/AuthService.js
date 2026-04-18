@@ -24,9 +24,14 @@ const {
   deleteUserById,
   generateRefreshToken,
 } = require('~/models');
+const { User } = require('~/db/models');
 const { registerSchema } = require('~/strategies/validators');
 const { getAppConfig } = require('~/server/services/Config');
 const { sendEmail } = require('~/server/utils');
+const {
+  createOrganization,
+  addMemberToOrganization,
+} = require('~/server/services/OrganizationService');
 
 const domains = {
   client: process.env.DOMAIN_CLIENT,
@@ -207,7 +212,11 @@ const registerUser = async (user, additionalData = {}) => {
     }
 
     //determine if this is the first registered user (not counting anonymous_user)
-    const isFirstRegisteredUser = (await countUsers()) === 0;
+    const userCount = await countUsers();
+    const isFirstRegisteredUser = userCount === 0;
+    const organizationName = user.organizationName;
+
+    logger.info(`[registerUser] User count: ${userCount}, isFirst: ${isFirstRegisteredUser}, orgName: ${organizationName}`);
 
     const salt = bcrypt.genSaltSync(10);
     const newUserData = {
@@ -226,6 +235,42 @@ const registerUser = async (user, additionalData = {}) => {
 
     const newUser = await createUser(newUserData, appConfig.balance, disableTTL, true);
     newUserId = newUser._id;
+
+    logger.info(`[registerUser] Created user: ${newUserId}, isFirst: ${isFirstRegisteredUser}, orgName: ${organizationName}`);
+
+    if (isFirstRegisteredUser && organizationName) {
+      const newOrg = await createOrganization({
+        name: organizationName,
+        createdBy: newUserId,
+      });
+
+      logger.info(`[registerUser] Created org: ${newOrg._id}, name: ${newOrg.name}`);
+
+      await addMemberToOrganization({
+        organizationId: newOrg._id,
+        userId: newUserId,
+        role: 'admin',
+      });
+
+      await User.findByIdAndUpdate(newUserId, { $set: { organizationId: newOrg._id } });
+
+      logger.info(`[registerUser] Linked user to org: ${newOrg._id}`);
+    } else if (!isFirstRegisteredUser) {
+      // Non-first user: auto-assign to the existing org
+      const { Organization, OrganizationMembership } = require('~/db/models');
+      const existingOrg = await Organization.findOne().sort({ createdAt: 1 });
+      if (existingOrg) {
+        const existingMembership = await OrganizationMembership.findOne({ userId: newUserId });
+        if (!existingMembership) {
+          await addMemberToOrganization({
+            organizationId: existingOrg._id,
+            userId: newUserId,
+            role: 'member',
+          });
+          logger.info(`[registerUser] Auto-assigned user to org: ${existingOrg._id}`);
+        }
+      }
+    }
     if (emailEnabled && !newUser.emailVerified) {
       await sendVerificationEmail({
         _id: newUserId,

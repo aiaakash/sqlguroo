@@ -31,6 +31,8 @@ const dashboards = require('./dashboards');
 const subscription = require('./subscription');
 const admin = require('./admin');
 const savedQueries = require('./savedQueries');
+const organizations = require('./organizations');
+const organizationInvite = require('./organizationInvite');
 
 module.exports = {
   mcp,
@@ -66,4 +68,6 @@ module.exports = {
   subscription,
   admin,
   savedQueries,
+  organizations,
+  organizationInvite,
 };

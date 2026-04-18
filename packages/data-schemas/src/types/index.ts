@@ -43,3 +43,5 @@ export * from './subscription';
 export * from './savedQuery';
 /* GitHub Repo Connections */
 export * from './githubRepoConnection';
+/* Organizations */
+export * from './organization';

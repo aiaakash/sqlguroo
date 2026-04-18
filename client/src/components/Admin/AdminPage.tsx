@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import * as Tabs from '@radix-ui/react-tabs';
 import {
@@ -7,6 +7,7 @@ import {
   useCheckAdminAccessQuery,
   PLAN_NAMES,
   SubscriptionPlan,
+  request,
 } from 'librechat-data-provider';
 import type { TAdminUser, TAdminUsersParams } from 'librechat-data-provider';
 import {
@@ -31,14 +32,18 @@ import {
   Settings,
   DollarSign,
   PieChart,
+  Building2,
+  Copy,
+  UserPlus,
 } from 'lucide-react';
-import { Button, Input } from '@librechat/client';
+import { Button, Input, Spinner } from '@librechat/client';
 import { cn } from '~/utils';
 import { useLocalize } from '~/hooks';
 
 // Tab configuration
 enum AdminTabValues {
   USERS = 'users',
+  ORGANIZATION = 'organization',
   ANALYTICS = 'analytics',
   BILLING = 'billing',
   PLANS = 'plans',
@@ -84,6 +89,24 @@ export default function AdminPage() {
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
+  // Org state
+  interface TOrg { id: string; name: string; slug: string; description?: string; avatar?: string; inviteCode: string; createdBy: string; createdAt: string; updatedAt: string; }
+  interface TOrgMember { id: string; userId: string; user: { id: string; name: string; email: string; avatar?: string; }; role: 'admin' | 'member'; invitedBy?: string; joinedAt: string; }
+  interface TPendingUser { id: string; name: string; email: string; provider: string; role: string; createdAt: string; }
+  const [organization, setOrganization] = useState<TOrg | null>(null);
+  const [members, setMembers] = useState<TOrgMember[]>([]);
+  const [pendingUsers, setPendingUsers] = useState<TPendingUser[]>([]);
+  const [inviteCode, setInviteCode] = useState('');
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [orgName, setOrgName] = useState('');
+  const [orgDescription, setOrgDescription] = useState('');
+  const [orgLoading, setOrgLoading] = useState(false);
+  const [orgSaving, setOrgSaving] = useState(false);
+  const [orgSendingInvite, setOrgSendingInvite] = useState(false);
+  const [orgError, setOrgError] = useState('');
+  const [orgSuccess, setOrgSuccess] = useState('');
+  const [isOrgAdmin, setIsOrgAdmin] = useState(false);
+
   // Check if current user has admin access
   const { data: adminAccess, isLoading: checkingAccess, error: accessError } = useCheckAdminAccessQuery();
 
@@ -101,6 +124,121 @@ export default function AdminPage() {
   const { data: statsData, isLoading: statsLoading, refetch: refetchStats } = useGetAdminStatsQuery({
     enabled: !!adminAccess?.isAdmin,
   });
+
+  // Org data fetching
+  useEffect(() => {
+    if (activeTab === AdminTabValues.ORGANIZATION && adminAccess?.isAdmin) {
+      fetchOrgData();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, adminAccess?.isAdmin]);
+
+  const fetchOrgData = async () => {
+    setOrgLoading(true);
+    setOrgError('');
+    try {
+      const [orgData, membersData, pendingData] = await Promise.all([
+        request.get('/api/organizations/me'),
+        request.get('/api/organizations/me/members'),
+        request.get('/api/organizations/me/pending'),
+      ]);
+      setOrganization(orgData);
+      setOrgName(orgData.name);
+      setOrgDescription(orgData.description || '');
+      setMembers(membersData);
+      setPendingUsers(pendingData);
+      const user = await request.get('/api/user');
+      const myMembership = membersData.find((m: TOrgMember) => m.userId === user.id);
+      setIsOrgAdmin(myMembership?.role === 'admin');
+    } catch {
+      setOrgError('Failed to load organization data');
+    } finally {
+      setOrgLoading(false);
+    }
+  };
+
+  const handleSaveOrg = async () => {
+    setOrgSaving(true);
+    setOrgError('');
+    setOrgSuccess('');
+    try {
+      const data = await request.patch('/api/organizations/me', { name: orgName, description: orgDescription });
+      setOrganization(data);
+      setOrgSuccess('Organization updated successfully');
+    } catch (err: any) {
+      setOrgError(err?.response?.data?.message || 'Failed to update organization');
+    } finally {
+      setOrgSaving(false);
+    }
+  };
+
+  const handleSendInvite = async () => {
+    if (!inviteEmail) return;
+    setOrgSendingInvite(true);
+    setOrgError('');
+    setOrgSuccess('');
+    try {
+      await request.post('/api/organizations/me/invite/email', { email: inviteEmail });
+      setOrgSuccess('Invite email sent successfully');
+      setInviteEmail('');
+    } catch (err: any) {
+      setOrgError(err?.response?.data?.message || 'Failed to send invite');
+    } finally {
+      setOrgSendingInvite(false);
+    }
+  };
+
+  const handleRegenerateCode = async () => {
+    try {
+      const data = await request.post('/api/organizations/me/invite/code', {});
+      setInviteCode(data.inviteCode);
+      setOrgSuccess('New invite code generated');
+    } catch {
+      setOrgError('Failed to generate invite code');
+    }
+  };
+
+  const handleShowCode = async () => {
+    try {
+      const data = await request.get('/api/organizations/me/invite');
+      setInviteCode(data.inviteCode);
+    } catch {
+      setOrgError('Failed to fetch invite code');
+    }
+  };
+
+  const handleCopyCode = () => {
+    navigator.clipboard.writeText(inviteCode);
+    setOrgSuccess('Invite code copied to clipboard');
+  };
+
+  const handleChangeRole = async (userId: string, newRole: 'admin' | 'member') => {
+    try {
+      await request.patch(`/api/organizations/me/members/${userId}`, { role: newRole });
+      setMembers(members.map(m => m.userId === userId ? { ...m, role: newRole } : m));
+    } catch {
+      setOrgError('Failed to update member role');
+    }
+  };
+
+  const handleRemoveMember = async (userId: string) => {
+    try {
+      await request.delete(`/api/organizations/me/members/${userId}`);
+      setMembers(members.filter(m => m.userId !== userId));
+    } catch {
+      setOrgError('Failed to remove member');
+    }
+  };
+
+  const handleAddToOrg = async (userId: string) => {
+    try {
+      await request.post('/api/organizations/me/members/add', { userId, role: 'member' });
+      setPendingUsers(pendingUsers.filter(u => u.id !== userId));
+      fetchOrgData();
+    } catch {
+      setOrgError('Failed to add user to organization');
+    }
+  };
 
   // Loading state while checking access
   if (checkingAccess) {
@@ -203,6 +341,7 @@ export default function AdminPage() {
 
   const adminTabs = [
     { value: AdminTabValues.USERS, icon: Users, label: 'Users' },
+    { value: AdminTabValues.ORGANIZATION, icon: Building2, label: 'Organization' },
     { value: AdminTabValues.ANALYTICS, icon: BarChart3, label: 'Analytics' },
     { value: AdminTabValues.BILLING, icon: DollarSign, label: 'Billing' },
     { value: AdminTabValues.PLANS, icon: Crown, label: 'Plans' },
@@ -539,6 +678,232 @@ export default function AdminPage() {
                     </div>
                   </div>
                 </div>
+              )}
+            </div>
+          </Tabs.Content>
+
+          {/* Organization Tab */}
+          <Tabs.Content value={AdminTabValues.ORGANIZATION} className="w-full" tabIndex={-1}>
+            <div className="mx-auto max-w-4xl space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold text-text-primary">Organization</h2>
+                  <p className="text-sm text-text-secondary">Manage your organization, members, and invites</p>
+                </div>
+                <Button variant="outline" size="sm" onClick={fetchOrgData} disabled={orgLoading}>
+                  <RefreshCw className={cn('mr-2 h-4 w-4', orgLoading && 'animate-spin')} />
+                  Refresh
+                </Button>
+              </div>
+
+              {orgError && (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-900/20 dark:text-red-400">
+                  {orgError}
+                </div>
+              )}
+              {orgSuccess && (
+                <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700 dark:border-green-900 dark:bg-green-900/20 dark:text-green-400">
+                  {orgSuccess}
+                </div>
+              )}
+
+              {orgLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Spinner className="h-6 w-6" />
+                </div>
+              ) : !organization ? (
+                <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border-light py-16 text-center">
+                  <Building2 className="mb-3 h-12 w-12 text-text-tertiary" />
+                  <p className="text-text-secondary">No organization found</p>
+                  <p className="mt-1 text-sm text-text-tertiary">The first registered user should have created an organization.</p>
+                </div>
+              ) : (
+                <>
+                  {/* Organization Profile */}
+                  <div className="rounded-xl border border-border-light bg-surface-secondary p-6 dark:border-border-dark">
+                    <h3 className="mb-4 text-lg font-medium text-text-primary">Organization Profile</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="mb-1 block text-sm font-medium text-text-secondary">Name</label>
+                        <Input
+                          type="text"
+                          value={orgName}
+                          onChange={e => setOrgName(e.target.value)}
+                          className="w-full"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-sm font-medium text-text-secondary">Description</label>
+                        <textarea
+                          value={orgDescription}
+                          onChange={e => setOrgDescription(e.target.value)}
+                          rows={3}
+                          className="w-full rounded-lg border border-border-light bg-surface-primary px-3 py-2 text-sm text-text-primary focus:border-primary focus:outline-none dark:border-border-dark"
+                        />
+                      </div>
+                      <Button onClick={handleSaveOrg} disabled={orgSaving}>
+                        {orgSaving ? <Spinner /> : 'Save Changes'}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Invite Section */}
+                  <div className="rounded-xl border border-border-light bg-surface-secondary p-6 dark:border-border-dark">
+                    <h3 className="mb-4 text-lg font-medium text-text-primary">Invite Members</h3>
+                    <div className="space-y-4">
+                      <div className="flex gap-2">
+                        <Input
+                          type="email"
+                          placeholder="Email address"
+                          value={inviteEmail}
+                          onChange={e => setInviteEmail(e.target.value)}
+                          className="flex-1"
+                        />
+                        <Button onClick={handleSendInvite} disabled={orgSendingInvite || !isOrgAdmin}>
+                          {orgSendingInvite ? <Spinner /> : (
+                            <>
+                              <UserPlus className="mr-2 h-4 w-4" />
+                              Send Invite
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="text"
+                          value={inviteCode}
+                          readOnly
+                          placeholder="Click Show to generate a code"
+                          className="flex-1 font-mono"
+                        />
+                        <Button onClick={handleShowCode} variant="outline">Show Code</Button>
+                        {inviteCode && (
+                          <>
+                            <Button onClick={handleCopyCode} variant="outline">
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                            {isOrgAdmin && (
+                              <Button onClick={handleRegenerateCode} variant="outline">
+                                <RefreshCw className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Members List */}
+                  <div className="rounded-xl border border-border-light bg-surface-secondary dark:border-border-dark">
+                    <div className="border-b border-border-light px-6 py-4 dark:border-border-dark">
+                      <h3 className="text-lg font-medium text-text-primary">
+                        Members ({members.length})
+                      </h3>
+                    </div>
+                    {members.length === 0 ? (
+                      <div className="py-8 text-center text-sm text-text-secondary">No members</div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-border-light bg-surface-tertiary dark:border-border-dark">
+                              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-secondary">Name</th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-secondary">Email</th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-secondary">Role</th>
+                              {isOrgAdmin && <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-secondary">Actions</th>}
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-border-light dark:divide-border-dark">
+                            {members.map(member => (
+                              <tr key={member.userId} className="hover:bg-surface-hover">
+                                <td className="px-4 py-3 font-medium text-text-primary">{member.user.name}</td>
+                                <td className="px-4 py-3 text-text-secondary">{member.user.email}</td>
+                                <td className="px-4 py-3">
+                                  {isOrgAdmin ? (
+                                    <select
+                                      value={member.role}
+                                      onChange={e => handleChangeRole(member.userId, e.target.value as 'admin' | 'member')}
+                                      className="rounded border border-border-light bg-surface-primary px-2 py-1 text-sm dark:border-border-dark"
+                                    >
+                                      <option value="admin">Admin</option>
+                                      <option value="member">Member</option>
+                                    </select>
+                                  ) : (
+                                    <span className="capitalize text-text-secondary">{member.role}</span>
+                                  )}
+                                </td>
+                                {isOrgAdmin && (
+                                  <td className="px-4 py-3">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleRemoveMember(member.userId)}
+                                      className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                    >
+                                      Remove
+                                    </Button>
+                                  </td>
+                                )}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Pending Users */}
+                  {pendingUsers.length > 0 && (
+                    <div className="rounded-xl border border-yellow-200 bg-yellow-50 dark:border-yellow-900 dark:bg-yellow-900/10">
+                      <div className="border-b border-yellow-200 px-6 py-4 dark:border-yellow-900">
+                        <h3 className="text-lg font-medium text-yellow-800 dark:text-yellow-400">
+                          Pending Users ({pendingUsers.length})
+                        </h3>
+                        <p className="text-sm text-yellow-600 dark:text-yellow-500">Users who registered but are not yet in the organization</p>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-yellow-200 bg-yellow-100/50 dark:border-yellow-900 dark:bg-yellow-900/20">
+                              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-yellow-700 dark:text-yellow-500">Name</th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-yellow-700 dark:text-yellow-500">Email</th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-yellow-700 dark:text-yellow-500">Provider</th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-yellow-700 dark:text-yellow-500">Joined</th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-yellow-700 dark:text-yellow-500">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-yellow-200 dark:divide-yellow-900">
+                            {pendingUsers.map(user => (
+                              <tr key={user.id} className="hover:bg-yellow-100/50 dark:hover:bg-yellow-900/20">
+                                <td className="px-4 py-3 font-medium text-text-primary">{user.name}</td>
+                                <td className="px-4 py-3 text-text-secondary">{user.email}</td>
+                                <td className="px-4 py-3">
+                                  <span className="rounded-full bg-surface-tertiary px-2 py-0.5 text-xs capitalize text-text-secondary">
+                                    {user.provider}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3 text-sm text-text-secondary">
+                                  {new Date(user.createdAt).toLocaleDateString()}
+                                </td>
+                                <td className="px-4 py-3">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleAddToOrg(user.id)}
+                                    className="text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20"
+                                  >
+                                    <UserPlus className="mr-1 h-3 w-3" />
+                                    Add to Org
+                                  </Button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </Tabs.Content>

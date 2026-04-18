@@ -132,6 +132,12 @@ const dashboardSchema = new Schema<IDashboard>(
       required: true,
       index: true,
     },
+    organizationId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Organization',
+      index: true,
+      sparse: true,
+    },
     name: {
       type: String,
       required: [true, 'Dashboard name is required'],
@@ -223,6 +229,7 @@ const dashboardSchema = new Schema<IDashboard>(
 dashboardSchema.index({ user: 1, isDeleted: 1, createdAt: -1 });
 dashboardSchema.index({ user: 1, starred: -1, updatedAt: -1 });
 dashboardSchema.index({ user: 1, isArchived: 1, isDeleted: 1 });
+dashboardSchema.index({ organizationId: 1, isDeleted: 1, createdAt: -1 });
 dashboardSchema.index({ 'permissions.shareId': 1 }, { sparse: true });
 dashboardSchema.index({ 'permissions.viewers': 1 }, { sparse: true });
 dashboardSchema.index({ 'permissions.editors': 1 }, { sparse: true });

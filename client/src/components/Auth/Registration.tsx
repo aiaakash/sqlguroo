@@ -73,7 +73,7 @@ const Registration: React.FC = () => {
           autoComplete={id}
           aria-label={localize(label)}
           {...register(
-            id as 'name' | 'email' | 'username' | 'password' | 'confirm_password',
+            id as 'name' | 'email' | 'username' | 'password' | 'confirm_password' | 'organizationName',
             validation,
           )}
           aria-invalid={!!errors[id]}
@@ -161,6 +161,17 @@ const Registration: React.FC = () => {
               pattern: {
                 value: /\S+@\S+\.\S+/,
                 message: localize('com_auth_email_pattern'),
+              },
+            })}
+            {startupConfig?.isFirstUser && renderInput('organizationName', 'com_auth_organization_name', 'text', {
+              required: 'Organization name is required',
+              minLength: {
+                value: 1,
+                message: 'Organization name is required',
+              },
+              maxLength: {
+                value: 100,
+                message: 'Organization name cannot exceed 100 characters',
               },
             })}
             {renderInput('password', 'com_auth_password', 'password', {

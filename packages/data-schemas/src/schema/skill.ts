@@ -33,6 +33,12 @@ const skillSchema = new Schema<ISkill>(
       required: true,
       index: true,
     },
+    organizationId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Organization',
+      index: true,
+      sparse: true,
+    },
     isActive: {
       type: Boolean,
       default: true,
@@ -57,6 +63,9 @@ skillSchema.index({ userId: 1, isActive: 1 });
 
 // Index for semantic search (when embeddings are available)
 skillSchema.index({ userId: 1, isActive: 1, embeddingUpdatedAt: 1 });
+
+// Index for organization-scoped queries
+skillSchema.index({ organizationId: 1, isActive: 1 });
 
 export default skillSchema;
 

@@ -13,11 +13,18 @@ const generateShareId = () => {
  * Get a single chart by ID
  * @param {string} user - User ID
  * @param {string} chartId - Chart ID
+ * @param {string} organizationId - Optional organization ID
  * @returns {Promise<Object|null>}
  */
-const getChart = async (user, chartId) => {
+const getChart = async (user, chartId, organizationId) => {
   try {
-    return await Chart.findOne({ _id: chartId, user, isDeleted: false }).lean();
+    let query = { _id: chartId, isDeleted: false };
+    if (organizationId) {
+      query.$or = [{ user }, { organizationId }];
+    } else {
+      query.user = user;
+    }
+    return await Chart.findOne(query).lean();
   } catch (error) {
     logger.error('[getChart] Error getting chart', error);
     return null;
@@ -47,14 +54,20 @@ const getChartByShareId = async (shareId) => {
  * @param {string} options.folderId - Filter by folder
  * @param {boolean} options.pinnedOnly - Only return pinned charts
  * @param {string} options.search - Search term for name/description
+ * @param {string} options.organizationId - Optional organization ID
  * @returns {Promise<Object>}
  */
 const getCharts = async (user, options = {}) => {
   try {
-    const { page = 1, pageSize = 20, folderId, pinnedOnly, search } = options;
+    const { page = 1, pageSize = 20, folderId, pinnedOnly, search, organizationId } = options;
     const skip = (page - 1) * pageSize;
 
-    const query = { user, isDeleted: false };
+    const query = { isDeleted: false };
+    if (organizationId) {
+      query.$or = [{ user }, { organizationId }];
+    } else {
+      query.user = user;
+    }
 
     if (folderId) {
       query.folderId = folderId;
@@ -65,10 +78,25 @@ const getCharts = async (user, options = {}) => {
     }
 
     if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
-      ];
+      // If $or already exists from org scoping, we need to merge
+      if (query.$or) {
+        const existingOr = query.$or;
+        delete query.$or;
+        query.$and = [
+          { $or: existingOr },
+          {
+            $or: [
+              { name: { $regex: search, $options: 'i' } },
+              { description: { $regex: search, $options: 'i' } },
+            ],
+          },
+        ];
+      } else {
+        query.$or = [
+          { name: { $regex: search, $options: 'i' } },
+          { description: { $regex: search, $options: 'i' } },
+        ];
+      }
     }
 
     const [charts, total] = await Promise.all([
@@ -97,9 +125,10 @@ const getCharts = async (user, options = {}) => {
  * Create a new chart
  * @param {string} user - User ID
  * @param {Object} chartData - Chart data
+ * @param {string} organizationId - Optional organization ID
  * @returns {Promise<Object>}
  */
-const createChart = async (user, chartData) => {
+const createChart = async (user, chartData, organizationId) => {
   try {
     const chart = new Chart({
       user,
@@ -113,6 +142,7 @@ const createChart = async (user, chartData) => {
         capturedAt: new Date(),
       },
       pinned: chartData.pinned || false,
+      organizationId: organizationId || undefined,
     });
 
     await chart.save();
@@ -128,9 +158,10 @@ const createChart = async (user, chartData) => {
  * @param {string} user - User ID
  * @param {string} chartId - Chart ID
  * @param {Object} updates - Fields to update
+ * @param {string} organizationId - Optional organization ID
  * @returns {Promise<Object|null>}
  */
-const updateChart = async (user, chartId, updates) => {
+const updateChart = async (user, chartId, updates, organizationId) => {
   try {
     const allowedUpdates = ['name', 'description', 'folderId', 'config', 'pinned', 'isPublic'];
     const updateObj = {};
@@ -141,9 +172,16 @@ const updateChart = async (user, chartId, updates) => {
       }
     }
 
+    let query = { _id: chartId, isDeleted: false };
+    if (organizationId) {
+      query.$or = [{ user }, { organizationId }];
+    } else {
+      query.user = user;
+    }
+
     // Handle public sharing
     if (updates.isPublic === true) {
-      const existingChart = await Chart.findOne({ _id: chartId, user, isDeleted: false });
+      const existingChart = await Chart.findOne(query);
       if (existingChart && !existingChart.shareId) {
         updateObj.shareId = generateShareId();
       }
@@ -156,7 +194,7 @@ const updateChart = async (user, chartId, updates) => {
     }
 
     return await Chart.findOneAndUpdate(
-      { _id: chartId, user, isDeleted: false },
+      query,
       { $set: updateObj },
       { new: true },
     ).lean();
@@ -171,12 +209,19 @@ const updateChart = async (user, chartId, updates) => {
  * @param {string} user - User ID
  * @param {string} chartId - Chart ID
  * @param {Object} dataSnapshot - New data snapshot
+ * @param {string} organizationId - Optional organization ID
  * @returns {Promise<Object|null>}
  */
-const updateChartData = async (user, chartId, dataSnapshot) => {
+const updateChartData = async (user, chartId, dataSnapshot, organizationId) => {
   try {
+    let query = { _id: chartId, isDeleted: false };
+    if (organizationId) {
+      query.$or = [{ user }, { organizationId }];
+    } else {
+      query.user = user;
+    }
     return await Chart.findOneAndUpdate(
-      { _id: chartId, user, isDeleted: false },
+      query,
       {
         $set: {
           dataSnapshot: {
@@ -197,12 +242,19 @@ const updateChartData = async (user, chartId, dataSnapshot) => {
  * Soft delete a chart
  * @param {string} user - User ID
  * @param {string} chartId - Chart ID
+ * @param {string} organizationId - Optional organization ID
  * @returns {Promise<boolean>}
  */
-const deleteChart = async (user, chartId) => {
+const deleteChart = async (user, chartId, organizationId) => {
   try {
+    let query = { _id: chartId, isDeleted: false };
+    if (organizationId) {
+      query.$or = [{ user }, { organizationId }];
+    } else {
+      query.user = user;
+    }
     const result = await Chart.findOneAndUpdate(
-      { _id: chartId, user, isDeleted: false },
+      query,
       { $set: { isDeleted: true } },
     );
     return !!result;
@@ -232,11 +284,18 @@ const permanentlyDeleteCharts = async (user, filter = {}) => {
  * Get chart with full data (including rows)
  * @param {string} user - User ID
  * @param {string} chartId - Chart ID
+ * @param {string} organizationId - Optional organization ID
  * @returns {Promise<Object|null>}
  */
-const getChartWithData = async (user, chartId) => {
+const getChartWithData = async (user, chartId, organizationId) => {
   try {
-    return await Chart.findOne({ _id: chartId, user, isDeleted: false }).lean();
+    let query = { _id: chartId, isDeleted: false };
+    if (organizationId) {
+      query.$or = [{ user }, { organizationId }];
+    } else {
+      query.user = user;
+    }
+    return await Chart.findOne(query).lean();
   } catch (error) {
     logger.error('[getChartWithData] Error getting chart with data', error);
     return null;
@@ -248,11 +307,18 @@ const getChartWithData = async (user, chartId) => {
  * @param {string} user - User ID
  * @param {string} chartId - Chart ID to duplicate
  * @param {string} newName - Name for the duplicate
+ * @param {string} organizationId - Optional organization ID
  * @returns {Promise<Object|null>}
  */
-const duplicateChart = async (user, chartId, newName) => {
+const duplicateChart = async (user, chartId, newName, organizationId) => {
   try {
-    const original = await Chart.findOne({ _id: chartId, user, isDeleted: false }).lean();
+    let query = { _id: chartId, isDeleted: false };
+    if (organizationId) {
+      query.$or = [{ user }, { organizationId }];
+    } else {
+      query.user = user;
+    }
+    const original = await Chart.findOne(query).lean();
     if (!original) {
       return null;
     }
@@ -267,6 +333,7 @@ const duplicateChart = async (user, chartId, newName) => {
       dataSnapshot: original.dataSnapshot,
       pinned: false,
       isPublic: false,
+      organizationId: organizationId || undefined,
     });
 
     await duplicate.save();

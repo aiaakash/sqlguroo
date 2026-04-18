@@ -9,6 +9,12 @@ const savedQuerySchema = new Schema<ISavedQuery>(
       required: true,
       index: true,
     },
+    organizationId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Organization',
+      index: true,
+      sparse: true,
+    },
     name: {
       type: String,
       required: [true, 'Query name is required'],
@@ -51,6 +57,7 @@ const savedQuerySchema = new Schema<ISavedQuery>(
 savedQuerySchema.index({ userId: 1, createdAt: -1 });
 savedQuerySchema.index({ userId: 1, name: 1 });
 savedQuerySchema.index({ userId: 1, updatedAt: -1 });
+savedQuerySchema.index({ organizationId: 1, createdAt: -1 });
 
 // Text index for search
 savedQuerySchema.index({ name: 'text', description: 'text', sqlContent: 'text' });

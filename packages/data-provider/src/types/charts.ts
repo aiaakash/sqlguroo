@@ -152,6 +152,7 @@ export interface ChartListItem {
   config: IChartConfig;
   pinned: boolean;
   isPublic: boolean;
+  organizationId?: string;
   rowCount: number;
   createdAt: Date;
   updatedAt: Date;

@@ -16,6 +16,7 @@ const { DatabaseConnection } = require('~/db/models');
 const { decryptCredentials } = require('~/server/services/Analytics/encryption');
 const { executeQuery } = require('~/server/services/Analytics/queryExecutor');
 const { getSampleDbWithCredentials } = require('~/server/services/Analytics/sampleDbService');
+const { getUserOrgMembership } = require('~/server/services/OrganizationService');
 
 const router = express.Router();
 
@@ -30,12 +31,16 @@ const router = express.Router();
  */
 router.get('/', requireJwtAuth, async (req, res) => {
   try {
+    const membership = await getUserOrgMembership(req.user.id);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
+
     const options = {
       page: parseInt(req.query.page) || 1,
       pageSize: Math.min(parseInt(req.query.pageSize) || 20, 100), // Max 100
       folderId: req.query.folderId,
       pinnedOnly: req.query.pinnedOnly === 'true',
       search: req.query.search,
+      organizationId: userOrgId,
     };
 
     const result = await getCharts(req.user.id, options);
@@ -69,7 +74,10 @@ router.get('/public/:shareId', async (req, res) => {
  */
 router.get('/:chartId', requireJwtAuth, async (req, res) => {
   try {
-    const chart = await getChart(req.user.id, req.params.chartId);
+    const membership = await getUserOrgMembership(req.user.id);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
+
+    const chart = await getChart(req.user.id, req.params.chartId, userOrgId);
     if (!chart) {
       return res.status(404).json({ error: 'Chart not found' });
     }
@@ -87,7 +95,10 @@ router.get('/:chartId', requireJwtAuth, async (req, res) => {
  */
 router.get('/:chartId/data', requireJwtAuth, async (req, res) => {
   try {
-    const chart = await getChartWithData(req.user.id, req.params.chartId);
+    const membership = await getUserOrgMembership(req.user.id);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
+
+    const chart = await getChartWithData(req.user.id, req.params.chartId, userOrgId);
     if (!chart) {
       return res.status(404).json({ error: 'Chart not found' });
     }
@@ -109,11 +120,13 @@ router.get('/:chartId/data', requireJwtAuth, async (req, res) => {
             sslCertificate = connection.sslCertificate;
           }
         } else {
-          connection = await DatabaseConnection.findOne({
-            _id: chart.queryRef.connectionId,
-            user: req.user.id,
-            isDeleted: false,
-          }).select('+password +sslCertificate');
+          let dbQuery = { _id: chart.queryRef.connectionId, isDeleted: false };
+          if (userOrgId) {
+            dbQuery.$or = [{ user: req.user.id }, { organizationId: userOrgId }];
+          } else {
+            dbQuery.user = req.user.id;
+          }
+          connection = await DatabaseConnection.findOne(dbQuery).select('+password +sslCertificate');
           
           if (connection && connection.isActive) {
             password = decryptCredentials(connection.password);
@@ -159,7 +172,7 @@ router.get('/:chartId/data', requireJwtAuth, async (req, res) => {
             rows,
             rowCount: rows.length,
             capturedAt: new Date(),
-          });
+          }, userOrgId);
 
           return res.status(200).json({
             chart,
@@ -201,6 +214,8 @@ router.get('/:chartId/data', requireJwtAuth, async (req, res) => {
  */
 router.post('/', requireJwtAuth, async (req, res) => {
   try {
+    const membership = await getUserOrgMembership(req.user.id);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
     const { name, description, folderId, config, queryRef, dataSnapshot, pinned } = req.body;
 
     // Validation
@@ -232,7 +247,7 @@ router.post('/', requireJwtAuth, async (req, res) => {
         rowCount: dataSnapshot.rows.length,
       },
       pinned: pinned || false,
-    });
+    }, userOrgId);
 
     res.status(201).json(chart);
   } catch (error) {
@@ -247,6 +262,8 @@ router.post('/', requireJwtAuth, async (req, res) => {
  */
 router.put('/:chartId', requireJwtAuth, async (req, res) => {
   try {
+    const membership = await getUserOrgMembership(req.user.id);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
     const { name, description, folderId, config, pinned, isPublic } = req.body;
 
     const updates = {};
@@ -257,7 +274,7 @@ router.put('/:chartId', requireJwtAuth, async (req, res) => {
     if (pinned !== undefined) updates.pinned = pinned;
     if (isPublic !== undefined) updates.isPublic = isPublic;
 
-    const chart = await updateChart(req.user.id, req.params.chartId, updates);
+    const chart = await updateChart(req.user.id, req.params.chartId, updates, userOrgId);
     if (!chart) {
       return res.status(404).json({ error: 'Chart not found' });
     }
@@ -275,6 +292,8 @@ router.put('/:chartId', requireJwtAuth, async (req, res) => {
  */
 router.put('/:chartId/data', requireJwtAuth, async (req, res) => {
   try {
+    const membership = await getUserOrgMembership(req.user.id);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
     const { dataSnapshot } = req.body;
 
     if (!dataSnapshot || !dataSnapshot.columns || !dataSnapshot.rows) {
@@ -289,7 +308,7 @@ router.put('/:chartId/data', requireJwtAuth, async (req, res) => {
     const chart = await updateChartData(req.user.id, req.params.chartId, {
       ...dataSnapshot,
       rowCount: dataSnapshot.rows.length,
-    });
+    }, userOrgId);
 
     if (!chart) {
       return res.status(404).json({ error: 'Chart not found' });
@@ -308,7 +327,10 @@ router.put('/:chartId/data', requireJwtAuth, async (req, res) => {
  */
 router.post('/:chartId/refresh', requireJwtAuth, async (req, res) => {
   try {
-    const chart = await getChartWithData(req.user.id, req.params.chartId);
+    const membership = await getUserOrgMembership(req.user.id);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
+
+    const chart = await getChartWithData(req.user.id, req.params.chartId, userOrgId);
     if (!chart) {
       return res.status(404).json({ error: 'Chart not found' });
     }
@@ -335,11 +357,13 @@ router.post('/:chartId/refresh', requireJwtAuth, async (req, res) => {
       password = connection.password; // Not encrypted
       sslCertificate = connection.sslCertificate;
     } else {
-      connection = await DatabaseConnection.findOne({
-        _id: chart.queryRef.connectionId,
-        user: req.user.id,
-        isDeleted: false,
-      }).select('+password +sslCertificate');
+      let dbQuery = { _id: chart.queryRef.connectionId, isDeleted: false };
+      if (userOrgId) {
+        dbQuery.$or = [{ user: req.user.id }, { organizationId: userOrgId }];
+      } else {
+        dbQuery.user = req.user.id;
+      }
+      connection = await DatabaseConnection.findOne(dbQuery).select('+password +sslCertificate');
 
       if (!connection) {
         return res.status(404).json({ error: 'Database connection not found' });
@@ -391,7 +415,7 @@ router.post('/:chartId/refresh', requireJwtAuth, async (req, res) => {
       rows,
       rowCount: rows.length,
       capturedAt: new Date(),
-    });
+    }, userOrgId);
 
     res.status(200).json({
       chart: updatedChart,
@@ -415,8 +439,10 @@ router.post('/:chartId/refresh', requireJwtAuth, async (req, res) => {
  */
 router.post('/:chartId/duplicate', requireJwtAuth, async (req, res) => {
   try {
+    const membership = await getUserOrgMembership(req.user.id);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
     const { name } = req.body;
-    const chart = await duplicateChart(req.user.id, req.params.chartId, name);
+    const chart = await duplicateChart(req.user.id, req.params.chartId, name, userOrgId);
 
     if (!chart) {
       return res.status(404).json({ error: 'Chart not found' });
@@ -435,7 +461,9 @@ router.post('/:chartId/duplicate', requireJwtAuth, async (req, res) => {
  */
 router.delete('/:chartId', requireJwtAuth, async (req, res) => {
   try {
-    const success = await deleteChart(req.user.id, req.params.chartId);
+    const membership = await getUserOrgMembership(req.user.id);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
+    const success = await deleteChart(req.user.id, req.params.chartId, userOrgId);
     if (!success) {
       return res.status(404).json({ error: 'Chart not found' });
     }

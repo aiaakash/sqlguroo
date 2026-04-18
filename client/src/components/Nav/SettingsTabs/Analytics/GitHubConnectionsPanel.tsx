@@ -277,7 +277,7 @@ function GitHubConnectionForm({
   const createConnection = useCreateGitHubConnection();
   const updateConnection = useUpdateGitHubConnection();
   const testConnection = useTestGitHubConnection();
-  const { data: connections } = useAnalyticsConnections('default-org');
+  const { data: connections } = useAnalyticsConnections();
 
   const isEditMode = !!editingConnection;
 

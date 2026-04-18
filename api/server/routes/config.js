@@ -7,6 +7,7 @@ const { getAppConfig } = require('~/server/services/Config/app');
 const { getProjectByName } = require('~/models/Project');
 const { getLogStores } = require('~/cache');
 const { isEnterprise, EDITION } = require('~/server/config/edition');
+const { countUsers } = require('~/models');
 
 const router = express.Router();
 const emailLoginEnabled =
@@ -27,8 +28,13 @@ const openidReuseTokens = isEnabled(process.env.OPENID_REUSE_TOKENS);
 router.get('/', async function (req, res) {
   const cache = getLogStores(CacheKeys.CONFIG_STORE);
 
+  // Compute isFirstUser fresh every time to detect when first user registers
+  const userCount = await countUsers();
+  const isFirstUser = userCount === 0;
+
   const cachedStartupConfig = await cache.get(CacheKeys.STARTUP_CONFIG);
-  if (cachedStartupConfig) {
+  // Only use cache if isFirstUser hasn't changed (first user registered)
+  if (cachedStartupConfig && cachedStartupConfig.isFirstUser === isFirstUser) {
     res.send(cachedStartupConfig);
     return;
   }
@@ -116,6 +122,7 @@ router.get('/', async function (req, res) {
       // Edition info
       edition: EDITION,
       isEnterprise,
+      isFirstUser,
       // Paddle configuration (enterprise only)
       ...(isEnterprise && {
         paddleClientToken: process.env.PADDLE_CLIENT_TOKEN,

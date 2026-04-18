@@ -9,11 +9,11 @@ import type {
 
 const ANALYTICS_CONNECTIONS_KEY = 'analytics-connections';
 
-export function useAnalyticsConnections(organizationId: string) {
+export function useAnalyticsConnections(organizationId?: string) {
   return useQuery<TDatabaseConnection[]>({
     queryKey: [ANALYTICS_CONNECTIONS_KEY, organizationId],
     queryFn: () => dataService.getAnalyticsConnections(organizationId),
-    enabled: true, // Always enabled - fetches user's connections (filtered by user on backend)
+    enabled: true,
   });
 }
 

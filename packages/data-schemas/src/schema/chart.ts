@@ -129,6 +129,12 @@ const chartSchema = new Schema<IChart>(
       required: true,
       index: true,
     },
+    organizationId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Organization',
+      index: true,
+      sparse: true,
+    },
     name: {
       type: String,
       required: [true, 'Chart name is required'],
@@ -183,6 +189,7 @@ const chartSchema = new Schema<IChart>(
 chartSchema.index({ user: 1, isDeleted: 1, createdAt: -1 });
 chartSchema.index({ user: 1, pinned: -1, updatedAt: -1 });
 chartSchema.index({ user: 1, folderId: 1, isDeleted: 1 });
+chartSchema.index({ organizationId: 1, isDeleted: 1, createdAt: -1 });
 // Note: shareId index is already created by unique: true in field definition
 
 export default chartSchema;

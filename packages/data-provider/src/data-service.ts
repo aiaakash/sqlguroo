@@ -1058,9 +1058,10 @@ export const getActiveJobs = (): Promise<ActiveJobsResponse> => {
 import type * as analytics from './types/analytics';
 
 export function getAnalyticsConnections(
-  organizationId: string,
+  organizationId?: string,
 ): Promise<analytics.TDatabaseConnection[]> {
-  return request.get(`${endpoints.analyticsConnections()}?organizationId=${organizationId}`);
+  const params = organizationId ? `?organizationId=${organizationId}` : '';
+  return request.get(`${endpoints.analyticsConnections()}${params}`);
 }
 
 export function getAnalyticsConnection(id: string): Promise<analytics.TDatabaseConnection> {

@@ -17,6 +17,7 @@ const {
   toggleDashboardStar,
 } = require('~/models');
 const requireJwtAuth = require('~/server/middleware/requireJwtAuth');
+const { getUserOrgMembership } = require('~/server/services/OrganizationService');
 
 const router = express.Router();
 
@@ -33,6 +34,9 @@ const router = express.Router();
  */
 router.get('/', requireJwtAuth, async (req, res) => {
   try {
+    const membership = await getUserOrgMembership(req.user.id);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
+
     const options = {
       page: parseInt(req.query.page) || 1,
       pageSize: Math.min(parseInt(req.query.pageSize) || 20, 100),
@@ -41,6 +45,7 @@ router.get('/', requireJwtAuth, async (req, res) => {
       archivedOnly: req.query.archivedOnly === 'true',
       sortBy: req.query.sortBy || 'updatedAt',
       sortOrder: req.query.sortOrder || 'desc',
+      organizationId: userOrgId,
     };
 
     const result = await getDashboards(req.user.id, options);
@@ -93,7 +98,10 @@ router.get('/public/:shareId', async (req, res) => {
  */
 router.get('/:dashboardId', requireJwtAuth, async (req, res) => {
   try {
-    const dashboard = await getDashboard(req.user.id, req.params.dashboardId);
+    const membership = await getUserOrgMembership(req.user.id);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
+
+    const dashboard = await getDashboard(req.user.id, req.params.dashboardId, userOrgId);
     if (!dashboard) {
       return res.status(404).json({ error: 'Dashboard not found' });
     }
@@ -110,7 +118,10 @@ router.get('/:dashboardId', requireJwtAuth, async (req, res) => {
  */
 router.get('/:dashboardId/full', requireJwtAuth, async (req, res) => {
   try {
-    const dashboard = await getDashboardWithCharts(req.user.id, req.params.dashboardId);
+    const membership = await getUserOrgMembership(req.user.id);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
+
+    const dashboard = await getDashboardWithCharts(req.user.id, req.params.dashboardId, userOrgId);
     if (!dashboard) {
       return res.status(404).json({ error: 'Dashboard not found' });
     }
@@ -127,6 +138,8 @@ router.get('/:dashboardId/full', requireJwtAuth, async (req, res) => {
  */
 router.post('/', requireJwtAuth, async (req, res) => {
   try {
+    const membership = await getUserOrgMembership(req.user.id);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
     const { name, description, icon, charts, settings, tags, gridCols } = req.body;
 
     if (!name || typeof name !== 'string') {
@@ -141,7 +154,7 @@ router.post('/', requireJwtAuth, async (req, res) => {
       settings,
       tags,
       gridCols,
-    });
+    }, userOrgId);
 
     res.status(201).json(dashboard);
   } catch (error) {
@@ -156,6 +169,8 @@ router.post('/', requireJwtAuth, async (req, res) => {
  */
 router.put('/:dashboardId', requireJwtAuth, async (req, res) => {
   try {
+    const membership = await getUserOrgMembership(req.user.id);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
     const {
       name,
       description,
@@ -183,7 +198,7 @@ router.put('/:dashboardId', requireJwtAuth, async (req, res) => {
     if (tags !== undefined) updates.tags = tags;
     if (gridCols !== undefined) updates.gridCols = gridCols;
 
-    const dashboard = await updateDashboard(req.user.id, req.params.dashboardId, updates);
+    const dashboard = await updateDashboard(req.user.id, req.params.dashboardId, updates, userOrgId);
     if (!dashboard) {
       return res.status(404).json({ error: 'Dashboard not found' });
     }
@@ -201,13 +216,15 @@ router.put('/:dashboardId', requireJwtAuth, async (req, res) => {
  */
 router.put('/:dashboardId/layout', requireJwtAuth, async (req, res) => {
   try {
+    const membership = await getUserOrgMembership(req.user.id);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
     const { charts } = req.body;
 
     if (!Array.isArray(charts)) {
       return res.status(400).json({ error: 'Charts array is required' });
     }
 
-    const dashboard = await updateDashboardLayout(req.user.id, req.params.dashboardId, charts);
+    const dashboard = await updateDashboardLayout(req.user.id, req.params.dashboardId, charts, userOrgId);
     if (!dashboard) {
       return res.status(404).json({ error: 'Dashboard not found' });
     }
@@ -225,6 +242,8 @@ router.put('/:dashboardId/layout', requireJwtAuth, async (req, res) => {
  */
 router.post('/:dashboardId/charts', requireJwtAuth, async (req, res) => {
   try {
+    const membership = await getUserOrgMembership(req.user.id);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
     const { chartId, x, y, w, h, titleOverride, static: isStatic } = req.body;
 
     if (!chartId) {
@@ -239,7 +258,7 @@ router.post('/:dashboardId/charts', requireJwtAuth, async (req, res) => {
       h: h ?? 2,
       titleOverride,
       static: isStatic ?? false,
-    });
+    }, userOrgId);
 
     if (!dashboard) {
       return res.status(404).json({ error: 'Dashboard or chart not found' });
@@ -258,10 +277,13 @@ router.post('/:dashboardId/charts', requireJwtAuth, async (req, res) => {
  */
 router.delete('/:dashboardId/charts/:chartId', requireJwtAuth, async (req, res) => {
   try {
+    const membership = await getUserOrgMembership(req.user.id);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
     const dashboard = await removeChartFromDashboard(
       req.user.id,
       req.params.dashboardId,
-      req.params.chartId
+      req.params.chartId,
+      userOrgId
     );
 
     if (!dashboard) {
@@ -281,8 +303,10 @@ router.delete('/:dashboardId/charts/:chartId', requireJwtAuth, async (req, res) 
  */
 router.post('/:dashboardId/duplicate', requireJwtAuth, async (req, res) => {
   try {
+    const membership = await getUserOrgMembership(req.user.id);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
     const { name } = req.body;
-    const dashboard = await duplicateDashboard(req.user.id, req.params.dashboardId, name);
+    const dashboard = await duplicateDashboard(req.user.id, req.params.dashboardId, name, userOrgId);
 
     if (!dashboard) {
       return res.status(404).json({ error: 'Dashboard not found' });
@@ -301,7 +325,9 @@ router.post('/:dashboardId/duplicate', requireJwtAuth, async (req, res) => {
  */
 router.post('/:dashboardId/star', requireJwtAuth, async (req, res) => {
   try {
-    const dashboard = await toggleDashboardStar(req.user.id, req.params.dashboardId);
+    const membership = await getUserOrgMembership(req.user.id);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
+    const dashboard = await toggleDashboardStar(req.user.id, req.params.dashboardId, userOrgId);
 
     if (!dashboard) {
       return res.status(404).json({ error: 'Dashboard not found' });
@@ -320,7 +346,9 @@ router.post('/:dashboardId/star', requireJwtAuth, async (req, res) => {
  */
 router.delete('/:dashboardId', requireJwtAuth, async (req, res) => {
   try {
-    const success = await deleteDashboard(req.user.id, req.params.dashboardId);
+    const membership = await getUserOrgMembership(req.user.id);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
+    const success = await deleteDashboard(req.user.id, req.params.dashboardId, userOrgId);
     if (!success) {
       return res.status(404).json({ error: 'Dashboard not found' });
     }

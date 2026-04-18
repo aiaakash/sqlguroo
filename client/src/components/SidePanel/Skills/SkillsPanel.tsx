@@ -4,6 +4,7 @@ import { useLocalize } from '~/hooks';
 import { OGDialog, OGDialogTrigger, Spinner, Button } from '@librechat/client';
 import SkillForm from '~/components/Nav/SettingsTabs/Analytics/SkillForm';
 import { useAnalyticsSkills, useDeleteSkill } from '~/components/Nav/SettingsTabs/Analytics/hooks';
+import { OrgBadge } from '~/components/Organization';
 
 export default function SkillsPanel() {
   const localize = useLocalize();
@@ -77,6 +78,7 @@ export default function SkillsPanel() {
               <div className="flex flex-col flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="font-medium truncate">{skill.title}</span>
+                  <OrgBadge organizationId={skill.organizationId} />
                   <span
                     className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs flex-shrink-0 ${
                       skill.isActive

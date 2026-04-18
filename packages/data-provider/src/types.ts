@@ -383,6 +383,7 @@ export type TRegisterUser = {
   password: string;
   confirm_password?: string;
   token?: string;
+  organizationName?: string;
 };
 
 export type TLoginUser = {

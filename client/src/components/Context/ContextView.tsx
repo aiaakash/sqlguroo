@@ -67,9 +67,8 @@ export const ContextView: React.FC = () => {
   const chatLinkHandler = useCustomLink('/c/' + lastConversationId);
 
   // Load connections
-  const organizationId = 'default-org';
   const { data: connections, isLoading: isLoadingConnections } =
-    useAnalyticsConnections(organizationId);
+    useAnalyticsConnections();
 
   // Load schema for selected connection
   const {

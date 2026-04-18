@@ -2,6 +2,7 @@ const express = require('express');
 const { logger } = require('@librechat/data-schemas');
 const { requireJwtAuth } = require('~/server/middleware');
 const { SavedQuery } = require('~/db/models');
+const { getUserOrgMembership } = require('~/server/services/OrganizationService');
 
 const router = express.Router();
 
@@ -16,6 +17,8 @@ router.use(requireJwtAuth);
 router.get('/', async (req, res) => {
   try {
     const userId = req.user.id;
+    const membership = await getUserOrgMembership(userId);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
 
     // Parse pagination params
     const page = parseInt(req.query.page, 10) || 1;
@@ -29,8 +32,13 @@ router.get('/', async (req, res) => {
     const sortBy = req.query.sortBy || 'createdAt';
     const sortDirection = req.query.sortDirection === 'asc' ? 1 : -1;
 
-    // Build query
-    const query = { userId };
+    // Build query - personal + org-scoped
+    let query;
+    if (userOrgId) {
+      query = { $or: [{ userId }, { organizationId: userOrgId }] };
+    } else {
+      query = { userId };
+    }
 
     // Add search filter if provided
     if (search) {
@@ -74,8 +82,17 @@ router.get('/', async (req, res) => {
 router.get('/all', async (req, res) => {
   try {
     const userId = req.user.id;
+    const membership = await getUserOrgMembership(userId);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
 
-    const queries = await SavedQuery.find({ userId })
+    let query;
+    if (userOrgId) {
+      query = { $or: [{ userId }, { organizationId: userOrgId }] };
+    } else {
+      query = { userId };
+    }
+
+    const queries = await SavedQuery.find(query)
       .sort({ name: 1 })
       .select('_id name sqlContent')
       .lean();
@@ -96,17 +113,23 @@ router.get('/:id', async (req, res) => {
   try {
     const userId = req.user.id;
     const { id } = req.params;
+    const membership = await getUserOrgMembership(userId);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
 
-    const query = await SavedQuery.findOne({
-      _id: id,
-      userId,
-    }).lean();
+    let query;
+    if (userOrgId) {
+      query = { _id: id, $or: [{ userId }, { organizationId: userOrgId }] };
+    } else {
+      query = { _id: id, userId };
+    }
 
-    if (!query) {
+    const savedQuery = await SavedQuery.findOne(query).lean();
+
+    if (!savedQuery) {
       return res.status(404).json({ error: 'Saved query not found' });
     }
 
-    res.status(200).json(query);
+    res.status(200).json(savedQuery);
   } catch (error) {
     logger.error('[savedQueries] Error fetching saved query:', error);
     res.status(500).json({ error: 'Error fetching saved query' });
@@ -121,6 +144,8 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const userId = req.user.id;
+    const membership = await getUserOrgMembership(userId);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
     const { name, sqlContent, description, conversationId, messageId, connectionId, tags } =
       req.body;
 
@@ -146,6 +171,7 @@ router.post('/', async (req, res) => {
       messageId,
       connectionId,
       tags: tags || [],
+      organizationId: userOrgId || undefined,
     });
 
     res.status(201).json(savedQuery);
@@ -164,6 +190,8 @@ router.patch('/:id', async (req, res) => {
   try {
     const userId = req.user.id;
     const { id } = req.params;
+    const membership = await getUserOrgMembership(userId);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
     const { name, sqlContent, description, tags } = req.body;
 
     // Build update object with only provided fields
@@ -190,8 +218,15 @@ router.patch('/:id', async (req, res) => {
       updateData.tags = tags;
     }
 
+    let query;
+    if (userOrgId) {
+      query = { _id: id, $or: [{ userId }, { organizationId: userOrgId }] };
+    } else {
+      query = { _id: id, userId };
+    }
+
     const savedQuery = await SavedQuery.findOneAndUpdate(
-      { _id: id, userId },
+      query,
       updateData,
       { new: true },
     ).lean();
@@ -216,11 +251,17 @@ router.delete('/:id', async (req, res) => {
   try {
     const userId = req.user.id;
     const { id } = req.params;
+    const membership = await getUserOrgMembership(userId);
+    const userOrgId = membership ? (membership.organizationId._id || membership.organizationId) : null;
 
-    const result = await SavedQuery.deleteOne({
-      _id: id,
-      userId,
-    });
+    let query;
+    if (userOrgId) {
+      query = { _id: id, $or: [{ userId }, { organizationId: userOrgId }] };
+    } else {
+      query = { _id: id, userId };
+    }
+
+    const result = await SavedQuery.deleteOne(query);
 
     if (result.deletedCount === 0) {
       return res.status(404).json({ error: 'Saved query not found' });

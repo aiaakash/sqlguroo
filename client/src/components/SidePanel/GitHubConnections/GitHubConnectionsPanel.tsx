@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useLocalize } from '~/hooks';
 import { useToastContext } from '@librechat/client';
+import { OrgBadge } from '~/components/Organization';
 import {
   OGDialog,
   OGDialogTrigger,
@@ -205,7 +206,10 @@ export default function GitHubConnectionsPanel() {
                   <GitHubIcon className="h-7 w-7 shrink-0" />
 
                   <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                    <span className="truncate text-sm font-medium">{connection.name}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="truncate text-sm font-medium">{connection.name}</span>
+                      <OrgBadge organizationId={connection.organizationId} />
+                    </div>
                     <span className="truncate text-xs text-text-tertiary">
                       {connection.owner}/{connection.repo}
                     </span>
@@ -348,7 +352,7 @@ function GitHubConnectionForm({
   const createConnection = useCreateGitHubConnection();
   const updateConnection = useUpdateGitHubConnection();
   const testConnection = useTestGitHubConnection();
-  const { data: connections } = useAnalyticsConnections('default-org');
+  const { data: connections } = useAnalyticsConnections();
 
   const isEditMode = !!editingConnection;
 

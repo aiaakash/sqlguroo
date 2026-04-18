@@ -66,6 +66,12 @@ const userSchema = new Schema<IUser>(
       type: String,
       default: SystemRoles.USER,
     },
+    organizationId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Organization',
+      index: true,
+      sparse: true,
+    },
     googleId: {
       type: String,
       unique: true,
