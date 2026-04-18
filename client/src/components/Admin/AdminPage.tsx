@@ -58,15 +58,13 @@ interface StatCardProps {
 }
 
 const StatCard = ({ title, value, icon: Icon, colorClass }: StatCardProps) => (
-  <div className="rounded-xl border border-border-light bg-surface-tertiary p-4 dark:border-border-dark dark:bg-surface-tertiary">
-    <div className="flex items-center gap-3">
-      <div className={cn('flex h-10 w-10 items-center justify-center rounded-lg', colorClass)}>
-        <Icon className="h-5 w-5" />
-      </div>
-      <div>
-        <p className="text-xs text-text-secondary">{title}</p>
-        <p className="text-xl font-semibold text-text-primary">{value}</p>
-      </div>
+  <div className="flex items-center gap-3 rounded-lg border border-border-light bg-surface-tertiary px-4 py-2.5 dark:border-border-dark dark:bg-surface-tertiary">
+    <div className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-md', colorClass)}>
+      <Icon className="h-4 w-4" />
+    </div>
+    <div className="min-w-0">
+      <p className="text-[11px] leading-tight text-text-secondary">{title}</p>
+      <p className="text-lg font-semibold leading-tight text-text-primary">{value}</p>
     </div>
   </div>
 );
@@ -939,44 +937,6 @@ export default function AdminPage() {
                   </>
                 )}
               </div>
-
-              {/* Subscription Stats */}
-              {stats && (
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <div className="rounded-xl border border-border-light bg-surface-secondary p-4 dark:border-border-dark dark:bg-surface-secondary">
-                    <div className="mb-4 flex items-center gap-2">
-                      <PieChart className="h-5 w-5 text-text-secondary" />
-                      <h3 className="font-medium text-text-primary">Plan Distribution</h3>
-                    </div>
-                    <div className="space-y-3">
-                      {Object.entries(stats.subscriptionStats).length === 0 ? (
-                        <p className="text-sm text-text-secondary">No active paid subscriptions</p>
-                      ) : (
-                        Object.entries(stats.subscriptionStats).map(([plan, count]) => (
-                          <div key={plan} className="flex items-center justify-between">
-                            <span className="text-sm text-text-primary">{PLAN_NAMES[plan as keyof typeof PLAN_NAMES] || plan}</span>
-                            <span className="rounded-full bg-surface-tertiary px-2.5 py-0.5 text-xs font-semibold text-text-secondary">{count}</span>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                  <div className="rounded-xl border border-border-light bg-surface-secondary p-4 dark:border-border-dark dark:bg-surface-secondary">
-                    <div className="mb-4 flex items-center gap-2">
-                      <Shield className="h-5 w-5 text-text-secondary" />
-                      <h3 className="font-medium text-text-primary">Administrators</h3>
-                    </div>
-                    <div className="space-y-2">
-                      {stats.adminEmails.slice(0, 5).map((email) => (
-                        <div key={email} className="flex items-center gap-2 text-sm">
-                          <Mail className="h-4 w-4 text-text-secondary" />
-                          <span className="text-text-primary">{email}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* Org Profile & Invite (only if org exists) */}
               {organization && (
