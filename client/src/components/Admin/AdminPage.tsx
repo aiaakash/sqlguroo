@@ -37,6 +37,7 @@ import {
 import { Button, Input, Spinner } from '@librechat/client';
 import { cn } from '~/utils';
 import { useLocalize } from '~/hooks';
+import useEdition from '~/hooks/useEdition';
 import UserQuestionsTab from './UserQuestionsTab';
 
 // Tab configuration
@@ -99,6 +100,7 @@ export default function AdminPage() {
 
   // Check if current user has admin access
   const { data: adminAccess, isLoading: checkingAccess, error: accessError } = useCheckAdminAccessQuery();
+  const { isEnterprise } = useEdition();
 
   const params: TAdminUsersParams = useMemo(() => ({
     page,
@@ -333,8 +335,12 @@ export default function AdminPage() {
     { value: AdminTabValues.ORGANIZATION, icon: Building2, label: 'Organization' },
     { value: AdminTabValues.QUESTIONS, icon: MessageSquare, label: 'Questions' },
     { value: AdminTabValues.ANALYTICS, icon: BarChart3, label: 'Analytics' },
-    { value: AdminTabValues.BILLING, icon: DollarSign, label: 'Billing' },
-    { value: AdminTabValues.PLANS, icon: Crown, label: 'Plans' },
+    ...(isEnterprise
+      ? [
+          { value: AdminTabValues.BILLING, icon: DollarSign, label: 'Billing' },
+          { value: AdminTabValues.PLANS, icon: Crown, label: 'Plans' },
+        ]
+      : []),
   ];
 
   const handleTabChange = (value: string) => {

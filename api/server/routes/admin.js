@@ -194,10 +194,8 @@ if (isEnterprise) {
   const enterpriseRouter = require('../../../enterprise/backend/src/routes/admin');
   router.use('/', enterpriseRouter);
 } else {
-  // Community mode: return 404 for other admin routes
-  router.all('/{*path}', (req, res) => {
-    res.status(404).json({ error: 'Admin panel is not available in community edition' });
-  });
+  const communityRouter = require('../../../community/backend/src/routes/admin');
+  router.use('/', communityRouter);
 }
 
 module.exports = router;
