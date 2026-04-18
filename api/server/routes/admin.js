@@ -2,18 +2,161 @@
  * Admin Routes - Edition-aware loader
  *
  * In Enterprise mode: full admin panel with subscription/usage management
- * In Community mode: returns 404 (admin panel is enterprise-only)
+ * In Community mode: basic admin endpoints (questions, etc.)
  */
 const express = require('express');
 const { isEnterprise } = require('~/server/config/edition');
+const { Message } = require('~/db/models');
 
-let router;
+const router = express.Router();
+
+// Community-available questions endpoint (always available)
+router.get('/questions', async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const pageSize = Math.min(parseInt(req.query.pageSize) || 50, 100);
+    const search = req.query.search?.trim() || '';
+    const userFilter = req.query.user?.trim() || '';
+    const endpointFilter = req.query.endpoint?.trim() || '';
+    const timeFilter = req.query.time || 'all';
+    const sortField = req.query.sort || 'createdAt';
+    const sortDir = req.query.dir === 'asc' ? 1 : -1;
+
+    const skip = (page - 1) * pageSize;
+
+    const matchFilter = { isCreatedByUser: true };
+
+    if (search) {
+      matchFilter.$or = [
+        { text: { $regex: search, $options: 'i' } },
+      ];
+    }
+    if (endpointFilter) {
+      matchFilter.endpoint = { $regex: endpointFilter, $options: 'i' };
+    }
+
+    // Time filter
+    const now = new Date();
+    if (timeFilter === 'today') {
+      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      matchFilter.createdAt = { $gte: startOfDay };
+    } else if (timeFilter === 'week') {
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - now.getDay());
+      startOfWeek.setHours(0, 0, 0, 0);
+      matchFilter.createdAt = { $gte: startOfWeek };
+    } else if (timeFilter === 'month') {
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      matchFilter.createdAt = { $gte: startOfMonth };
+    } else if (timeFilter === 'quarter') {
+      const startOfQuarter = new Date(now);
+      startOfQuarter.setMonth(now.getMonth() - 3);
+      matchFilter.createdAt = { $gte: startOfQuarter };
+    }
+
+    const sortObj = {};
+    const validSortFields = ['createdAt', 'userEmail', 'model', 'endpoint'];
+    sortObj[validSortFields.includes(sortField) ? sortField : 'createdAt'] = sortDir;
+
+    const pipeline = [
+      { $match: matchFilter },
+      {
+        $lookup: {
+          from: 'conversations',
+          localField: 'conversationId',
+          foreignField: 'conversationId',
+          as: 'conversation',
+        },
+      },
+      { $unwind: { path: '$conversation', preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'user',
+          foreignField: '_id',
+          as: 'userInfo',
+        },
+      },
+      { $unwind: { path: '$userInfo', preserveNullAndEmptyArrays: true } },
+      {
+        $project: {
+          _id: 1,
+          messageId: 1,
+          conversationId: 1,
+          text: 1,
+          sender: 1,
+          model: 1,
+          endpoint: 1,
+          user: 1,
+          isCreatedByUser: 1,
+          createdAt: 1,
+          updatedAt: 1,
+          'conversation.title': 1,
+          'userInfo.name': 1,
+          'userInfo.email': 1,
+        },
+      },
+      { $sort: sortObj },
+      { $skip: skip },
+      { $limit: pageSize },
+    ];
+
+    if (userFilter) {
+      pipeline.splice(1, 0, {
+        $match: {
+          $or: [
+            { 'userInfo.email': { $regex: userFilter, $options: 'i' } },
+            { 'userInfo.name': { $regex: userFilter, $options: 'i' } },
+          ],
+        },
+      });
+    }
+
+    const countPipeline = [...pipeline];
+    countPipeline.splice(-2, 2);
+    countPipeline.push({ $count: 'total' });
+
+    const [questions, countResult] = await Promise.all([
+      Message.aggregate(pipeline),
+      Message.aggregate(countPipeline),
+    ]);
+
+    const total = countResult.length > 0 ? countResult[0].total : 0;
+
+    const formatted = questions.map(q => ({
+      id: q._id.toString(),
+      messageId: q.messageId,
+      conversationId: q.conversationId,
+      text: q.text?.substring(0, 500) || '',
+      sender: q.sender,
+      model: q.model,
+      endpoint: q.endpoint,
+      user: q.user,
+      userName: q.userInfo?.name || '',
+      userEmail: q.userInfo?.email || '',
+      conversationTitle: q.conversation?.title || 'Untitled',
+      createdAt: q.createdAt,
+    }));
+
+    res.json({
+      questions: formatted,
+      pagination: {
+        page,
+        pageSize,
+        total,
+        totalPages: Math.ceil(total / pageSize),
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching user questions', error: error.message });
+  }
+});
 
 if (isEnterprise) {
-  router = require('../../../enterprise/backend/src/routes/admin');
+  const enterpriseRouter = require('../../../enterprise/backend/src/routes/admin');
+  router.use('/', enterpriseRouter);
 } else {
-  // Community mode: admin routes return 404
-  router = express.Router();
+  // Community mode: return 404 for other admin routes
   router.all('/{*path}', (req, res) => {
     res.status(404).json({ error: 'Admin panel is not available in community edition' });
   });

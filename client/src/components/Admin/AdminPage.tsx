@@ -22,27 +22,27 @@ import {
   Shield,
   Mail,
   Calendar,
-  CreditCard,
   BarChart3,
   RefreshCw,
-  MoreHorizontal,
   Crown,
-  Zap,
-  UserCheck,
   Settings,
   DollarSign,
   PieChart,
   Building2,
   Copy,
   UserPlus,
+  UserCheck,
+  MessageSquare,
 } from 'lucide-react';
 import { Button, Input, Spinner } from '@librechat/client';
 import { cn } from '~/utils';
 import { useLocalize } from '~/hooks';
+import UserQuestionsTab from './UserQuestionsTab';
 
 // Tab configuration
 enum AdminTabValues {
   USERS = 'users',
+  QUESTIONS = 'questions',
   ORGANIZATION = 'organization',
   ANALYTICS = 'analytics',
   BILLING = 'billing',
@@ -68,16 +68,6 @@ const StatCard = ({ title, value, icon: Icon, colorClass }: StatCardProps) => (
       </div>
     </div>
   </div>
-);
-
-const QuickAction = ({ icon: Icon, label, onClick }: { icon: React.ElementType; label: string; onClick?: () => void }) => (
-  <button
-    onClick={onClick}
-    className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary"
-  >
-    <Icon className="h-4 w-4" />
-    <span>{label}</span>
-  </button>
 );
 
 export default function AdminPage() {
@@ -342,6 +332,7 @@ export default function AdminPage() {
   const adminTabs = [
     { value: AdminTabValues.USERS, icon: Users, label: 'Users' },
     { value: AdminTabValues.ORGANIZATION, icon: Building2, label: 'Organization' },
+    { value: AdminTabValues.QUESTIONS, icon: MessageSquare, label: 'Questions' },
     { value: AdminTabValues.ANALYTICS, icon: BarChart3, label: 'Analytics' },
     { value: AdminTabValues.BILLING, icon: DollarSign, label: 'Billing' },
     { value: AdminTabValues.PLANS, icon: Crown, label: 'Plans' },
@@ -392,13 +383,6 @@ export default function AdminPage() {
               </Tabs.Trigger>
             ))}
           </Tabs.List>
-
-          {/* Quick Actions */}
-          <div className="mt-6 border-t border-border-light pt-4 dark:border-border-dark">
-            <p className="mb-2 px-3 text-xs font-medium text-text-secondary">Quick Actions</p>
-            <QuickAction icon={UserCheck} label="Manage Users" />
-            <QuickAction icon={CreditCard} label="View Billing" />
-          </div>
 
           {/* Back Link */}
           <div className="mt-auto border-t border-border-light pt-4 dark:border-border-dark">
@@ -680,6 +664,11 @@ export default function AdminPage() {
                 </div>
               )}
             </div>
+          </Tabs.Content>
+
+          {/* Questions Tab */}
+          <Tabs.Content value={AdminTabValues.QUESTIONS} className="w-full" tabIndex={-1}>
+            <UserQuestionsTab />
           </Tabs.Content>
 
           {/* Organization Tab */}
