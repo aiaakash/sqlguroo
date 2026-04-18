@@ -815,6 +815,8 @@ export default function AdminPage() {
                             const isMember = members.some(m => m.user.email === user.email);
                             const memberRecord = members.find(m => m.user.email === user.email);
                             const pendingRecord = pendingUsers.find(p => p.email === user.email);
+                            const adminCount = members.filter(m => m.role === 'admin').length;
+                            const isOnlyAdmin = memberRecord?.role === 'admin' && adminCount <= 1;
                             return (
                               <tr key={user.id} className="transition-colors hover:bg-surface-hover">
                                 <td className="px-4 py-3">
@@ -870,19 +872,36 @@ export default function AdminPage() {
                                         <select
                                           value={memberRecord!.role}
                                           onChange={e => handleChangeRole(memberRecord!.userId, e.target.value as 'admin' | 'member')}
-                                          className="rounded border border-border-light bg-surface-primary px-1.5 py-0.5 text-[10px] dark:border-border-dark"
+                                          disabled={isOnlyAdmin}
+                                          className={cn(
+                                            'rounded-md border-0 pr-6 pl-2 py-1 text-xs font-medium transition-colors',
+                                            isOnlyAdmin
+                                              ? 'bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-600 cursor-not-allowed'
+                                              : memberRecord!.role === 'admin'
+                                                ? 'bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400'
+                                                : 'bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400'
+                                          )}
+                                          title={isOnlyAdmin ? 'Cannot demote the last admin' : undefined}
                                         >
                                           <option value="admin">Admin</option>
                                           <option value="member">Member</option>
                                         </select>
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
+                                        <button
                                           onClick={() => handleRemoveMember(memberRecord!.userId)}
-                                          className="h-6 text-[10px] text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                          disabled={isOnlyAdmin}
+                                          className={cn(
+                                            'flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors',
+                                            isOnlyAdmin
+                                              ? 'bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-600 cursor-not-allowed'
+                                              : 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50'
+                                          )}
+                                          title={isOnlyAdmin ? 'Cannot remove the last admin' : 'Remove from organization'}
                                         >
+                                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                          </svg>
                                           Remove
-                                        </Button>
+                                        </button>
                                       </>
                                     )}
                                   </div>
