@@ -6,18 +6,24 @@ const {
   getOrganizationByInviteCode,
   addMemberToOrganization,
   rotateInviteCode,
-  updateOrganization,
 } = require('~/server/services/OrganizationService');
 const { requireOrgMember, requireOrgAdmin } = require('~/server/middleware/org');
 const { requireJwtAuth } = require('~/server/middleware');
-const { findUser, updateUser } = require('~/models');
+const { findUser } = require('~/models');
 const { sendEmail } = require('~/server/utils');
+const orgInviteLimiter = require('~/server/middleware/limiters/orgInviteLimiter');
+const orgJoinLimiter = require('~/server/middleware/limiters/orgJoinLimiter');
 
 const domains = {
   client: process.env.DOMAIN_CLIENT,
 };
 
-router.post('/me/invite/code', requireJwtAuth, requireOrgAdmin, async (req, res) => {
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  console.error('[OrgInvite] WARNING: JWT_SECRET is not set. Invite tokens will be insecure.');
+}
+
+router.post('/me/invite/code', requireJwtAuth, requireOrgAdmin, orgInviteLimiter, async (req, res) => {
   try {
     const orgId = req.userOrganizationId;
     const newCode = await rotateInviteCode(orgId);
@@ -27,13 +33,13 @@ router.post('/me/invite/code', requireJwtAuth, requireOrgAdmin, async (req, res)
   }
 });
 
-router.post('/me/invite/email', requireJwtAuth, requireOrgAdmin, async (req, res) => {
+router.post('/me/invite/email', requireJwtAuth, requireOrgAdmin, orgInviteLimiter, async (req, res) => {
   try {
     const orgId = req.userOrganizationId;
     const { email } = req.body;
 
-    if (!email) {
-      return res.status(400).json({ message: 'Email is required' });
+    if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ message: 'Valid email is required' });
     }
 
     const org = await getUserOrganization(req.user._id);
@@ -41,9 +47,13 @@ router.post('/me/invite/email', requireJwtAuth, requireOrgAdmin, async (req, res
       return res.status(404).json({ message: 'Organization not found' });
     }
 
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'Server configuration error' });
+    }
+
     const inviteToken = jwt.sign(
       { email, organizationId: orgId },
-      process.env.JWT_SECRET || 'default_secret',
+      JWT_SECRET,
       { expiresIn: '7d' },
     );
 
@@ -67,7 +77,7 @@ router.post('/me/invite/email', requireJwtAuth, requireOrgAdmin, async (req, res
   }
 });
 
-router.post('/join/:code', requireJwtAuth, async (req, res) => {
+router.post('/join/:code', requireJwtAuth, orgJoinLimiter, async (req, res) => {
   try {
     const { code } = req.params;
     const userId = req.user._id;
@@ -86,16 +96,18 @@ router.post('/join/:code', requireJwtAuth, async (req, res) => {
       organizationId: org._id,
       userId,
       role: 'member',
-      invitedBy: req.user._id,
     });
 
     res.json({ message: 'Successfully joined organization', organizationId: org._id });
   } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ message: 'You are already a member of this organization' });
+    }
     res.status(500).json({ message: 'Error joining organization' });
   }
 });
 
-router.post('/join', requireJwtAuth, async (req, res) => {
+router.post('/join', requireJwtAuth, orgJoinLimiter, async (req, res) => {
   try {
     const { token } = req.body;
 
@@ -103,11 +115,19 @@ router.post('/join', requireJwtAuth, async (req, res) => {
       return res.status(400).json({ message: 'Invite token is required' });
     }
 
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: 'Server configuration error' });
+    }
+
     let decoded;
     try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET || 'default_secret');
+      decoded = jwt.verify(token, JWT_SECRET);
     } catch {
       return res.status(400).json({ message: 'Invalid or expired invite token' });
+    }
+
+    if (!decoded.email || !decoded.organizationId) {
+      return res.status(400).json({ message: 'Invalid invite token payload' });
     }
 
     const userId = req.user._id;
@@ -117,7 +137,7 @@ router.post('/join', requireJwtAuth, async (req, res) => {
       return res.status(400).json({ message: 'You are already a member of an organization' });
     }
 
-    if (decoded.email && user && user.email !== decoded.email) {
+    if (user.email !== decoded.email) {
       return res.status(400).json({ message: 'Invite email does not match your account' });
     }
 
@@ -130,11 +150,14 @@ router.post('/join', requireJwtAuth, async (req, res) => {
 
     res.json({ message: 'Successfully joined organization', organizationId: decoded.organizationId });
   } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ message: 'You are already a member of this organization' });
+    }
     res.status(500).json({ message: 'Error joining organization' });
   }
 });
 
-router.get('/me/invite', requireJwtAuth, requireOrgMember, async (req, res) => {
+router.get('/me/invite', requireJwtAuth, requireOrgAdmin, async (req, res) => {
   try {
     const org = await getUserOrganization(req.user._id);
     if (!org) {

@@ -1423,6 +1423,14 @@ export enum ViolationTypes {
    * Registration violations.
    */
   REGISTRATIONS = 'registrations',
+  /**
+   * Organization Invite Limit Violation.
+   */
+  ORG_INVITE = 'org_invite',
+  /**
+   * Organization Join Limit Violation.
+   */
+  ORG_JOIN = 'org_join',
 }
 
 /**

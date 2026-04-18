@@ -1,13 +1,12 @@
 const mongoose = require('mongoose');
+const crypto = require('crypto');
 const { Organization, OrganizationMembership, User } = require('~/db/models');
 
 function generateInviteCode() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code = '';
-  for (let i = 0; i < 8; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return code;
+  return crypto.randomBytes(6).toString('base64')
+    .replace(/[^A-Z0-9]/g, '')
+    .toUpperCase()
+    .slice(0, 8);
 }
 
 function generateSlug(name) {
@@ -17,7 +16,7 @@ function generateSlug(name) {
     .replace(/[^\w\s-]/g, '')
     .replace(/[\s_-]+/g, '-')
     .replace(/^-+|-+$/g, '');
-  const suffix = Date.now().toString(36);
+  const suffix = Date.now().toString(36) + crypto.randomBytes(2).toString('hex');
   return `${base}-${suffix}`;
 }
 
@@ -38,6 +37,11 @@ async function createOrganization({ name, description, createdBy }) {
 }
 
 async function addMemberToOrganization({ organizationId, userId, role, invitedBy }) {
+  const existing = await OrganizationMembership.findOne({ organizationId, userId }).lean();
+  if (existing) {
+    return { ...existing, alreadyExists: true };
+  }
+
   const membership = new OrganizationMembership({
     organizationId,
     userId,
@@ -82,7 +86,14 @@ async function getOrganizationMembers(organizationId) {
 }
 
 async function updateOrganization(organizationId, updates) {
-  return Organization.findByIdAndUpdate(organizationId, { $set: updates }, { new: true }).lean();
+  const allowedFields = ['name', 'description', 'avatar'];
+  const filteredUpdates = {};
+  for (const field of allowedFields) {
+    if (updates[field] !== undefined) {
+      filteredUpdates[field] = updates[field];
+    }
+  }
+  return Organization.findByIdAndUpdate(organizationId, { $set: filteredUpdates }, { new: true }).lean();
 }
 
 async function updateMemberRole(organizationId, userId, role) {
@@ -94,8 +105,20 @@ async function updateMemberRole(organizationId, userId, role) {
 }
 
 async function removeMember(organizationId, userId) {
+  const membership = await OrganizationMembership.findOne({ organizationId, userId }).lean();
+  if (!membership) {
+    return { success: false, message: 'Member not found' };
+  }
+
+  const adminCount = await OrganizationMembership.countDocuments({ organizationId, role: 'admin' });
+  if (membership.role === 'admin' && adminCount <= 1) {
+    return { success: false, message: 'Cannot remove the last admin' };
+  }
+
   await OrganizationMembership.deleteOne({ organizationId, userId });
   await User.findByIdAndUpdate(userId, { $unset: { organizationId: 1 } });
+
+  return { success: true };
 }
 
 async function deleteOrganization(organizationId) {
@@ -113,6 +136,59 @@ async function rotateInviteCode(organizationId) {
   return newCode;
 }
 
+async function getPendingUsers(organizationId, limit = 50, skip = 0) {
+  const members = await OrganizationMembership.find({ organizationId }).select('userId').lean();
+  const memberUserIds = members.map(m => m.userId);
+
+  const pendingUsers = await User.find(
+    { _id: { $nin: memberUserIds } },
+    '_id name email provider role createdAt',
+  )
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .lean();
+
+  const total = await User.countDocuments({ _id: { $nin: memberUserIds } });
+
+  return {
+    users: pendingUsers.map(u => ({
+      id: u._id.toString(),
+      name: u.name,
+      email: u.email,
+      provider: u.provider,
+      role: u.role,
+      createdAt: u.createdAt,
+    })),
+    total,
+  };
+}
+
+async function ensureUserInOrg(userId) {
+  const user = await User.findById(userId).select('organizationId').lean();
+  if (user && user.organizationId) {
+    return true;
+  }
+
+  const existingOrg = await Organization.findOne().sort({ createdAt: 1 });
+  if (!existingOrg) {
+    return false;
+  }
+
+  const existingMembership = await OrganizationMembership.findOne({ userId });
+  if (existingMembership) {
+    return true;
+  }
+
+  await addMemberToOrganization({
+    organizationId: existingOrg._id,
+    userId,
+    role: 'member',
+  });
+
+  return true;
+}
+
 module.exports = {
   createOrganization,
   addMemberToOrganization,
@@ -126,4 +202,6 @@ module.exports = {
   removeMember,
   deleteOrganization,
   rotateInviteCode,
+  getPendingUsers,
+  ensureUserInOrg,
 };

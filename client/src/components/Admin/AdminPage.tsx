@@ -140,13 +140,13 @@ export default function AdminPage() {
       const [orgData, membersData, pendingData] = await Promise.all([
         request.get('/api/organizations/me'),
         request.get('/api/organizations/me/members'),
-        request.get('/api/organizations/me/pending'),
+        request.get('/api/organizations/me/pending?limit=50'),
       ]);
       setOrganization(orgData);
       setOrgName(orgData.name);
       setOrgDescription(orgData.description || '');
       setMembers(membersData);
-      setPendingUsers(pendingData);
+      setPendingUsers(pendingData.users || []);
       const user = await request.get('/api/user');
       const myMembership = membersData.find((m: TOrgMember) => m.userId === user.id);
       setIsOrgAdmin(myMembership?.role === 'admin');

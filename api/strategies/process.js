@@ -163,6 +163,10 @@ const createSocialUser = async ({
     await updateUser(newUserId, { avatar });
   }
 
+  // Ensure user is assigned to an org (fallback for any missed assignment)
+  const { ensureUserInOrg } = require('~/server/services/OrganizationService');
+  await ensureUserInOrg(newUserId);
+
   return await getUserById(newUserId);
 };
 

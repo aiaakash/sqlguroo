@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const {
   getUserOrganization,
   getOrganizationMembers,
@@ -8,6 +9,7 @@ const {
   removeMember,
   deleteOrganization,
   addMemberToOrganization,
+  getPendingUsers,
 } = require('~/server/services/OrganizationService');
 const { requireOrgMember, requireOrgAdmin } = require('~/server/middleware/org');
 const { requireJwtAuth } = require('~/server/middleware');
@@ -37,8 +39,24 @@ router.patch('/me', requireJwtAuth, requireOrgAdmin, async (req, res) => {
     const orgId = req.userOrganizationId;
     const { name, description, avatar } = req.body;
 
+    if (name !== undefined) {
+      if (typeof name !== 'string' || name.trim().length < 1 || name.trim().length > 100) {
+        return res.status(400).json({ message: 'Name must be between 1 and 100 characters' });
+      }
+    }
+    if (description !== undefined) {
+      if (typeof description !== 'string' || description.length > 500) {
+        return res.status(400).json({ message: 'Description cannot exceed 500 characters' });
+      }
+    }
+    if (avatar !== undefined) {
+      if (typeof avatar !== 'string' || (avatar.length > 0 && !/^https?:\/\//.test(avatar))) {
+        return res.status(400).json({ message: 'Invalid avatar URL' });
+      }
+    }
+
     const updates = {};
-    if (name) updates.name = name;
+    if (name) updates.name = name.trim();
     if (description !== undefined) updates.description = description;
     if (avatar !== undefined) updates.avatar = avatar;
 
@@ -90,6 +108,10 @@ router.patch('/me/members/:userId', requireJwtAuth, requireOrgAdmin, async (req,
     const { userId } = req.params;
     const { role } = req.body;
 
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: 'Invalid user ID' });
+    }
+
     if (!['admin', 'member'].includes(role)) {
       return res.status(400).json({ message: 'Invalid role' });
     }
@@ -110,11 +132,19 @@ router.delete('/me/members/:userId', requireJwtAuth, requireOrgAdmin, async (req
     const orgId = req.userOrganizationId;
     const { userId } = req.params;
 
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: 'Invalid user ID' });
+    }
+
     if (userId === req.user._id.toString()) {
       return res.status(400).json({ message: 'Cannot remove yourself' });
     }
 
-    await removeMember(orgId, userId);
+    const result = await removeMember(orgId, userId);
+    if (!result.success) {
+      return res.status(400).json({ message: result.message });
+    }
+
     res.json({ message: 'Member removed successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Error removing member' });
@@ -124,24 +154,16 @@ router.delete('/me/members/:userId', requireJwtAuth, requireOrgAdmin, async (req
 router.get('/me/pending', requireJwtAuth, requireOrgAdmin, async (req, res) => {
   try {
     const orgId = req.userOrganizationId;
-    const members = await getOrganizationMembers(orgId);
-    const memberUserIds = new Set(members.map(m => m.userId._id.toString()));
+    const limit = Math.min(parseInt(req.query.limit) || 50, 100);
+    const skip = parseInt(req.query.skip) || 0;
 
-    const pendingUsers = await User.find(
-      { _id: { $nin: [...memberUserIds] } },
-      '_id name email provider role createdAt',
-    ).sort({ createdAt: -1 }).lean();
+    const { users, total } = await getPendingUsers(orgId, limit, skip);
 
-    const formatted = pendingUsers.map(u => ({
-      id: u._id.toString(),
-      name: u.name,
-      email: u.email,
-      provider: u.provider,
-      role: u.role,
-      createdAt: u.createdAt,
-    }));
-
-    res.json(formatted);
+    res.json({
+      users,
+      total,
+      hasMore: skip + users.length < total,
+    });
   } catch (error) {
     res.status(500).json({ message: 'Error fetching pending users' });
   }
@@ -154,6 +176,10 @@ router.post('/me/members/add', requireJwtAuth, requireOrgAdmin, async (req, res)
 
     if (!userId) {
       return res.status(400).json({ message: 'User ID is required' });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: 'Invalid user ID' });
     }
 
     const user = await User.findById(userId);
@@ -169,6 +195,7 @@ router.post('/me/members/add', requireJwtAuth, requireOrgAdmin, async (req, res)
       organizationId: orgId,
       userId,
       role: role || 'member',
+      invitedBy: req.user._id,
     });
 
     res.json({ message: 'User added to organization successfully' });
