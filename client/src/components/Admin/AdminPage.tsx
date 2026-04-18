@@ -72,7 +72,7 @@ const StatCard = ({ title, value, icon: Icon, colorClass }: StatCardProps) => (
 
 export default function AdminPage() {
   const localize = useLocalize();
-  const [activeTab, setActiveTab] = useState(AdminTabValues.USERS);
+  const [activeTab, setActiveTab] = useState(AdminTabValues.ORGANIZATION);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize] = useState(25);
@@ -330,7 +330,6 @@ export default function AdminPage() {
   };
 
   const adminTabs = [
-    { value: AdminTabValues.USERS, icon: Users, label: 'Users' },
     { value: AdminTabValues.ORGANIZATION, icon: Building2, label: 'Organization' },
     { value: AdminTabValues.QUESTIONS, icon: MessageSquare, label: 'Questions' },
     { value: AdminTabValues.ANALYTICS, icon: BarChart3, label: 'Analytics' },
@@ -666,6 +665,13 @@ export default function AdminPage() {
             </div>
           </Tabs.Content>
 
+          {/* Users Tab - hidden, content moved to Organization */}
+          <Tabs.Content value={AdminTabValues.USERS} className="w-full" tabIndex={-1}>
+            <div className="mx-auto max-w-6xl">
+              <p className="text-text-secondary">Users tab has been merged into Organization.</p>
+            </div>
+          </Tabs.Content>
+
           {/* Questions Tab */}
           <Tabs.Content value={AdminTabValues.QUESTIONS} className="w-full" tabIndex={-1}>
             <UserQuestionsTab />
@@ -673,22 +679,33 @@ export default function AdminPage() {
 
           {/* Organization Tab */}
           <Tabs.Content value={AdminTabValues.ORGANIZATION} className="w-full" tabIndex={-1}>
-            <div className="mx-auto max-w-6xl space-y-4">
-              {/* Header with refresh */}
+            <div className="mx-auto max-w-6xl space-y-6">
+              {/* Header */}
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-xl font-semibold text-text-primary">Organization</h2>
-                  <p className="text-sm text-text-secondary">Manage your organization, members, and invites</p>
+                  <p className="text-sm text-text-secondary">Manage users, members, invites, and org settings</p>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={fetchOrgData}
-                  disabled={orgLoading}
-                >
-                  <RefreshCw className={cn('mr-2 h-4 w-4', orgLoading && 'animate-spin')} />
-                  Refresh
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRefresh}
+                    disabled={usersLoading || statsLoading}
+                  >
+                    <RefreshCw className={cn('mr-2 h-4 w-4', (usersLoading || statsLoading) && 'animate-spin')} />
+                    Refresh
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={fetchOrgData}
+                    disabled={orgLoading}
+                  >
+                    <RefreshCw className={cn('mr-2 h-4 w-4', orgLoading && 'animate-spin')} />
+                    Org Data
+                  </Button>
+                </div>
               </div>
 
               {/* Alerts */}
@@ -703,250 +720,306 @@ export default function AdminPage() {
                 </div>
               )}
 
-              {orgLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader className="h-6 w-6 animate-spin text-text-secondary" />
+              {/* Stats Grid */}
+              {statsLoading ? (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="h-20 animate-pulse rounded-xl bg-surface-tertiary" />
+                  ))}
                 </div>
-              ) : !organization ? (
-                <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border-light py-12 text-center">
-                  <Building2 className="mb-2 h-10 w-10 text-text-tertiary" />
-                  <p className="text-text-secondary">No organization found</p>
-                  <p className="mt-1 text-sm text-text-tertiary">The first registered user should have created an organization.</p>
+              ) : stats && (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  <StatCard title="Total Users" value={stats.totalUsers.toLocaleString()} icon={Users} colorClass="bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400" />
+                  <StatCard title="New This Week" value={stats.newUsersLast7Days.toLocaleString()} icon={TrendingUp} colorClass="bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400" />
+                  <StatCard title="New This Month" value={stats.newUsersLast30Days.toLocaleString()} icon={Calendar} colorClass="bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400" />
+                  <StatCard title="Active Users" value={stats.activeUsers.toLocaleString()} icon={Activity} colorClass="bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400" />
                 </div>
-              ) : (
-                <>
-                  {/* Organization Profile & Invite - side by side */}
-                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                    {/* Organization Profile */}
-                    <div className="rounded-xl border border-border-light bg-surface-secondary shadow-sm dark:border-border-dark dark:bg-surface-secondary">
-                      <div className="border-b border-border-light px-4 py-2.5 dark:border-border-dark">
+              )}
+
+              {/* Combined Users / Members / Pending Table */}
+              <div className="rounded-xl border border-border-light bg-surface-secondary shadow-sm dark:border-border-dark dark:bg-surface-secondary">
+                <div className="flex flex-col gap-4 border-b border-border-light p-4 dark:border-border-dark sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-5 w-5 text-text-secondary" />
+                    <span className="font-medium text-text-primary">
+                      All Users
+                      {pagination && (
+                        <span className="ml-2 text-sm text-text-secondary">
+                          ({pagination.total.toLocaleString()})
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-tertiary" />
+                    <Input
+                      type="text"
+                      placeholder="Search users..."
+                      value={search}
+                      onChange={handleSearch}
+                      className="w-full pl-9 sm:w-64"
+                    />
+                  </div>
+                </div>
+
+                {usersLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader className="h-6 w-6 animate-spin text-text-secondary" />
+                  </div>
+                ) : users.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <Users className="h-12 w-12 text-text-tertiary" />
+                    <p className="mt-2 text-text-secondary">No users found</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-border-light bg-surface-tertiary dark:border-border-dark dark:bg-surface-tertiary">
+                            <th
+                              className="cursor-pointer px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-secondary hover:text-text-primary"
+                              onClick={() => handleSort('email')}
+                            >
+                              User {sortBy === 'email' && (sortOrder === 'asc' ? '↑' : '↓')}
+                            </th>
+                            <th
+                              className="cursor-pointer px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-secondary hover:text-text-primary"
+                              onClick={() => handleSort('role')}
+                            >
+                              Role {sortBy === 'role' && (sortOrder === 'asc' ? '↑' : '↓')}
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-secondary">
+                              Org Role
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-secondary">
+                              Plan
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-secondary">
+                              Usage
+                            </th>
+                            <th
+                              className="cursor-pointer px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-secondary hover:text-text-primary"
+                              onClick={() => handleSort('createdAt')}
+                            >
+                              Joined {sortBy === 'createdAt' && (sortOrder === 'asc' ? '↑' : '↓')}
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-secondary">
+                              Actions
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border-light dark:divide-border-dark">
+                          {users.map((user: TAdminUser) => {
+                            const isPending = pendingUsers.some(p => p.email === user.email);
+                            const isMember = members.some(m => m.user.email === user.email);
+                            const memberRecord = members.find(m => m.user.email === user.email);
+                            const pendingRecord = pendingUsers.find(p => p.email === user.email);
+                            return (
+                              <tr key={user.id} className="transition-colors hover:bg-surface-hover">
+                                <td className="px-4 py-3">
+                                  <div className="flex flex-col">
+                                    <span className="font-medium text-text-primary">{user.email}</span>
+                                    {(user.name || user.username) && (
+                                      <span className="text-xs text-text-secondary">{user.name || user.username}</span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="px-4 py-3">
+                                  <span className={cn(
+                                    'inline-flex rounded-full px-2 py-0.5 text-xs font-semibold',
+                                    user.role === 'ADMIN'
+                                      ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                      : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'
+                                  )}>
+                                    {user.role || 'USER'}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3">
+                                  {user.organization ? (
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-sm text-text-primary">{user.organization.name}</span>
+                                      {user.organization.isOwner && (
+                                        <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">Owner</span>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <span className="text-xs text-text-tertiary">—</span>
+                                  )}
+                                </td>
+                                <td className="px-4 py-3">{getPlanBadge(user.subscription.plan)}</td>
+                                <td className="px-4 py-3">{getUsageBar(user.usage.percentage)}</td>
+                                <td className="px-4 py-3">
+                                  <span className="text-sm text-text-secondary">{new Date(user.createdAt).toLocaleDateString()}</span>
+                                </td>
+                                <td className="px-4 py-3">
+                                  <div className="flex items-center gap-1">
+                                    {isPending && (
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handleAddToOrg(pendingRecord!.id)}
+                                        className="h-6 text-[10px] text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20"
+                                      >
+                                        <UserPlus className="mr-1 h-3 w-3" />
+                                        Add
+                                      </Button>
+                                    )}
+                                    {isMember && isOrgAdmin && (
+                                      <>
+                                        <select
+                                          value={memberRecord!.role}
+                                          onChange={e => handleChangeRole(memberRecord!.userId, e.target.value as 'admin' | 'member')}
+                                          className="rounded border border-border-light bg-surface-primary px-1.5 py-0.5 text-[10px] dark:border-border-dark"
+                                        >
+                                          <option value="admin">Admin</option>
+                                          <option value="member">Member</option>
+                                        </select>
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => handleRemoveMember(memberRecord!.userId)}
+                                          className="h-6 text-[10px] text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                        >
+                                          Remove
+                                        </Button>
+                                      </>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {pagination && pagination.totalPages > 1 && (
+                      <div className="flex items-center justify-between border-t border-border-light px-4 py-3 dark:border-border-dark">
+                        <p className="text-sm text-text-secondary">
+                          Showing {(pagination.page - 1) * pagination.pageSize + 1} -{' '}
+                          {Math.min(pagination.page * pagination.pageSize, pagination.total)} of {pagination.total}
+                        </p>
                         <div className="flex items-center gap-2">
-                          <Building2 className="h-4 w-4 text-text-secondary" />
-                          <h3 className="text-sm font-medium text-text-primary">Organization Profile</h3>
-                        </div>
-                      </div>
-                      <div className="p-4">
-                        <div className="space-y-3">
-                          <div>
-                            <label className="mb-1 block text-xs font-medium text-text-secondary">Name</label>
-                            <Input
-                              type="text"
-                              value={orgName}
-                              onChange={e => setOrgName(e.target.value)}
-                              className="w-full"
-                            />
-                          </div>
-                          <div>
-                            <label className="mb-1 block text-xs font-medium text-text-secondary">Description</label>
-                            <textarea
-                              value={orgDescription}
-                              onChange={e => setOrgDescription(e.target.value)}
-                              rows={2}
-                              className="w-full rounded-lg border border-border-light bg-surface-primary px-3 py-2 text-sm text-text-primary focus:border-primary focus:outline-none dark:border-border-dark"
-                            />
-                          </div>
-                          <Button size="sm" onClick={handleSaveOrg} disabled={orgSaving}>
-                            {orgSaving ? <Spinner /> : 'Save Changes'}
+                          <Button variant="outline" size="sm" onClick={() => setPage(page - 1)} disabled={page === 1}>
+                            <ChevronLeft className="h-4 w-4" />
+                          </Button>
+                          <span className="text-sm text-text-secondary">Page {pagination.page} of {pagination.totalPages}</span>
+                          <Button variant="outline" size="sm" onClick={() => setPage(page + 1)} disabled={page >= pagination.totalPages}>
+                            <ChevronRight className="h-4 w-4" />
                           </Button>
                         </div>
                       </div>
-                    </div>
+                    )}
+                  </>
+                )}
+              </div>
 
-                    {/* Invite Section */}
-                    <div className="rounded-xl border border-border-light bg-surface-secondary shadow-sm dark:border-border-dark dark:bg-surface-secondary">
-                      <div className="border-b border-border-light px-4 py-2.5 dark:border-border-dark">
-                        <div className="flex items-center gap-2">
-                          <UserPlus className="h-4 w-4 text-text-secondary" />
-                          <h3 className="text-sm font-medium text-text-primary">Invite Members</h3>
-                        </div>
-                      </div>
-                      <div className="p-4">
-                        <div className="space-y-3">
-                          <div className="flex gap-2">
-                            <Input
-                              type="email"
-                              placeholder="Email address"
-                              value={inviteEmail}
-                              onChange={e => setInviteEmail(e.target.value)}
-                              className="flex-1"
-                            />
-                            <Button size="sm" onClick={handleSendInvite} disabled={orgSendingInvite || !isOrgAdmin}>
-                              {orgSendingInvite ? <Spinner /> : (
-                                <>
-                                  <UserPlus className="mr-1.5 h-3.5 w-3.5" />
-                                  Invite
-                                </>
-                              )}
-                            </Button>
+              {/* Subscription Stats */}
+              {stats && (
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="rounded-xl border border-border-light bg-surface-secondary p-4 dark:border-border-dark dark:bg-surface-secondary">
+                    <div className="mb-4 flex items-center gap-2">
+                      <PieChart className="h-5 w-5 text-text-secondary" />
+                      <h3 className="font-medium text-text-primary">Plan Distribution</h3>
+                    </div>
+                    <div className="space-y-3">
+                      {Object.entries(stats.subscriptionStats).length === 0 ? (
+                        <p className="text-sm text-text-secondary">No active paid subscriptions</p>
+                      ) : (
+                        Object.entries(stats.subscriptionStats).map(([plan, count]) => (
+                          <div key={plan} className="flex items-center justify-between">
+                            <span className="text-sm text-text-primary">{PLAN_NAMES[plan as keyof typeof PLAN_NAMES] || plan}</span>
+                            <span className="rounded-full bg-surface-tertiary px-2.5 py-0.5 text-xs font-semibold text-text-secondary">{count}</span>
                           </div>
-                          <div className="flex gap-2">
-                            <Input
-                              type="text"
-                              value={inviteCode}
-                              readOnly
-                              placeholder="Click Show to generate"
-                              className="flex-1 font-mono text-xs"
-                            />
-                            <Button onClick={handleShowCode} variant="outline" size="sm">Show</Button>
-                            {inviteCode && (
-                              <>
-                                <Button onClick={handleCopyCode} variant="outline" size="icon" title="Copy" className="h-8 w-8">
-                                  <Copy className="h-3.5 w-3.5" />
-                                </Button>
-                                {isOrgAdmin && (
-                                  <Button onClick={handleRegenerateCode} variant="outline" size="icon" title="Regenerate" className="h-8 w-8">
-                                    <RefreshCw className="h-3.5 w-3.5" />
-                                  </Button>
-                                )}
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </div>
+                        ))
+                      )}
                     </div>
                   </div>
+                  <div className="rounded-xl border border-border-light bg-surface-secondary p-4 dark:border-border-dark dark:bg-surface-secondary">
+                    <div className="mb-4 flex items-center gap-2">
+                      <Shield className="h-5 w-5 text-text-secondary" />
+                      <h3 className="font-medium text-text-primary">Administrators</h3>
+                    </div>
+                    <div className="space-y-2">
+                      {stats.adminEmails.slice(0, 5).map((email) => (
+                        <div key={email} className="flex items-center gap-2 text-sm">
+                          <Mail className="h-4 w-4 text-text-secondary" />
+                          <span className="text-text-primary">{email}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
 
-                  {/* Members List */}
+              {/* Org Profile & Invite (only if org exists) */}
+              {organization && (
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                   <div className="rounded-xl border border-border-light bg-surface-secondary shadow-sm dark:border-border-dark dark:bg-surface-secondary">
                     <div className="border-b border-border-light px-4 py-2.5 dark:border-border-dark">
                       <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4 text-text-secondary" />
-                        <span className="text-sm font-medium text-text-primary">
-                          Members
-                          <span className="ml-1.5 text-xs text-text-secondary">({members.length})</span>
-                        </span>
+                        <Building2 className="h-4 w-4 text-text-secondary" />
+                        <h3 className="text-sm font-medium text-text-primary">Organization Profile</h3>
                       </div>
                     </div>
-                    {members.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-8 text-center">
-                        <Users className="h-8 w-8 text-text-tertiary" />
-                        <p className="mt-1 text-sm text-text-secondary">No members found</p>
+                    <div className="p-4">
+                      <div className="space-y-3">
+                        <div>
+                          <label className="mb-1 block text-xs font-medium text-text-secondary">Name</label>
+                          <Input type="text" value={orgName} onChange={e => setOrgName(e.target.value)} className="w-full" />
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-xs font-medium text-text-secondary">Description</label>
+                          <textarea
+                            value={orgDescription}
+                            onChange={e => setOrgDescription(e.target.value)}
+                            rows={2}
+                            className="w-full rounded-lg border border-border-light bg-surface-primary px-3 py-2 text-sm text-text-primary focus:border-primary focus:outline-none dark:border-border-dark"
+                          />
+                        </div>
+                        <Button size="sm" onClick={handleSaveOrg} disabled={orgSaving}>
+                          {orgSaving ? <Spinner /> : 'Save Changes'}
+                        </Button>
                       </div>
-                    ) : (
-                      <div className="overflow-x-auto">
-                        <table className="w-full">
-                          <thead>
-                            <tr className="border-b border-border-light bg-surface-tertiary dark:border-border-dark dark:bg-surface-tertiary">
-                              <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-text-secondary">User</th>
-                              <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-text-secondary">Role</th>
-                              {isOrgAdmin && <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-text-secondary">Actions</th>}
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-border-light dark:divide-border-dark">
-                            {members.map(member => (
-                              <tr key={member.userId} className="transition-colors hover:bg-surface-hover">
-                                <td className="px-3 py-2">
-                                  <div className="flex flex-col">
-                                    <span className="text-sm font-medium text-text-primary">{member.user.name}</span>
-                                    <span className="text-xs text-text-secondary">{member.user.email}</span>
-                                  </div>
-                                </td>
-                                <td className="px-3 py-2">
-                                  {isOrgAdmin ? (
-                                    <select
-                                      value={member.role}
-                                      onChange={e => handleChangeRole(member.userId, e.target.value as 'admin' | 'member')}
-                                      className="rounded border border-border-light bg-surface-primary px-2 py-1 text-xs dark:border-border-dark"
-                                    >
-                                      <option value="admin">Admin</option>
-                                      <option value="member">Member</option>
-                                    </select>
-                                  ) : (
-                                    <span
-                                      className={cn(
-                                        'inline-flex rounded-full px-2 py-0.5 text-xs font-semibold',
-                                        member.role === 'admin'
-                                          ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                                          : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'
-                                      )}
-                                    >
-                                      {member.role === 'admin' ? 'Admin' : 'Member'}
-                                    </span>
-                                  )}
-                                </td>
-                                {isOrgAdmin && (
-                                  <td className="px-3 py-2">
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => handleRemoveMember(member.userId)}
-                                      className="h-7 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                                    >
-                                      Remove
-                                    </Button>
-                                  </td>
-                                )}
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
+                    </div>
                   </div>
 
-                  {/* Pending Users */}
-                  {pendingUsers.length > 0 && (
-                    <div className="rounded-xl border border-border-light bg-surface-secondary shadow-sm dark:border-border-dark dark:bg-surface-secondary">
-                      <div className="border-b border-border-light px-4 py-2.5 dark:border-border-dark">
-                        <div className="flex items-center gap-2">
-                          <UserCheck className="h-4 w-4 text-text-secondary" />
-                          <div>
-                            <h3 className="text-sm font-medium text-text-primary">
-                              Pending Users
-                              <span className="ml-1.5 text-xs text-text-secondary">({pendingUsers.length})</span>
-                            </h3>
-                            <p className="text-xs text-text-tertiary">Users not yet in the organization</p>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="overflow-x-auto">
-                        <table className="w-full">
-                          <thead>
-                            <tr className="border-b border-border-light bg-surface-tertiary dark:border-border-dark dark:bg-surface-tertiary">
-                              <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-text-secondary">User</th>
-                              <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-text-secondary">Provider</th>
-                              <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-text-secondary">Joined</th>
-                              <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-text-secondary">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-border-light dark:divide-border-dark">
-                            {pendingUsers.map(user => (
-                              <tr key={user.id} className="transition-colors hover:bg-surface-hover">
-                                <td className="px-3 py-2">
-                                  <div className="flex flex-col">
-                                    <span className="text-sm font-medium text-text-primary">{user.name}</span>
-                                    <span className="text-xs text-text-secondary">{user.email}</span>
-                                  </div>
-                                </td>
-                                <td className="px-3 py-2">
-                                  <span className="rounded-full bg-surface-tertiary px-2 py-0.5 text-xs capitalize text-text-secondary">
-                                    {user.provider}
-                                  </span>
-                                </td>
-                                <td className="px-3 py-2">
-                                  <span className="text-xs text-text-secondary">
-                                    {new Date(user.createdAt).toLocaleDateString()}
-                                  </span>
-                                </td>
-                                <td className="px-3 py-2">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handleAddToOrg(user.id)}
-                                    className="h-7 text-xs text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20"
-                                  >
-                                    <UserPlus className="mr-1 h-3 w-3" />
-                                    Add
-                                  </Button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                  <div className="rounded-xl border border-border-light bg-surface-secondary shadow-sm dark:border-border-dark dark:bg-surface-secondary">
+                    <div className="border-b border-border-light px-4 py-2.5 dark:border-border-dark">
+                      <div className="flex items-center gap-2">
+                        <UserPlus className="h-4 w-4 text-text-secondary" />
+                        <h3 className="text-sm font-medium text-text-primary">Invite Members</h3>
                       </div>
                     </div>
-                  )}
-                </>
+                    <div className="p-4">
+                      <div className="space-y-3">
+                        <div className="flex gap-2">
+                          <Input type="email" placeholder="Email address" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} className="flex-1" />
+                          <Button size="sm" onClick={handleSendInvite} disabled={orgSendingInvite || !isOrgAdmin}>
+                            {orgSendingInvite ? <Spinner /> : (<><UserPlus className="mr-1.5 h-3.5 w-3.5" />Invite</>)}
+                          </Button>
+                        </div>
+                        <div className="flex gap-2">
+                          <Input type="text" value={inviteCode} readOnly placeholder="Click Show to generate" className="flex-1 font-mono text-xs" />
+                          <Button onClick={handleShowCode} variant="outline" size="sm">Show</Button>
+                          {inviteCode && (
+                            <>
+                              <Button onClick={handleCopyCode} variant="outline" size="icon" title="Copy" className="h-8 w-8">
+                                <Copy className="h-3.5 w-3.5" />
+                              </Button>
+                              {isOrgAdmin && (
+                                <Button onClick={handleRegenerateCode} variant="outline" size="icon" title="Regenerate" className="h-8 w-8">
+                                  <RefreshCw className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
           </Tabs.Content>

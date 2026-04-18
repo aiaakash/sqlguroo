@@ -1,7 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const { logger } = require('@librechat/data-schemas');
-const { User, Subscription, Usage } = require('@librechat/data-schemas').createModels(mongoose);
+const { User, Subscription, Usage, Organization } = require('@librechat/data-schemas').createModels(mongoose);
 const { requireJwtAuth } = require('~/server/middleware');
 const { checkAdminEmail, getAdminEmails } = require('../middleware/checkAdminEmail');
 const subscriptionService = require('../services/SubscriptionService');
@@ -52,6 +52,23 @@ router.get('/users', async (req, res) => {
           const usage = await subscriptionService.getUsageStats(userId);
           const planDetails = subscriptionService.getPlanDetails(subscription.plan);
 
+          let orgInfo = null;
+          try {
+            const org = await Organization.findOne({ createdBy: userId }).select('name').lean();
+            if (org) {
+              orgInfo = { name: org.name, isOwner: true };
+            } else {
+              const membership = await mongoose.model('OrganizationMembership')
+                .findOne({ userId: user._id })
+                .populate('organizationId', 'name')
+                .lean();
+              if (membership && membership.organizationId) {
+                orgInfo = { name: membership.organizationId.name, isOwner: false };
+              }
+            }
+          } catch {
+          }
+
           return {
             id: userId,
             email: user.email,
@@ -83,6 +100,7 @@ router.get('/users', async (req, res) => {
               queryLimit: planDetails.queryLimit,
               features: planDetails.features,
             },
+            organization: orgInfo,
           };
         } catch (err) {
           logger.error(`[Admin] Error getting details for user ${user._id}:`, err);
@@ -101,6 +119,7 @@ router.get('/users', async (req, res) => {
             subscription: { plan: 'unknown', status: 'unknown', error: true },
             usage: { queryCount: 0, limit: 0, percentage: 0, error: true },
             planLimits: { queryLimit: 0, features: [] },
+            organization: null,
           };
         }
       }),

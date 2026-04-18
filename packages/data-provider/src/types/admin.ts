@@ -35,6 +35,10 @@ export interface TAdminUser {
     queryLimit: number;
     features: string[];
   };
+  organization?: {
+    name: string;
+    isOwner: boolean;
+  } | null;
 }
 
 export interface TAdminUserDetail extends Omit<TAdminUser, 'subscription'> {
