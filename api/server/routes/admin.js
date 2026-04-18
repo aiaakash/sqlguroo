@@ -70,14 +70,45 @@ router.get('/questions', async (req, res) => {
       },
       { $unwind: { path: '$conversation', preserveNullAndEmptyArrays: true } },
       {
+        $addFields: {
+          userIdObj: {
+            $cond: {
+              if: { $regexMatch: { input: '$user', regex: /^[0-9a-fA-F]{24}$/ } },
+              then: { $toObjectId: '$user' },
+              else: null,
+            },
+          },
+          convoModelObj: {
+            $cond: {
+              if: {
+                $and: [
+                  { $ifNull: ['$conversation.model', false] },
+                  { $regexMatch: { input: '$conversation.model', regex: /^[0-9a-fA-F]{24}$/ } },
+                ],
+              },
+              then: { $toObjectId: '$conversation.model' },
+              else: null,
+            },
+          },
+        },
+      },
+      {
         $lookup: {
           from: 'users',
-          localField: 'user',
+          localField: 'userIdObj',
           foreignField: '_id',
           as: 'userInfo',
         },
       },
       { $unwind: { path: '$userInfo', preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: 'databaseconnections',
+          localField: 'convoModelObj',
+          foreignField: '_id',
+          as: 'dbConnection',
+        },
+      },
       {
         $project: {
           _id: 1,
@@ -92,8 +123,11 @@ router.get('/questions', async (req, res) => {
           createdAt: 1,
           updatedAt: 1,
           'conversation.title': 1,
+          'conversation.model': 1,
+          'conversation.endpoint': 1,
           'userInfo.name': 1,
           'userInfo.email': 1,
+          dbConnectionName: { $arrayElemAt: ['$dbConnection.name', 0] },
         },
       },
       { $sort: sortObj },
@@ -102,14 +136,17 @@ router.get('/questions', async (req, res) => {
     ];
 
     if (userFilter) {
-      pipeline.splice(1, 0, {
-        $match: {
-          $or: [
-            { 'userInfo.email': { $regex: userFilter, $options: 'i' } },
-            { 'userInfo.name': { $regex: userFilter, $options: 'i' } },
-          ],
-        },
-      });
+      const insertPos = pipeline.findIndex(s => s.$sort);
+      if (insertPos > 0) {
+        pipeline.splice(insertPos, 0, {
+          $match: {
+            $or: [
+              { 'userInfo.email': { $regex: userFilter, $options: 'i' } },
+              { 'userInfo.name': { $regex: userFilter, $options: 'i' } },
+            ],
+          },
+        });
+      }
     }
 
     const countPipeline = [...pipeline];
@@ -129,8 +166,9 @@ router.get('/questions', async (req, res) => {
       conversationId: q.conversationId,
       text: q.text?.substring(0, 500) || '',
       sender: q.sender,
-      model: q.model,
-      endpoint: q.endpoint,
+      llmModel: q.model || '',
+      dbConnection: q.dbConnectionName || q.conversation?.model || '',
+      endpoint: q.endpoint || q.conversation?.endpoint || '',
       user: q.user,
       userName: q.userInfo?.name || '',
       userEmail: q.userInfo?.email || '',

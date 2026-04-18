@@ -29,7 +29,8 @@ interface TQuestion {
   conversationId: string;
   text: string;
   sender: string;
-  model: string;
+  llmModel: string;
+  dbConnection: string;
   endpoint: string;
   user: string;
   userName: string;
@@ -273,14 +274,13 @@ export default function UserQuestionsTab() {
               <button className="flex-1 text-left" onClick={() => handleSort('createdAt')}>
                 <span className="flex items-center">Date <SortIcon field="createdAt" /></span>
               </button>
-              <button className="w-48 text-left" onClick={() => handleSort('userEmail')}>
+              <button className="w-40 text-left" onClick={() => handleSort('userEmail')}>
                 <span className="flex items-center">User <SortIcon field="userEmail" /></span>
               </button>
-              <span className="w-56 truncate pl-1">Question</span>
-              <button className="w-28 text-left" onClick={() => handleSort('model')}>
-                <span className="flex items-center">Model <SortIcon field="model" /></span>
-              </button>
-              <button className="w-24 text-left" onClick={() => handleSort('endpoint')}>
+              <span className="w-48 truncate pl-1">Question</span>
+              <span className="w-24 truncate pl-1 text-[10px]">DB</span>
+              <span className="w-32 truncate pl-1 text-[10px]">LLM Model</span>
+              <button className="w-20 text-left" onClick={() => handleSort('endpoint')}>
                 <span className="flex items-center">Source <SortIcon field="endpoint" /></span>
               </button>
             </div>
@@ -312,23 +312,30 @@ export default function UserQuestionsTab() {
                     <span className="w-16 flex-shrink-0 text-xs text-text-tertiary">
                       {formatDate(q.createdAt)}
                     </span>
-                    <span className="w-48 flex-shrink-0 truncate pr-2 text-xs text-text-secondary">
+                    <span className="w-40 flex-shrink-0 truncate pr-2 text-xs text-text-secondary">
                       {q.userName || q.userEmail || '—'}
                     </span>
-                    <span className="w-56 flex-1 truncate pr-2 text-text-primary">
-                      {truncateText(q.text, 80)}
+                    <span className="w-48 flex-1 truncate pr-2 text-text-primary">
+                      {truncateText(q.text, 60)}
                     </span>
-                    <span className="w-28 flex-shrink-0 pr-1">
-                      {q.model ? (
-                        <span className="truncate text-xs text-text-secondary" title={q.model}>
-                          {q.model.split('/').pop()?.substring(0, 20) || q.model}
+                    <span className="w-24 flex-shrink-0 pr-1">
+                      {q.dbConnection ? (
+                        <span className="truncate text-[10px] text-text-secondary" title={q.dbConnection}>
+                          {q.dbConnection.split('/').pop()?.substring(0, 16) || q.dbConnection}
                         </span>
                       ) : '—'}
                     </span>
-                    <span className="w-24 flex-shrink-0">
+                    <span className="w-32 flex-shrink-0 pr-1">
+                      {q.llmModel ? (
+                        <span className="truncate text-[10px] text-text-secondary" title={q.llmModel}>
+                          {q.llmModel.split('/').pop()?.substring(0, 22) || q.llmModel}
+                        </span>
+                      ) : '—'}
+                    </span>
+                    <span className="w-20 flex-shrink-0">
                       {q.endpoint && (
                         <span className={cn('inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium', getEndpointColor(q.endpoint))}>
-                          {q.endpoint.substring(0, 12)}
+                          {q.endpoint.substring(0, 10)}
                         </span>
                       )}
                     </span>
@@ -403,9 +410,14 @@ export default function UserQuestionsTab() {
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {selectedQuestion.model && (
-                    <span className="rounded-full bg-surface-tertiary px-2.5 py-0.5 text-xs text-text-secondary">
-                      {selectedQuestion.model}
+                  {selectedQuestion.dbConnection && (
+                    <span className="rounded-full bg-surface-tertiary px-2.5 py-0.5 text-xs text-text-secondary" title={selectedQuestion.dbConnection}>
+                      DB: {selectedQuestion.dbConnection}
+                    </span>
+                  )}
+                  {selectedQuestion.llmModel && (
+                    <span className="rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 px-2.5 py-0.5 text-xs" title={selectedQuestion.llmModel}>
+                      LLM: {selectedQuestion.llmModel}
                     </span>
                   )}
                   {selectedQuestion.endpoint && (
