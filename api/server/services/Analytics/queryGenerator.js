@@ -101,26 +101,22 @@ Generate clean, executable SQL or a clear explanation why you cannot. Nothing el
 const DB_SPECIFIC_SYNTAX = {
   clickhouse: `DATABASE-SPECIFIC SYNTAX for ClickHouse:
 
+- Functions: toDate(), toDateTime(), formatDateTime(), arrayJoin()
+- Case-sensitive identifiers
+- Use appropriate table engines considerations
+- DO NOT add FORMAT JSON or other format specifiers (handled automatically)
+- Date arithmetic: date + INTERVAL 1 DAY
+- Result limiting: LIMIT 1000
 
-  - Functions: toDate(), toDateTime(), formatDateTime(), arrayJoin()
-  - Case-sensitive identifiers
-  - Use appropriate table engines considerations
-  - DO NOT add FORMAT JSON or other format specifiers (handled automatically)
-  - Date arithmetic: date + INTERVAL 1 DAY
-  - Result limiting: LIMIT 1000
-  
-  ⚠️ CRITICAL ClickHouse RULE - WINDOW FUNCTIONS MUST BE LOWERCASE:
-  ClickHouse ONLY accepts lowercase window function names. Using uppercase will FAIL.
-  CORRECT:   lag(), lead(), row_number(), rank(), dense_rank()
-  WRONG:     LAG(), LEAD(), ROW_NUMBER(), RANK(), DENSE_RANK()
+⚠️ CRITICAL ClickHouse RULE - WINDOW FUNCTIONS MUST BE LOWERCASE:
+ClickHouse ONLY accepts lowercase window function names. Using uppercase will FAIL.
+CORRECT:   lag(), lead(), row_number(), rank(), dense_rank()
+WRONG:     LAG(), LEAD(), ROW_NUMBER(), RANK(), DENSE_RANK()
 
-  - Window functions MUST include an "over" clause. Without "over" clause → query will fail
-  
-  METADATA QUERIES for ClickHouse:
-  - Tables: SELECT name FROM system.tables WHERE database = currentDatabase()
-  - Columns: SELECT name, type FROM system.columns WHERE database = currentDatabase() AND table = 'table_name'`,
-  
-  
+METADATA QUERIES for ClickHouse:
+- Tables: SELECT name FROM system.tables WHERE database = currentDatabase()
+- Columns: SELECT name, type FROM system.columns WHERE database = currentDatabase() AND table = 'table_name'`,
+
   mysql: `DATABASE-SPECIFIC SYNTAX for MySQL:
 
 - Functions: DATE_FORMAT(), NOW(), CURDATE(), STR_TO_DATE()
