@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { QueryKeys } from 'librechat-data-provider';
 import { Controller, useForm } from 'react-hook-form';
 import { useQueryClient } from '@tanstack/react-query';
-import { Checkbox, Label, TextareaAutosize, Input, useToastContext } from '@librechat/client';
+import { Checkbox, useToastContext } from '@librechat/client';
 import type { TConversationTag, TConversationTagRequest } from 'librechat-data-provider';
 import { useBookmarkContext } from '~/Providers/BookmarkContext';
 import { useConversationTagMutation } from '~/data-provider';
@@ -89,10 +89,10 @@ const BookmarkForm = ({
       <div className="space-y-4">
         {/* Tag name input */}
         <div className="space-y-2">
-          <Label htmlFor="bookmark-tag" className="text-sm font-medium text-text-primary">
-            {localize('com_ui_bookmarks_title')}
-          </Label>
-          <Input
+          <label htmlFor="bookmark-tag" className="mb-1 block text-xs font-medium text-text-secondary">
+            {localize('com_ui_bookmarks_title')} <span className="text-red-500">*</span>
+          </label>
+          <input
             type="text"
             id="bookmark-tag"
             aria-label={localize('com_ui_bookmarks_title')}
@@ -113,13 +113,13 @@ const BookmarkForm = ({
                 );
               },
             })}
-            className="w-full"
+            className="focus:border-border-focus focus:ring-border-focus w-full rounded-lg border border-border-light bg-surface-primary px-3 py-2 text-sm focus:outline-none focus:ring-1"
             aria-invalid={!!errors.tag}
             placeholder={localize('com_ui_enter_name')}
             aria-describedby={errors.tag ? 'bookmark-tag-error' : undefined}
           />
           {errors.tag && (
-            <span id="bookmark-tag-error" role="alert" className="text-sm text-red-500">
+            <span id="bookmark-tag-error" role="alert" className="text-xs text-red-500">
               {errors.tag.message}
             </span>
           )}
@@ -127,14 +127,14 @@ const BookmarkForm = ({
 
         {/* Description textarea */}
         <div className="space-y-2">
-          <Label
+          <label
             id="bookmark-description-label"
             htmlFor="bookmark-description"
-            className="text-sm font-medium text-text-primary"
+            className="mb-1 block text-xs font-medium text-text-secondary"
           >
             {localize('com_ui_bookmarks_description')}
-          </Label>
-          <TextareaAutosize
+          </label>
+          <textarea
             {...register('description', {
               maxLength: {
                 value: 1048,
@@ -146,12 +146,12 @@ const BookmarkForm = ({
             })}
             id="bookmark-description"
             disabled={false}
+            rows={4}
             placeholder={localize('com_ui_enter_description')}
             className={cn(
-              'min-h-[100px] w-full resize-none rounded-lg border border-border-light',
-              'bg-transparent px-3 py-2 text-sm text-text-primary',
+              'focus:border-border-focus focus:ring-border-focus min-h-[100px] w-full resize-none rounded-lg border border-border-light bg-surface-primary px-3 py-2 text-sm text-text-primary',
               'placeholder:text-text-tertiary',
-              'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border-heavy',
+              'focus:outline-none focus:ring-1',
             )}
             aria-labelledby="bookmark-description-label"
           />
