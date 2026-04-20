@@ -1,10 +1,15 @@
-import React, { useRef, useEffect, useCallback, useState } from 'react';
+import React, { useRef, useEffect, useCallback, useState, forwardRef, useImperativeHandle } from 'react';
 import Editor from '@monaco-editor/react';
 import type { Monaco } from '@monaco-editor/react';
 import type * as monaco from 'monaco-editor';
+import { format } from 'sql-formatter';
 import { useAnalyticsSchema } from '~/components/Nav/SettingsTabs/Analytics/hooks';
 import { cn } from '~/utils';
 import { useLocalize } from '~/hooks';
+
+export interface SqlEditorRef {
+  format: () => void;
+}
 
 interface SqlEditorProps {
   value: string;
@@ -70,14 +75,17 @@ const defineHexThemes = (monaco: Monaco) => {
   });
 };
 
-export default function SqlEditor({
-  value,
-  onChange,
-  onExecute,
-  connectionId,
-  readOnly = false,
-  className,
-}: SqlEditorProps) {
+const SqlEditor = forwardRef(function SqlEditor(
+  {
+    value,
+    onChange,
+    onExecute,
+    connectionId,
+    readOnly = false,
+    className,
+  }: SqlEditorProps,
+  ref: React.ForwardedRef<SqlEditorRef>,
+) {
   const monacoRef = useRef<Monaco | null>(null);
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const onExecuteRef = useRef(onExecute);
@@ -180,9 +188,29 @@ export default function SqlEditor({
     });
 
     editor.addCommand(monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KeyF, () => {
-      editor.getAction('editor.action.formatDocument')?.run();
+      handleFormat();
     });
-  }, []);
+  }, [handleFormat]);
+
+  const handleFormat = useCallback(() => {
+    if (!value.trim() || !editorRef.current) return;
+    try {
+      const formatted = format(value, {
+        language: 'sql',
+        tabWidth: 2,
+        keywordCase: 'upper',
+        indentStyle: 'standard',
+        linesBetweenQueries: 2,
+      });
+      onChange(formatted);
+    } catch {
+      // silently ignore formatting errors
+    }
+  }, [value, onChange]);
+
+  useImperativeHandle(ref, () => ({
+    format: handleFormat,
+  }), [handleFormat]);
 
   const editorTheme = isDark ? 'hex-dark' : 'hex-light';
 
@@ -237,4 +265,6 @@ export default function SqlEditor({
       </div>
     </div>
   );
-}
+});
+
+export default SqlEditor;

@@ -1521,6 +1521,7 @@
   "com_ui_select_connection_and_sql": "Please select a connection and enter SQL",
   "com_ui_query_execution_failed": "Query execution failed",
   "com_ui_failed_to_execute_query": "Failed to execute query",
+  "com_ui_format_sql": "Format SQL",
   "com_ui_toggle_history": "Toggle query history",
   "com_ui_history": "History",
   "com_ui_execute": "Execute",

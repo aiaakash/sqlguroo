@@ -172,6 +172,7 @@
     "@opentelemetry/sdk-node": "^0.211.0",
     "framer-motion": "^12.34.0",
     "langchain": "^0.3.37",
+    "sql-formatter": "^15.7.3",
     "winston-daily-rotate-file": "^5.0.0"
   }
 }

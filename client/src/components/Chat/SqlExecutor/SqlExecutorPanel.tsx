@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@librechat/client';
 import {
   Play,
@@ -10,6 +10,7 @@ import {
   Database,
   FileText,
   MousePointerClick,
+  Wand2,
 } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 import { useRecoilState } from 'recoil';
@@ -20,7 +21,7 @@ import {
 } from '~/components/Nav/SettingsTabs/Analytics/hooks';
 import { Loader2 } from 'lucide-react';
 import ConnectionSelector from './ConnectionSelector';
-import SqlEditor from './SqlEditor';
+import SqlEditor, { type SqlEditorRef } from './SqlEditor';
 import ResultsViewer from './ResultsViewer';
 import QueryHistory from './QueryHistory';
 import SaveQueryButton from '~/components/SavedQueries/SaveQueryButton';
@@ -53,6 +54,7 @@ function getDialectLabel(type: string): string {
 export default function SqlExecutorPanel({ onClose, className }: SqlExecutorPanelProps) {
   const { conversationId } = useParams<{ conversationId?: string }>();
   const localize = useLocalize();
+  const editorRef = useRef<SqlEditorRef>(null);
   const [sqlEditorContent, setSqlEditorContent] = useRecoilState(store.sqlEditorContent);
   const [sql, setSql] = useState(sqlEditorContent || '');
   const [selectedConnectionId, setSelectedConnectionId] = useState<string | null>(null);
@@ -192,6 +194,10 @@ export default function SqlExecutorPanel({ onClose, className }: SqlExecutorPane
     setSql(value);
   }, []);
 
+  const handleFormat = useCallback(() => {
+    editorRef.current?.format();
+  }, []);
+
   return (
     <div className={cn('flex h-full flex-col bg-surface-primary text-text-primary', className)}>
       <div className="flex items-center justify-between border-b border-border-light bg-surface-secondary px-3 py-1.5">
@@ -213,6 +219,14 @@ export default function SqlExecutorPanel({ onClose, className }: SqlExecutorPane
             conversationId={conversationId}
             className="flex items-center rounded px-2 py-1 text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary"
           />
+
+          <button
+            onClick={handleFormat}
+            title={localize('com_ui_format_sql')}
+            className="flex items-center rounded px-2 py-1 text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary"
+          >
+            <Wand2 className="h-[18px] w-[18px]" />
+          </button>
 
           <button
             onClick={() => setShowHistory(!showHistory)}
@@ -277,6 +291,7 @@ export default function SqlExecutorPanel({ onClose, className }: SqlExecutorPane
               >
                 <ResizablePanel defaultSize={showHistory ? 75 : 100} minSize={50}>
                   <SqlEditor
+                    ref={editorRef}
                     value={sql}
                     onChange={handleEditorChange}
                     onExecute={handleExecute}
