@@ -108,10 +108,20 @@ const DB_SPECIFIC_SYNTAX = {
 - Date arithmetic: date + INTERVAL 1 DAY
 - Result limiting: LIMIT 1000
 
-⚠️ CRITICAL ClickHouse RULE - WINDOW FUNCTIONS MUST BE LOWERCASE:
-ClickHouse ONLY accepts lowercase window function names. Using uppercase will FAIL.
-CORRECT:   lag(), lead(), row_number(), rank(), dense_rank()
-WRONG:     LAG(), LEAD(), ROW_NUMBER(), RANK(), DENSE_RANK()
+🚨🚨🚨 ABSOLUTE RULE - WINDOW FUNCTIONS MUST BE ALL LOWERCASE IN CLICKHOUSE 🚨🚨🚨
+This is the #1 most common mistake. ClickHouse will REJECT uppercase window functions.
+You MUST use lowercase for ALL of these: lag, lead, row_number, rank, dense_rank, first_value, last_value, ntile, cume_dist, percent_rank
+
+EXAMPLE — THIS IS HOW YOUR OUTPUT MUST LOOK:
+  SELECT month, lag(transaction_count) OVER (ORDER BY month) AS prev_count
+  FROM monthly_data
+
+DO NOT WRITE:
+  SELECT month, LAG(transaction_count) OVER (ORDER BY month) AS prev_count
+  FROM monthly_data
+
+Even though SQL conventions typically use UPPERCASE for these functions, ClickHouse REQUIRES lowercase.
+This applies everywhere: in SELECT, WHERE, CASE expressions, subqueries, CTEs.
 
 METADATA QUERIES for ClickHouse:
 - Tables: SELECT name FROM system.tables WHERE database = currentDatabase()
@@ -427,7 +437,9 @@ INSTRUCTIONS:
   suggest they rephrase their question to help retrieve additional relevant schema 
   information.
 
-Please generate a SQL query to answer this question. After the query, provide a brief explanation of what the query does.
+${databaseType.toLowerCase() === 'clickhouse' ? `⚠️ CLICKHOUSE REMINDER: ALL window functions MUST be lowercase: lag(), lead(), row_number(), rank(), dense_rank(). Using UPPERCASE (LAG, LEAD, etc.) WILL FAIL. Write: lag(col) OVER (...), NOT: LAG(col) OVER (...).
+
+` : ''}Please generate a SQL query to answer this question. After the query, provide a brief explanation of what the query does.
 
 IMPORTANT: Your response must be in this exact format:
 SQL: YOUR_SQL_QUERY_HERE

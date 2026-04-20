@@ -340,7 +340,8 @@ CRITICAL RULES:
 2. Return ONLY the corrected SQL query
 3. Use exact table/column names from schema
 4. Add LIMIT 1000 to prevent excessive results
-${databaseType?.toLowerCase() === 'clickhouse' ? '5. ClickHouse requires LOWERCASE window functions: lag(), lead(), row_number() - NOT uppercase LAG(), LEAD(), ROW_NUMBER()' : ''}
+${databaseType?.toLowerCase() === 'clickhouse' ? `5. 🚨 CLICKHOUSE: ALL window functions MUST be lowercase: lag(), lead(), row_number(), rank(), dense_rank()
+   The error was likely caused by uppercase LAG(), LEAD(), etc. Write: lag(col) OVER (...), NOT: LAG(col) OVER (...)` : ''}
 
 Output format (EXACTLY):
 SQL: YOUR_CORRECTED_SQL_QUERY_HERE
