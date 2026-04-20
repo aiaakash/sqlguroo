@@ -162,15 +162,17 @@ export default function GitHubConnectionsPanel() {
             if (!open) handleCloseForm();
           }}
         >
-          <OGDialogTrigger asChild>
-            <button
-              className="flex items-center gap-1 rounded-lg bg-surface-submit px-2 py-1 text-xs text-white hover:bg-surface-submit-hover"
-              onClick={() => setIsFormOpen(true)}
-            >
-              <Plus className="h-3 w-3" />
-              Add
-            </button>
-          </OGDialogTrigger>
+            <OGDialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-1"
+                onClick={() => setIsFormOpen(true)}
+              >
+                <Plus className="h-4 w-4" />
+                Add Repository
+              </Button>
+            </OGDialogTrigger>
           <GitHubConnectionForm
             editingConnection={editingConnection}
             onClose={handleCloseForm}
