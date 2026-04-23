@@ -16,9 +16,8 @@ export default function ChartLibrarySidebar({
 }: ChartLibrarySidebarProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedChartId, setSelectedChartId] = useState<string | null>(null);
-  const [selectedSize, setSelectedSize] = useState(CHART_SIZES[1]); // Medium
+  const [selectedSize, setSelectedSize] = useState(CHART_SIZES[1]);
 
-  // Fetch user's charts
   const { data: chartsData, isLoading } = useGetChartsQuery({
     search: searchTerm || undefined,
     pageSize: 100,
@@ -29,15 +28,6 @@ export default function ChartLibrarySidebar({
     return charts.filter((chart) => !existingChartIds.includes(chart._id));
   }, [chartsData, existingChartIds]);
 
-  const chartTypeColors: Record<string, string> = {
-    bar: 'bg-violet-500/20 text-violet-400 border-violet-500/30',
-    line: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-    area: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-    pie: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-    scatter: 'bg-pink-500/20 text-pink-400 border-pink-500/30',
-    radar: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
-  };
-
   const handleAddChart = () => {
     if (selectedChartId) {
       onAddChart(selectedChartId, { w: selectedSize.w, h: selectedSize.h });
@@ -46,9 +36,8 @@ export default function ChartLibrarySidebar({
   };
 
   return (
-    <div className="flex h-full w-80 flex-col border-r border-border-light bg-surface-secondary">
-      {/* Header */}
-      <div className="flex-shrink-0 border-b border-border-light p-4">
+    <div className="flex h-full w-80 flex-col border-r border-border-light/60 bg-surface-primary-alt">
+      <div className="flex-shrink-0 border-b border-border-light/60 p-4">
         <h3 className="mb-3 text-sm font-semibold text-text-primary">Chart Library</h3>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-tertiary" />
@@ -57,12 +46,12 @@ export default function ChartLibrarySidebar({
             placeholder="Search charts..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full rounded-lg border border-border-light bg-surface-primary py-2 pl-9 pr-3 text-sm text-text-primary placeholder:text-text-tertiary focus:border-border-medium focus:outline-none focus:ring-1 focus:ring-ring"
+            className="w-full rounded-xl border border-border-light/60 bg-surface-secondary/50 py-2 pl-9 pr-8 text-sm text-text-primary placeholder:text-text-tertiary transition-all focus:border-primary/30 focus:bg-surface-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
           />
           {searchTerm && (
             <button
               onClick={() => setSearchTerm('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-primary"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-0.5 text-text-tertiary transition-colors hover:bg-surface-hover hover:text-text-primary"
             >
               <X className="h-4 w-4" />
             </button>
@@ -70,17 +59,18 @@ export default function ChartLibrarySidebar({
         </div>
       </div>
 
-      {/* Chart List */}
       <div className="flex-1 overflow-y-auto p-3">
         {isLoading ? (
           <div className="space-y-2">
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-16 animate-pulse rounded-lg bg-surface-hover" />
+              <div key={i} className="h-16 animate-pulse rounded-xl bg-surface-secondary/50" />
             ))}
           </div>
         ) : availableCharts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
-            <BarChart3 className="mb-2 h-8 w-8 text-text-tertiary" />
+            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-surface-secondary/50">
+              <BarChart3 className="h-6 w-6 text-text-tertiary" />
+            </div>
             <p className="text-sm text-text-secondary">
               {existingChartIds.length > 0
                 ? 'All your charts are already added'
@@ -101,19 +91,14 @@ export default function ChartLibrarySidebar({
                 key={chart._id}
                 onClick={() => setSelectedChartId(chart._id)}
                 className={cn(
-                  'flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-all',
+                  'flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-all',
                   selectedChartId === chart._id
-                    ? 'border-primary bg-primary/10'
-                    : 'border-transparent bg-surface-primary hover:bg-surface-hover'
+                    ? 'border-primary/30 bg-primary/5 ring-1 ring-primary/10'
+                    : 'border-border-light/60 bg-surface-secondary/50 hover:border-border-medium hover:bg-surface-hover'
                 )}
               >
-                <div
-                  className={cn(
-                    'flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border',
-                    chartTypeColors[chart.config.type] || 'bg-surface-secondary text-text-secondary'
-                  )}
-                >
-                  <span className="text-xs font-bold uppercase">
+                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 ring-1 ring-primary/10">
+                  <span className="text-xs font-bold uppercase text-primary">
                     {chart.config.type.charAt(0)}
                   </span>
                 </div>
@@ -135,20 +120,19 @@ export default function ChartLibrarySidebar({
         )}
       </div>
 
-      {/* Add Panel */}
       {selectedChartId && (
-        <div className="flex-shrink-0 border-t border-border-light p-4">
-          <p className="mb-3 text-xs font-medium uppercase text-text-tertiary">Select Size</p>
+        <div className="flex-shrink-0 border-t border-border-light/60 p-4">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-text-secondary">Select Size</p>
           <div className="mb-4 grid grid-cols-3 gap-2">
             {CHART_SIZES.map((size) => (
               <button
                 key={size.value}
                 onClick={() => setSelectedSize(size)}
                 className={cn(
-                  'rounded-lg border px-2 py-2 text-xs font-medium transition-all',
-                    selectedSize.value === size.value
-                    ? 'border-primary bg-primary/10 text-primary'
-                    : 'border-border-light bg-surface-primary text-text-secondary hover:border-primary/50 hover:text-text-primary'
+                  'rounded-xl border px-2 py-2 text-xs font-medium transition-all',
+                  selectedSize.value === size.value
+                    ? 'border-primary/30 bg-primary/5 text-primary ring-1 ring-primary/10'
+                    : 'border-border-light/60 bg-surface-secondary/50 text-text-secondary hover:border-border-medium hover:text-text-primary'
                 )}
               >
                 {size.label}
@@ -157,7 +141,7 @@ export default function ChartLibrarySidebar({
           </div>
           <button
             onClick={handleAddChart}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:opacity-90"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-primary/90 hover:shadow-md"
           >
             <Plus className="h-4 w-4" />
             Add to Dashboard
@@ -167,4 +151,3 @@ export default function ChartLibrarySidebar({
     </div>
   );
 }
-

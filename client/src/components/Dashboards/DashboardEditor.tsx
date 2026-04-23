@@ -5,7 +5,6 @@ import {
   ArrowLeft,
   Plus,
   Settings,
-  Maximize,
   RefreshCw,
   Eye,
   Loader2,
@@ -25,7 +24,7 @@ import type {
   IDashboardSettings,
   DashboardIcon,
 } from 'librechat-data-provider';
-import { OGDialog, OGDialogContent, Skeleton, useToastContext } from '@librechat/client';
+import { OGDialog, OGDialogContent, Skeleton, useToastContext, Switch, Dropdown } from '@librechat/client';
 import DashboardGrid from './DashboardGrid';
 import ChartLibrarySidebar from './ChartLibrarySidebar';
 import DashboardIconComponent from './DashboardIcon';
@@ -37,13 +36,11 @@ export default function DashboardEditor() {
   const navigate = useNavigate();
   const { showToast } = useToastContext();
 
-  // State
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [localLayout, setLocalLayout] = useState<IDashboardChartItem[]>([]);
 
-  // Queries
   const {
     data: dashboardData,
     isLoading,
@@ -53,30 +50,25 @@ export default function DashboardEditor() {
     enabled: !!dashboardId,
   });
 
-  // Mutations
   const updateDashboardMutation = useUpdateDashboardMutation();
   const updateLayoutMutation = useUpdateDashboardLayoutMutation();
   const addChartMutation = useAddChartToDashboardMutation();
   const removeChartMutation = useRemoveChartFromDashboardMutation();
 
-  // Initialize local layout when data loads
   useEffect(() => {
     if (dashboardData?.charts) {
       setLocalLayout(dashboardData.charts);
     }
   }, [dashboardData?.charts]);
 
-  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl/Cmd + S to save
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
         if (hasUnsavedChanges) {
           handleSaveLayout();
         }
       }
-      // Escape to close settings modal
       if (e.key === 'Escape' && isSettingsOpen) {
         setIsSettingsOpen(false);
       }
@@ -86,25 +78,19 @@ export default function DashboardEditor() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [hasUnsavedChanges, isSettingsOpen]);
 
-  // Get existing chart IDs
   const existingChartIds = useMemo(() => {
     return localLayout.map((item) => item.chartId);
   }, [localLayout]);
 
-  // Calculate next position for new chart
   const getNextPosition = useCallback(
     (width: number, height: number): { x: number; y: number } => {
       if (localLayout.length === 0) return { x: 0, y: 0 };
 
-      // Find the maximum y position
       const maxY = Math.max(...localLayout.map((item) => item.y + item.h));
-
-      // Try to find space in the current row
       const gridCols = dashboardData?.gridCols || 12;
       let x = 0;
       let y = maxY;
 
-      // Check if we can fit in the last row
       const lastRowItems = localLayout.filter(
         (item) => item.y + item.h === maxY || item.y >= maxY - 2,
       );
@@ -124,7 +110,6 @@ export default function DashboardEditor() {
     [localLayout, dashboardData?.gridCols],
   );
 
-  // Handle add chart
   const handleAddChart = async (chartId: string, size: { w: number; h: number }) => {
     if (!dashboardId) return;
 
@@ -156,7 +141,6 @@ export default function DashboardEditor() {
     }
   };
 
-  // Handle remove chart
   const handleRemoveChart = async (chartId: string) => {
     if (!dashboardId) return;
 
@@ -181,13 +165,11 @@ export default function DashboardEditor() {
     }
   };
 
-  // Handle layout change
   const handleLayoutChange = (newLayout: IDashboardChartItem[]) => {
     setLocalLayout(newLayout);
     setHasUnsavedChanges(true);
   };
 
-  // Handle chart resize
   const handleChartResize = (chartId: string, newSize: { w: number; h: number }) => {
     const updatedLayout = localLayout.map((item) =>
       item.chartId === chartId ? { ...item, w: newSize.w, h: newSize.h } : item,
@@ -200,7 +182,6 @@ export default function DashboardEditor() {
     });
   };
 
-  // Save layout
   const handleSaveLayout = async () => {
     if (!dashboardId) return;
 
@@ -223,7 +204,6 @@ export default function DashboardEditor() {
     }
   };
 
-  // Handle settings save
   const handleSettingsSave = async (updates: {
     name?: string;
     description?: string;
@@ -252,11 +232,10 @@ export default function DashboardEditor() {
     }
   };
 
-  // Loading state
   if (isLoading) {
     return (
-      <div className="dark:bg-surface-primary-dark flex h-screen w-full flex-col bg-surface-primary">
-        <div className="dark:border-border-dark flex h-16 items-center justify-between border-b border-border-light px-4">
+      <div className="flex h-screen w-full flex-col bg-surface-primary-alt">
+        <div className="flex h-16 items-center justify-between border-b border-border-light/60 px-4">
           <Skeleton className="h-8 w-48" />
           <Skeleton className="h-10 w-32" />
         </div>
@@ -265,7 +244,7 @@ export default function DashboardEditor() {
           <div className="flex-1 p-6">
             <div className="grid grid-cols-3 gap-4">
               {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="h-48" />
+                <Skeleton key={i} className="h-48 rounded-xl" />
               ))}
             </div>
           </div>
@@ -274,15 +253,17 @@ export default function DashboardEditor() {
     );
   }
 
-  // Error state
   if (error || !dashboardData) {
     return (
-      <div className="dark:bg-surface-primary-dark flex h-screen w-full items-center justify-center bg-surface-primary">
+      <div className="flex h-screen w-full items-center justify-center bg-surface-primary-alt">
         <div className="text-center">
-          <p className="text-text-secondary">Failed to load dashboard</p>
+          <div className="mb-4 rounded-xl bg-destructive/10 p-4">
+            <X className="h-6 w-6 text-destructive" />
+          </div>
+          <p className="text-sm font-medium text-text-secondary">Failed to load dashboard</p>
           <button
             onClick={() => navigate('/d/dashboards')}
-            className="mt-4 text-blue-500 hover:underline"
+            className="mt-3 rounded-lg bg-primary/10 px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
           >
             Back to Dashboards
           </button>
@@ -292,22 +273,26 @@ export default function DashboardEditor() {
   }
 
   return (
-    <div className="dark:bg-surface-primary-dark flex h-screen w-full flex-col overflow-hidden bg-surface-primary">
-      {/* Header */}
-      <div className="dark:border-border-dark flex h-16 flex-shrink-0 items-center justify-between border-b border-border-light px-4">
-        {/* Left side */}
+    <div className="flex h-screen w-full flex-col overflow-hidden bg-surface-primary-alt">
+      <div className="flex h-16 flex-shrink-0 items-center justify-between border-b border-border-light/60 bg-surface-primary/80 px-4 backdrop-blur-xl">
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate('/d/dashboards')}
-            className="flex items-center gap-2 text-sm text-text-secondary transition-colors hover:text-text-primary"
+            className="group flex items-center gap-2 text-sm text-text-secondary transition-colors hover:text-text-primary"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
             <span className="hidden sm:inline">Back</span>
           </button>
-          <div className="dark:bg-border-dark h-6 w-px bg-border-light" />
+          <div className="h-5 w-px bg-border-light/60" />
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-violet-600">
-              <DashboardIconComponent icon={dashboardData.icon} className="text-white" size={18} />
+            <div
+              className="flex h-9 w-9 items-center justify-center rounded-xl"
+              style={{
+                background: `linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2))`,
+                border: `1px solid rgba(59, 130, 246, 0.3)`,
+              }}
+            >
+              <DashboardIconComponent icon={dashboardData.icon} className="text-primary" size={18} />
             </div>
             <div>
               <h1 className="text-base font-semibold text-text-primary">{dashboardData.name}</h1>
@@ -321,18 +306,17 @@ export default function DashboardEditor() {
           </div>
         </div>
 
-        {/* Right side */}
         <div className="flex items-center gap-2">
           <button
             onClick={() => navigate(`/d/dashboards/${dashboardId}`)}
-            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary"
+            className="flex items-center gap-2 rounded-xl border border-border-light/60 bg-surface-secondary/50 px-3.5 py-2 text-sm font-medium text-text-secondary transition-all hover:border-border-medium hover:text-text-primary"
           >
             <Eye className="h-4 w-4" />
             <span className="hidden sm:inline">Preview</span>
           </button>
           <button
             onClick={() => setIsSettingsOpen(true)}
-            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary"
+            className="flex items-center gap-2 rounded-xl border border-border-light/60 bg-surface-secondary/50 px-3.5 py-2 text-sm font-medium text-text-secondary transition-all hover:border-border-medium hover:text-text-primary"
           >
             <Settings className="h-4 w-4" />
             <span className="hidden sm:inline">Settings</span>
@@ -341,10 +325,10 @@ export default function DashboardEditor() {
             onClick={handleSaveLayout}
             disabled={!hasUnsavedChanges || updateLayoutMutation.isLoading}
             className={cn(
-              'flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all',
+              'flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium shadow-sm transition-all',
               hasUnsavedChanges
-                ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25 hover:bg-blue-600'
-                : 'dark:bg-surface-secondary-dark bg-surface-secondary text-text-tertiary',
+                ? 'bg-primary text-white hover:bg-primary/90 hover:shadow-md'
+                : 'bg-surface-secondary text-text-tertiary',
             )}
           >
             {updateLayoutMutation.isLoading ? (
@@ -357,12 +341,10 @@ export default function DashboardEditor() {
         </div>
       </div>
 
-      {/* Main content */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar Toggle */}
         <button
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className="dark:bg-surface-secondary-dark absolute left-0 top-1/2 z-10 -translate-y-1/2 rounded-r-lg bg-surface-secondary p-2 text-text-secondary shadow-lg transition-all hover:bg-surface-hover hover:text-text-primary"
+          className="absolute left-0 top-1/2 z-10 -translate-y-1/2 rounded-r-lg bg-surface-secondary p-2 text-text-secondary shadow-lg transition-all hover:bg-surface-hover hover:text-text-primary"
           style={{ left: isSidebarOpen ? '318px' : '0' }}
         >
           {isSidebarOpen ? (
@@ -372,7 +354,6 @@ export default function DashboardEditor() {
           )}
         </button>
 
-        {/* Sidebar */}
         <div
           className={cn(
             'flex-shrink-0 transition-all duration-300',
@@ -384,7 +365,6 @@ export default function DashboardEditor() {
           )}
         </div>
 
-        {/* Dashboard canvas */}
         <div className="flex-1 overflow-y-auto p-6">
           <DashboardGrid
             charts={dashboardData.chartsWithData}
@@ -399,7 +379,6 @@ export default function DashboardEditor() {
         </div>
       </div>
 
-      {/* Settings Modal */}
       <SettingsModal
         open={isSettingsOpen}
         onOpenChange={setIsSettingsOpen}
@@ -411,7 +390,6 @@ export default function DashboardEditor() {
   );
 }
 
-// Settings Modal Component
 function SettingsModal({
   open,
   onOpenChange,
@@ -444,125 +422,139 @@ function SettingsModal({
 
   return (
     <OGDialog open={open} onOpenChange={onOpenChange}>
-      <OGDialogContent className="dark:bg-surface-primary-dark w-full max-w-lg overflow-hidden rounded-2xl border-0 bg-surface-primary p-0 shadow-2xl">
+      <OGDialogContent className="w-full max-w-lg overflow-hidden rounded-xl rounded-b-lg bg-card p-0 shadow-2xl backdrop-blur-2xl">
         <form onSubmit={handleSubmit}>
-          {/* Header */}
-          <div className="dark:border-border-dark flex items-center justify-between border-b border-border-light p-6">
+          <div className="flex items-center justify-between border-b border-border-light px-6 py-4">
             <h2 className="text-lg font-semibold text-text-primary">Dashboard Settings</h2>
             <button
               type="button"
               onClick={() => onOpenChange(false)}
-              className="rounded-lg p-2 text-text-tertiary hover:bg-surface-hover hover:text-text-primary"
+              className="rounded-sm p-1.5 opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-border-xheavy focus:ring-offset-2"
             >
-              <X className="h-5 w-5" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-5 w-5 text-text-primary"
+              >
+                <line x1="18" x2="6" y1="6" y2="18"></line>
+                <line x1="6" x2="18" y1="6" y2="18"></line>
+              </svg>
             </button>
           </div>
 
-          {/* Content */}
-          <div className="max-h-[60vh] overflow-y-auto p-6">
-            {/* Name */}
-            <div className="mb-5">
-              <label className="mb-2 block text-sm font-medium text-text-primary">Name</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="dark:border-border-dark dark:bg-surface-secondary-dark w-full rounded-xl border border-border-light bg-surface-secondary px-4 py-3 text-text-primary focus:border-blue-500 focus:outline-none"
-              />
-            </div>
-
-            {/* Description */}
-            <div className="mb-5">
-              <label className="mb-2 block text-sm font-medium text-text-primary">
-                Description
-              </label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={3}
-                className="dark:border-border-dark dark:bg-surface-secondary-dark w-full resize-none rounded-xl border border-border-light bg-surface-secondary px-4 py-3 text-text-primary focus:border-blue-500 focus:outline-none"
-              />
-            </div>
-
-            {/* Icon */}
-            <div className="mb-5">
-              <label className="mb-2 block text-sm font-medium text-text-primary">Icon</label>
-              <div className="grid grid-cols-8 gap-2">
-                {DASHBOARD_ICONS.map(({ icon: iconValue, label }) => (
-                  <button
-                    key={iconValue}
-                    type="button"
-                    onClick={() => setIcon(iconValue)}
-                    className={cn(
-                      'flex h-10 w-10 items-center justify-center rounded-xl transition-all',
-                      icon === iconValue
-                        ? 'bg-blue-500 text-white'
-                        : 'dark:bg-surface-secondary-dark bg-surface-secondary text-text-secondary hover:bg-surface-hover',
-                    )}
-                    title={label}
-                  >
-                    <DashboardIconComponent icon={iconValue} size={18} />
-                  </button>
-                ))}
+          <div className="max-h-[60vh] overflow-y-auto">
+            <div className="flex flex-col gap-3 p-1 text-sm text-text-primary">
+              <div className="pb-3">
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm text-text-primary">Name</label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="rounded-xl border border-input bg-background px-3 py-2 text-sm text-text-primary transition-all focus:ring-ring-primary focus:outline-none"
+                  />
+                </div>
               </div>
-            </div>
 
-            {/* Settings */}
-            <div className="space-y-4">
-              <h4 className="text-sm font-medium text-text-primary">Display Options</h4>
+              <div className="pb-3">
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm text-text-primary">Description</label>
+                  <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    rows={3}
+                    className="resize-none rounded-xl border border-input bg-background px-3 py-2 text-sm text-text-primary transition-all focus:ring-ring-primary focus:outline-none"
+                  />
+                </div>
+              </div>
 
-              <label className="flex items-center justify-between">
-                <span className="text-sm text-text-secondary">Show borders</span>
-                <input
-                  type="checkbox"
-                  checked={settings.showBorders ?? true}
-                  onChange={(e) => setSettings({ ...settings, showBorders: e.target.checked })}
-                  className="h-5 w-5 rounded border-border-light text-blue-500 focus:ring-blue-500"
-                />
-              </label>
+              <div className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div>Icon</div>
+                  <div className="grid grid-cols-8 gap-1.5">
+                    {DASHBOARD_ICONS.map(({ icon: iconValue, label }) => (
+                      <button
+                        key={iconValue}
+                        type="button"
+                        onClick={() => setIcon(iconValue)}
+                        className={cn(
+                          'flex h-9 w-9 items-center justify-center rounded-lg transition-all',
+                          icon === iconValue
+                            ? 'bg-primary text-white'
+                            : 'bg-surface-secondary text-text-secondary hover:bg-surface-hover hover:text-text-primary'
+                        )}
+                        title={label}
+                      >
+                        <DashboardIconComponent icon={iconValue} size={16} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
 
-              <label className="flex items-center justify-between">
-                <span className="text-sm text-text-secondary">Compact layout</span>
-                <input
-                  type="checkbox"
-                  checked={settings.compactLayout ?? false}
-                  onChange={(e) => setSettings({ ...settings, compactLayout: e.target.checked })}
-                  className="h-5 w-5 rounded border-border-light text-blue-500 focus:ring-blue-500"
-                />
-              </label>
+              <div className="pb-3">
+                <div className="text-sm font-medium text-text-primary">Display Options</div>
+                <div className="mt-2 flex flex-col gap-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-text-secondary">Show borders</span>
+                    <Switch
+                      id="show-borders"
+                      checked={settings.showBorders ?? true}
+                      onCheckedChange={(checked) => setSettings({ ...settings, showBorders: checked })}
+                      aria-label="Show borders"
+                    />
+                  </div>
 
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-text-secondary">Auto-refresh (minutes)</span>
-                <select
-                  value={settings.autoRefresh ?? 0}
-                  onChange={(e) =>
-                    setSettings({ ...settings, autoRefresh: Number(e.target.value) })
-                  }
-                  className="dark:border-border-dark dark:bg-surface-secondary-dark rounded-lg border border-border-light bg-surface-secondary px-3 py-1.5 text-sm text-text-primary focus:border-blue-500 focus:outline-none"
-                >
-                  <option value={0}>Off</option>
-                  <option value={5}>5 min</option>
-                  <option value={15}>15 min</option>
-                  <option value={30}>30 min</option>
-                  <option value={60}>1 hour</option>
-                </select>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-text-secondary">Compact layout</span>
+                    <Switch
+                      id="compact-layout"
+                      checked={settings.compactLayout ?? false}
+                      onCheckedChange={(checked) => setSettings({ ...settings, compactLayout: checked })}
+                      aria-label="Compact layout"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-text-secondary">Auto-refresh (minutes)</span>
+                    <Dropdown
+                      value={String(settings.autoRefresh ?? 0)}
+                      onChange={(value) => setSettings({ ...settings, autoRefresh: Number(value) })}
+                      options={[
+                        { value: '0', label: 'Off' },
+                        { value: '5', label: '5 min' },
+                        { value: '15', label: '15 min' },
+                        { value: '30', label: '30 min' },
+                        { value: '60', label: '1 hour' },
+                      ]}
+                      sizeClasses="w-[120px]"
+                      className="z-50"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Footer */}
-          <div className="dark:border-border-dark flex justify-end gap-3 border-t border-border-light p-6">
+          <div className="flex justify-end gap-3 border-t border-border-light px-6 py-4">
             <button
               type="button"
               onClick={() => onOpenChange(false)}
-              className="rounded-xl px-5 py-2.5 text-sm font-medium text-text-secondary hover:bg-surface-hover"
+              className="rounded-lg px-4 py-2 text-sm font-medium text-text-secondary transition-all hover:bg-surface-hover hover:text-text-primary"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isLoading}
-              className="flex items-center gap-2 rounded-xl bg-blue-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-50"
+              className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-all hover:bg-primary/90 disabled:opacity-50"
             >
               {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
               Save Changes

@@ -164,12 +164,12 @@ const DraggableGridItem = React.memo(function DraggableGridItem({
   if (isFullscreen) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-8">
-        <div className="dark:bg-surface-primary-dark relative h-full w-full max-w-7xl rounded-2xl bg-surface-primary p-6">
+        <div className="relative h-full w-full max-w-7xl rounded-2xl border border-border-light/60 bg-surface-primary p-6 shadow-2xl">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-lg font-semibold text-text-primary">{chartTitle}</h3>
             <button
               onClick={() => setIsFullscreen(false)}
-              className="rounded-lg p-2 text-text-secondary hover:bg-surface-hover hover:text-text-primary"
+              className="rounded-lg p-2 text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary"
             >
               <Minimize2 className="h-5 w-5" />
             </button>
@@ -188,11 +188,11 @@ const DraggableGridItem = React.memo(function DraggableGridItem({
       className={cn(
         'group relative flex flex-col overflow-hidden rounded-xl transition-all duration-200',
         showBorders
-          ? 'dark:border-border-dark dark:bg-surface-primary-dark border border-border-light bg-surface-primary'
-          : 'dark:bg-surface-primary-dark bg-surface-primary',
-        isEditing && 'ring-2 ring-transparent hover:ring-blue-500/50',
-        isDragging && 'opacity-50 ring-2 ring-blue-500',
-        isOver && canDrop && 'bg-green-500/5 ring-2 ring-green-500/70',
+          ? 'border border-border-light/60 bg-surface-primary shadow-sm'
+          : 'bg-surface-primary',
+        isEditing && 'ring-2 ring-transparent hover:ring-primary/50',
+        isDragging && 'opacity-50 ring-2 ring-primary',
+        isOver && canDrop && 'bg-primary/5 ring-2 ring-primary/70',
         isEditing && 'cursor-move',
       )}
       style={{
@@ -202,7 +202,7 @@ const DraggableGridItem = React.memo(function DraggableGridItem({
       }}
     >
       {/* Header */}
-      <div className="dark:border-border-dark flex items-center justify-between border-b border-border-light px-4 py-2.5">
+      <div className="flex items-center justify-between border-b border-border-light/60 px-4 py-2.5">
         <div className="flex min-w-0 flex-1 items-center gap-2">
           {isEditing && (
             <div className="cursor-grab text-text-tertiary hover:text-text-secondary active:cursor-grabbing">
@@ -214,7 +214,7 @@ const DraggableGridItem = React.memo(function DraggableGridItem({
         <div className="flex items-center gap-1">
           {isRefreshing ? (
             <div className="p-1.5">
-              <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
             </div>
           ) : (
             <button
@@ -243,7 +243,7 @@ const DraggableGridItem = React.memo(function DraggableGridItem({
               </button>
               <button
                 onClick={onRemove}
-                className="rounded-lg p-1.5 text-red-400 opacity-0 transition-all hover:bg-red-500/10 group-hover:opacity-100"
+                className="rounded-lg p-1.5 text-destructive opacity-0 transition-all hover:bg-destructive/10 group-hover:opacity-100"
                 title="Remove"
               >
                 <X className="h-4 w-4" />
@@ -257,14 +257,16 @@ const DraggableGridItem = React.memo(function DraggableGridItem({
       <div className="flex-1 p-3">
         {hasError ? (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-text-secondary">
-            <AlertCircle className="h-8 w-8 text-red-400" />
-            <p className="text-sm">Failed to load chart</p>
+            <div className="mb-2 rounded-xl bg-destructive/10 p-3">
+              <AlertCircle className="h-6 w-6 text-destructive" />
+            </div>
+            <p className="text-sm font-medium">Failed to load chart</p>
             <button
               onClick={() => {
                 setHasError(false);
                 onRefresh?.();
               }}
-              className="text-sm text-blue-500 hover:underline"
+              className="text-sm text-primary hover:underline"
             >
               Retry
             </button>
@@ -296,7 +298,7 @@ const DraggableGridItem = React.memo(function DraggableGridItem({
       </div>
 
       {/* Timestamp with refresh indicator */}
-      <div className="dark:border-border-dark flex items-center justify-between border-t border-border-light px-4 py-1.5">
+      <div className="flex items-center justify-between border-t border-border-light/60 px-4 py-1.5">
         <div className="flex items-center gap-1.5 text-xs text-text-tertiary">
           <RefreshCw className={cn('h-3 w-3', isRefreshing && 'animate-spin')} />
           <span>

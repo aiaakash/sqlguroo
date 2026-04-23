@@ -11,10 +11,8 @@ import {
   LayoutDashboard,
   ArrowLeft,
   X,
-  Pin,
   ChevronLeft,
   ChevronRight,
-  Loader2,
 } from 'lucide-react';
 import {
   useGetDashboardsQuery,
@@ -31,6 +29,8 @@ import { cn } from '~/utils';
 import { useLocalize, useCustomLink } from '~/hooks';
 import { useDashboardContext } from '~/Providers';
 import type { FilterTab, ViewMode } from './types';
+import type { TranslationKeys } from '~/hooks';
+import type { TOptions } from 'i18next';
 
 export default function DashboardsView() {
   const navigate = useNavigate();
@@ -38,7 +38,6 @@ export default function DashboardsView() {
   const { prevLocationPath } = useDashboardContext();
   const { showToast } = useToastContext();
 
-  // State
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<FilterTab>('my');
@@ -47,7 +46,6 @@ export default function DashboardsView() {
   const [pageSize] = useState(12);
   const [loadingActions, setLoadingActions] = useState<Set<string>>(new Set());
 
-  // Compute query params based on active tab
   const queryParams = useMemo(() => {
     const params: Record<string, unknown> = {
       search: searchTerm || undefined,
@@ -64,7 +62,6 @@ export default function DashboardsView() {
     return params;
   }, [searchTerm, activeTab, currentPage, pageSize]);
 
-  // Fetch dashboards
   const {
     data: dashboardsData,
     isLoading,
@@ -78,13 +75,11 @@ export default function DashboardsView() {
     { enabled: activeTab === 'shared' },
   );
 
-  // Mutations
   const deleteMutation = useDeleteDashboardMutation();
   const duplicateMutation = useDuplicateDashboardMutation();
   const starMutation = useToggleDashboardStarMutation();
   const updateMutation = useUpdateDashboardMutation();
 
-  // Get navigation handler
   const getConversationId = (prevPath: string) => {
     if (!prevPath || prevPath.includes('/d/')) return 'new';
     const parts = prevPath.split('/');
@@ -97,7 +92,6 @@ export default function DashboardsView() {
   );
   const chatLinkHandler = useCustomLink('/c/' + lastConversationId);
 
-  // Current dashboards based on tab
   const dashboards = useMemo(() => {
     if (activeTab === 'shared') {
       return sharedData?.dashboards || [];
@@ -114,7 +108,6 @@ export default function DashboardsView() {
 
   const currentlyLoading = activeTab === 'shared' ? isLoadingShared : isLoading;
 
-  // Handlers with loading states
   const handleDelete = async (dashboardId: string) => {
     if (confirm('Are you sure you want to delete this dashboard?')) {
       setLoadingActions((prev) => new Set(prev).add(`delete-${dashboardId}`));
@@ -190,7 +183,6 @@ export default function DashboardsView() {
     navigate(`/d/dashboards/${dashboardId}/edit`);
   };
 
-  // Tabs configuration for filters
   const tabs = [
     { id: 'my' as FilterTab, label: 'My Dashboards', icon: LayoutDashboard },
     { id: 'starred' as FilterTab, label: 'Starred', icon: Star },
@@ -198,71 +190,55 @@ export default function DashboardsView() {
     { id: 'archived' as FilterTab, label: 'Archived', icon: Archive },
   ];
 
-  // Empty state
   const renderEmptyState = () => {
-    if (activeTab === 'shared') {
-      return (
-        <div className="flex flex-col items-center justify-center py-20">
-          <div className="mb-4 rounded-full bg-surface-secondary p-4">
-            <Users className="h-12 w-12 text-text-tertiary" />
-          </div>
-          <h3 className="mb-2 text-lg font-medium text-text-primary">No shared dashboards</h3>
-          <p className="text-center text-sm text-text-secondary">
-            Dashboards shared with you will appear here.
-          </p>
-        </div>
-      );
-    }
+    const emptyStates: Record<FilterTab, { icon: React.ElementType; title: string; description: string }> = {
+      my: {
+        icon: LayoutDashboard,
+        title: 'Create your first dashboard',
+        description: 'Combine multiple charts into beautiful, interactive dashboards.',
+      },
+      starred: {
+        icon: Star,
+        title: 'No starred dashboards',
+        description: 'Star your favorite dashboards to access them quickly.',
+      },
+      shared: {
+        icon: Users,
+        title: 'No shared dashboards',
+        description: 'Dashboards shared with you will appear here.',
+      },
+      archived: {
+        icon: Archive,
+        title: 'No archived dashboards',
+        description: 'Archived dashboards will appear here.',
+      },
+    };
 
-    if (activeTab === 'starred') {
-      return (
-        <div className="flex flex-col items-center justify-center py-20">
-          <div className="mb-4 rounded-full bg-surface-secondary p-4">
-            <Star className="h-12 w-12 text-text-tertiary" />
-          </div>
-          <h3 className="mb-2 text-lg font-medium text-text-primary">No starred dashboards</h3>
-          <p className="text-center text-sm text-text-secondary">
-            Star your favorite dashboards to access them quickly.
-          </p>
-        </div>
-      );
-    }
-
-    if (activeTab === 'archived') {
-      return (
-        <div className="flex flex-col items-center justify-center py-20">
-          <div className="mb-4 rounded-full bg-surface-secondary p-4">
-            <Archive className="h-12 w-12 text-text-tertiary" />
-          </div>
-          <h3 className="mb-2 text-lg font-medium text-text-primary">No archived dashboards</h3>
-          <p className="text-center text-sm text-text-secondary">
-            Archived dashboards will appear here.
-          </p>
-        </div>
-      );
-    }
+    const state = emptyStates[activeTab];
+    const Icon = state.icon;
 
     return (
-      <div className="flex flex-col items-center justify-center py-20">
-        <div className="mb-4 rounded-full bg-surface-secondary p-4">
-          <LayoutDashboard className="h-12 w-12 text-text-tertiary" />
+      <div className="flex flex-col items-center justify-center py-16">
+        <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 ring-1 ring-primary/20">
+          <Icon className="h-10 w-10 text-primary/70" />
         </div>
-        <h3 className="mb-2 text-lg font-medium text-text-primary">Create your first dashboard</h3>
-        <p className="mb-4 text-center text-sm text-text-secondary">
-          Combine multiple charts into beautiful, interactive dashboards.
+        <h3 className="mb-2 text-xl font-semibold text-text-primary">{state.title}</h3>
+        <p className="mb-6 max-w-sm text-center text-sm leading-relaxed text-text-secondary">
+          {state.description}
         </p>
-        <button
-          onClick={() => setIsCreateModalOpen(true)}
-          className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
-        >
-          <Plus className="h-4 w-4" />
-          New Dashboard
-        </button>
+        {activeTab === 'my' && (
+          <button
+            onClick={() => setIsCreateModalOpen(true)}
+            className="group flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-primary/90 hover:shadow-md"
+          >
+            <Plus className="h-4 w-4 transition-transform group-hover:scale-110" />
+            New Dashboard
+          </button>
+        )}
       </div>
     );
   };
 
-  // Show main empty state (no dashboards at all)
   if (
     !isLoading &&
     !currentlyLoading &&
@@ -271,7 +247,7 @@ export default function DashboardsView() {
     activeTab === 'my'
   ) {
     return (
-      <div className="flex h-screen w-full flex-col overflow-hidden bg-surface-primary">
+      <div className="flex h-screen w-full flex-col overflow-hidden bg-surface-primary-alt">
         <Header
           viewMode={viewMode}
           setViewMode={setViewMode}
@@ -286,20 +262,20 @@ export default function DashboardsView() {
           tabs={tabs}
         />
         <div className="flex flex-1 flex-col items-center justify-center overflow-auto p-8">
-          <div className="mb-4 rounded-full bg-surface-secondary p-4">
-            <LayoutDashboard className="h-12 w-12 text-text-tertiary" />
+          <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 ring-1 ring-primary/20">
+            <LayoutDashboard className="h-10 w-10 text-primary/70" />
           </div>
-          <h3 className="mb-2 text-lg font-medium text-text-primary">
+          <h3 className="mb-2 text-xl font-semibold text-text-primary">
             Create your first dashboard
           </h3>
-          <p className="mb-4 text-center text-sm text-text-secondary">
+          <p className="mb-6 max-w-md text-center text-sm leading-relaxed text-text-secondary">
             Combine multiple charts into beautiful, interactive dashboards.
           </p>
           <button
             onClick={() => setIsCreateModalOpen(true)}
-            className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+            className="group flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-primary/90 hover:shadow-md"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-4 w-4 transition-transform group-hover:scale-110" />
             New Dashboard
           </button>
         </div>
@@ -314,7 +290,7 @@ export default function DashboardsView() {
   }
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-hidden bg-surface-primary">
+    <div className="flex h-screen w-full flex-col overflow-hidden bg-surface-primary-alt">
       <Header
         viewMode={viewMode}
         setViewMode={setViewMode}
@@ -329,38 +305,46 @@ export default function DashboardsView() {
         tabs={tabs}
       />
 
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-4 lg:p-6">
         {currentlyLoading ? (
           <div
             className={cn(
               viewMode === 'grid'
-                ? 'grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+                ? 'grid gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4'
                 : 'space-y-3',
             )}
           >
             {Array.from({ length: 8 }).map((_, i) => (
-              <Skeleton key={i} className={viewMode === 'grid' ? 'h-64' : 'h-20'} />
+              <Skeleton
+                key={i}
+                className={cn(
+                  viewMode === 'grid' ? 'h-72 rounded-2xl' : 'h-24 rounded-xl',
+                )}
+              />
             ))}
           </div>
         ) : error ? (
-          <div className="flex flex-col items-center justify-center py-12">
-            <p className="text-sm text-red-500">Failed to load dashboards</p>
+          <div className="flex flex-col items-center justify-center py-16">
+            <div className="mb-4 rounded-xl bg-destructive/10 p-4">
+              <X className="h-6 w-6 text-destructive" />
+            </div>
+            <p className="text-sm font-medium text-destructive">Failed to load dashboards</p>
             <button
               onClick={() => window.location.reload()}
-              className="mt-2 text-sm text-blue-500 hover:underline"
+              className="mt-3 rounded-lg bg-primary/10 px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
             >
               Retry
             </button>
           </div>
         ) : dashboards.length === 0 ? (
           searchTerm ? (
-            <div className="flex flex-col items-center justify-center py-12">
-              <p className="text-text-secondary">
+            <div className="flex flex-col items-center justify-center py-16">
+              <p className="text-sm text-text-secondary">
                 No dashboards found matching &quot;{searchTerm}&quot;
               </p>
               <button
                 onClick={() => setSearchTerm('')}
-                className="mt-2 text-sm text-blue-500 hover:underline"
+                className="mt-3 rounded-lg bg-primary/10 px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
               >
                 Clear search
               </button>
@@ -369,7 +353,7 @@ export default function DashboardsView() {
             renderEmptyState()
           )
         ) : viewMode === 'grid' ? (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {dashboards.map((dashboard) => (
               <DashboardCard
                 key={dashboard._id}
@@ -403,9 +387,8 @@ export default function DashboardsView() {
         )}
       </div>
 
-      {/* Pagination */}
       {totalCount > pageSize && (
-        <div className="dark:border-border-dark flex items-center justify-between border-t border-border-light px-4 py-3">
+        <div className="flex items-center justify-between border-t border-border-light/60 bg-surface-primary px-4 py-3 lg:px-6">
           <div className="text-sm text-text-secondary">
             Showing {(currentPage - 1) * pageSize + 1} -{' '}
             {Math.min(currentPage * pageSize, totalCount)} of {totalCount}
@@ -414,7 +397,7 @@ export default function DashboardsView() {
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="dark:border-border-dark flex items-center gap-1 rounded-lg border border-border-light px-3 py-1.5 text-sm text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary disabled:opacity-50"
+              className="flex items-center gap-1 rounded-lg border border-border-light/60 bg-surface-secondary/50 px-3 py-1.5 text-sm font-medium text-text-secondary transition-all hover:bg-surface-hover disabled:opacity-50"
             >
               <ChevronLeft className="h-4 w-4" />
               Previous
@@ -427,7 +410,7 @@ export default function DashboardsView() {
                 setCurrentPage((p) => Math.min(Math.ceil(totalCount / pageSize), p + 1))
               }
               disabled={currentPage >= Math.ceil(totalCount / pageSize)}
-              className="dark:border-border-dark flex items-center gap-1 rounded-lg border border-border-light px-3 py-1.5 text-sm text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary disabled:opacity-50"
+              className="flex items-center gap-1 rounded-lg border border-border-light/60 bg-surface-secondary/50 px-3 py-1.5 text-sm font-medium text-text-secondary transition-all hover:bg-surface-hover disabled:opacity-50"
             >
               Next
               <ChevronRight className="h-4 w-4" />
@@ -436,7 +419,6 @@ export default function DashboardsView() {
         </div>
       )}
 
-      {/* Create Modal */}
       <CreateDashboardModal
         open={isCreateModalOpen}
         onOpenChange={setIsCreateModalOpen}
@@ -448,7 +430,6 @@ export default function DashboardsView() {
   );
 }
 
-// Header component
 interface TabConfig {
   id: string;
   label: string;
@@ -476,118 +457,103 @@ function Header({
   setActiveTab: (tab: FilterTab) => void;
   totalCount: number;
   chatLinkHandler: (e: React.MouseEvent<HTMLAnchorElement>) => void;
-  localize: (phraseKey: string) => string;
+  localize: (phraseKey: TranslationKeys, options?: TOptions) => string;
   onCreateClick: () => void;
   tabs: TabConfig[];
 }) {
   return (
-    <div className="bg-surface-primary/80 dark:border-border-dark sticky top-0 z-20 flex h-16 w-full flex-col border-b border-border-light backdrop-blur-md">
-      <div className="flex h-16 w-full items-center justify-between px-4 lg:px-6">
+    <div className="sticky top-0 z-20 w-full border-b border-border-light/60 bg-surface-primary/80 backdrop-blur-xl">
+      <div className="flex h-16 items-center justify-between px-4 lg:px-6">
         <div className="flex items-center gap-4">
           <a
             href="/"
             onClick={chatLinkHandler}
-            className="flex items-center gap-2 text-sm font-medium text-text-secondary transition-colors hover:text-text-primary"
+            className="group flex items-center gap-2 text-sm font-medium text-text-secondary transition-colors hover:text-text-primary"
           >
-            <ArrowLeft className="h-4 w-4" />
-            <span className="hidden text-base sm:inline">{localize('com_ui_back_to_chat')}</span>
+            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+            <span className="hidden text-sm font-medium sm:inline">{localize('com_ui_back_to_chat')}</span>
           </a>
-          <div className="dark:bg-border-dark h-6 w-px shrink-0 bg-border-light" />
-          <div className="flex items-center gap-2">
-            <h1 className="text-lg font-semibold text-text-primary">My Dashboards</h1>
+          <div className="h-5 w-px shrink-0 bg-border-light/60" />
+          <div className="flex items-center gap-3">
+            <h1 className="text-lg font-semibold text-text-primary">Dashboards Library</h1>
             {totalCount > 0 && (
-              <span className="rounded-full bg-surface-secondary px-2.5 py-0.5 text-xs font-medium text-text-secondary">
+              <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-surface-secondary px-2 text-xs font-semibold text-text-secondary ring-1 ring-border-light/50">
                 {totalCount}
               </span>
             )}
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Search */}
+        <div className="flex items-center gap-2.5">
           <div className="relative hidden sm:block">
-            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-tertiary" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-tertiary" />
             <input
               type="text"
               placeholder="Search dashboards..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-surface-primary/50 h-9 w-48 rounded-lg border border-border-light pl-8 pr-3 text-sm text-text-primary transition-all placeholder:text-text-tertiary focus:border-blue-500 focus:bg-surface-primary focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="h-9 w-52 rounded-xl border border-border-light/60 bg-surface-secondary/50 pl-9 pr-8 text-sm text-text-primary transition-all placeholder:text-text-tertiary focus:border-primary/30 focus:bg-surface-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
             />
             {searchTerm && (
               <button
                 onClick={() => setSearchTerm('')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-primary"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-0.5 text-text-tertiary transition-colors hover:bg-surface-hover hover:text-text-primary"
               >
-                <X className="h-3 w-3" />
+                <X className="h-3.5 w-3.5" />
               </button>
             )}
           </div>
 
-          {/* Tab filters as dropdown-style buttons */}
-          <div className="hidden items-center gap-1 md:flex">
+          <div className="hidden items-center gap-1.5 md:flex">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as FilterTab)}
                 className={cn(
-                  'flex h-9 items-center gap-1.5 rounded-lg border px-3 text-sm transition-colors',
+                  'flex h-9 items-center gap-1.5 rounded-xl border px-3 text-sm font-medium transition-all',
                   activeTab === tab.id
-                    ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400'
-                    : 'border-border-light text-text-secondary hover:bg-surface-hover hover:text-text-primary',
+                    ? 'border-primary/30 bg-primary/10 text-primary ring-1 ring-primary/10'
+                    : 'border-border-light/60 bg-surface-secondary/50 text-text-secondary hover:border-border-medium hover:bg-surface-hover hover:text-text-primary',
                 )}
               >
-                <tab.icon className="h-4 w-4" />
+                <tab.icon className={cn('h-4 w-4', activeTab === tab.id && 'fill-current')} />
                 <span className="hidden lg:inline">{tab.label}</span>
               </button>
             ))}
           </div>
 
-          {/* Mobile tab selector - shows active tab only */}
-          <div className="md:hidden">
-            {tabs.find((t) => t.id === activeTab) && (
-              <button className="flex h-9 items-center gap-1.5 rounded-lg border border-blue-500 bg-blue-50 px-3 text-sm text-blue-700 dark:bg-blue-950/30 dark:text-blue-400">
-                {React.createElement(tabs.find((t) => t.id === activeTab)!.icon, {
-                  className: 'h-4 w-4',
-                })}
-              </button>
-            )}
-          </div>
-
-          {/* Create button */}
           <button
             onClick={onCreateClick}
-            className="flex h-9 items-center gap-1.5 rounded-lg bg-blue-600 px-3 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+            className="flex h-9 items-center gap-1.5 rounded-xl bg-primary px-3 text-sm font-medium text-white shadow-sm transition-all hover:bg-primary/90 hover:shadow-md"
           >
             <Plus className="h-4 w-4" />
             <span className="hidden sm:inline">New</span>
           </button>
 
-          {/* View mode toggle */}
-          <div className="flex rounded-lg border border-border-light bg-surface-tertiary p-0.5">
+          <div className="flex items-center rounded-xl border border-border-light/60 bg-surface-secondary/50 p-1">
             <button
               onClick={() => setViewMode('grid')}
               className={cn(
-                'flex h-8 w-8 items-center justify-center rounded-md transition-all',
+                'flex h-7 w-7 items-center justify-center rounded-lg text-sm transition-all',
                 viewMode === 'grid'
-                  ? 'bg-surface-primary text-text-primary shadow-sm'
-                  : 'text-text-secondary hover:text-text-primary',
+                  ? 'bg-surface-primary text-text-primary shadow-sm ring-1 ring-border-light/50'
+                  : 'text-text-tertiary hover:text-text-primary',
               )}
               title="Grid view"
             >
-              <Grid3X3 className="h-4 w-4" />
+              <Grid3X3 className="h-3.5 w-3.5" />
             </button>
             <button
               onClick={() => setViewMode('list')}
               className={cn(
-                'flex h-8 w-8 items-center justify-center rounded-md transition-all',
+                'flex h-7 w-7 items-center justify-center rounded-lg text-sm transition-all',
                 viewMode === 'list'
-                  ? 'bg-surface-primary text-text-primary shadow-sm'
-                  : 'text-text-secondary hover:text-text-primary',
+                  ? 'bg-surface-primary text-text-primary shadow-sm ring-1 ring-border-light/50'
+                  : 'text-text-tertiary hover:text-text-primary',
               )}
               title="List view"
             >
-              <List className="h-4 w-4" />
+              <List className="h-3.5 w-3.5" />
             </button>
           </div>
         </div>
