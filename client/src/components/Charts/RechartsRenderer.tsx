@@ -25,18 +25,17 @@ import {
   ComposedChart,
 } from 'recharts';
 
-// Default color palette
 const DEFAULT_COLORS = [
-  '#8b5cf6', // violet-500
-  '#3b82f6', // blue-500
-  '#10b981', // emerald-500
-  '#f59e0b', // amber-500
-  '#ef4444', // red-500
-  '#ec4899', // pink-500
-  '#06b6d4', // cyan-500
-  '#f97316', // orange-500
-  '#14b8a6', // teal-500
-  '#6366f1', // indigo-500
+  '#8b5cf6',
+  '#3b82f6',
+  '#10b981',
+  '#f59e0b',
+  '#ef4444',
+  '#ec4899',
+  '#06b6d4',
+  '#f97316',
+  '#14b8a6',
+  '#6366f1',
 ];
 
 export type ChartType = 'bar' | 'line' | 'area' | 'pie' | 'scatter' | 'radar' | 'composed';
@@ -89,7 +88,6 @@ export interface RechartsRendererProps {
   className?: string;
 }
 
-// Format value based on axis config
 const formatValue = (value: unknown, format?: AxisConfig['format']): string => {
   if (value === null || value === undefined) return '';
 
@@ -110,7 +108,6 @@ const formatValue = (value: unknown, format?: AxisConfig['format']): string => {
   return formatted;
 };
 
-// Custom tooltip component
 const CustomTooltip = ({
   active,
   payload,
@@ -133,15 +130,28 @@ const CustomTooltip = ({
   };
 
   return (
-    <div className="rounded-lg border border-border-light bg-surface-primary p-2 shadow-lg">
-      <p className="mb-1 text-xs font-medium text-text-primary">
-        {xAxisConfig.label || xAxisConfig.field}: {label}
-      </p>
-      {payload.map((entry, index) => (
-        <p key={index} className="text-xs" style={{ color: entry.color }}>
-          {entry.name}: {formatValue(entry.value, getFormat(entry.name))}
+    <div className="overflow-hidden rounded-xl border border-border-light/60 bg-surface-primary shadow-lg ring-1 ring-black/5">
+      <div className="border-b border-border-light/60 bg-surface-secondary/50 px-3 py-2">
+        <p className="text-xs font-semibold text-text-primary">
+          {xAxisConfig.label || xAxisConfig.field}: {label}
         </p>
-      ))}
+      </div>
+      <div className="p-2">
+        {payload.map((entry, index) => (
+          <div key={index} className="flex items-center gap-2 py-1">
+            <div
+              className="h-2.5 w-2.5 rounded-full"
+              style={{ backgroundColor: entry.color }}
+            />
+            <span className="text-xs text-text-secondary">
+              {entry.name}:{' '}
+              <span className="font-semibold text-text-primary">
+                {formatValue(entry.value, getFormat(entry.name))}
+              </span>
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
@@ -166,7 +176,6 @@ export default function RechartsRenderer({
     stacked = false,
   } = config;
 
-  // Determine Y-axis fields
   const yAxes = useMemo(() => {
     if (series && series.length > 0) {
       return series;
@@ -179,7 +188,6 @@ export default function RechartsRenderer({
     }));
   }, [series, yAxis, colors]);
 
-  // Transform data for charts
   const chartData = useMemo(() => {
     return data.map((row) => ({
       ...row,
@@ -187,13 +195,12 @@ export default function RechartsRenderer({
     }));
   }, [data, xAxis.field]);
 
-  // Common components
   const commonXAxis = (
     <XAxis
       dataKey="_xValue"
       tick={{ fontSize: 11, fill: 'var(--text-secondary)' }}
-      tickLine={{ stroke: 'var(--border-light)' }}
-      axisLine={{ stroke: 'var(--border-light)' }}
+      tickLine={{ stroke: 'var(--border-light)', opacity: 0.5 }}
+      axisLine={{ stroke: 'var(--border-light)', opacity: 0.5 }}
       label={
         xAxis.label
           ? { value: xAxis.label, position: 'bottom', offset: -5, fontSize: 12 }
@@ -205,8 +212,8 @@ export default function RechartsRenderer({
   const commonYAxis = (
     <YAxis
       tick={{ fontSize: 11, fill: 'var(--text-secondary)' }}
-      tickLine={{ stroke: 'var(--border-light)' }}
-      axisLine={{ stroke: 'var(--border-light)' }}
+      tickLine={{ stroke: 'var(--border-light)', opacity: 0.5 }}
+      axisLine={{ stroke: 'var(--border-light)', opacity: 0.5 }}
       tickFormatter={(value) =>
         formatValue(value, Array.isArray(yAxis) ? yAxis[0]?.format : yAxis.format)
       }
@@ -214,7 +221,7 @@ export default function RechartsRenderer({
   );
 
   const commonGrid = showGrid ? (
-    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" opacity={0.5} />
+    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" opacity={0.3} />
   ) : null;
 
   const commonLegend = legend.show ? (
@@ -231,7 +238,6 @@ export default function RechartsRenderer({
     <Tooltip content={<CustomTooltip xAxisConfig={xAxis} yAxisConfig={yAxis} />} />
   ) : null;
 
-  // Render different chart types
   const renderChart = () => {
     switch (type) {
       case 'bar':
@@ -271,9 +277,9 @@ export default function RechartsRenderer({
                 dataKey={axis.field}
                 name={axis.name}
                 stroke={axis.color || colors[index % colors.length]}
-                strokeWidth={2}
-                dot={{ r: 4 }}
-                activeDot={{ r: 6 }}
+                strokeWidth={2.5}
+                dot={{ r: 4, strokeWidth: 2 }}
+                activeDot={{ r: 6, strokeWidth: 2 }}
                 isAnimationActive={animate}
               />
             ))}
@@ -296,7 +302,8 @@ export default function RechartsRenderer({
                 name={axis.name}
                 fill={axis.color || colors[index % colors.length]}
                 stroke={axis.color || colors[index % colors.length]}
-                fillOpacity={0.3}
+                fillOpacity={0.25}
+                strokeWidth={2}
                 stackId={stacked ? 'stack' : undefined}
                 isAnimationActive={animate}
               />
@@ -326,6 +333,8 @@ export default function RechartsRenderer({
               isAnimationActive={animate}
               label={({ name, percent }) => `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`}
               labelLine={false}
+              strokeWidth={2}
+              stroke="var(--surface-primary)"
             >
               {pieData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={entry.fill} />
@@ -375,9 +384,9 @@ export default function RechartsRenderer({
                     dataKey={axis.field}
                     name={axis.name}
                     stroke={color}
-                    strokeWidth={2}
-                    dot={{ r: 4 }}
-                    activeDot={{ r: 6 }}
+                    strokeWidth={2.5}
+                    dot={{ r: 4, strokeWidth: 2 }}
+                    activeDot={{ r: 6, strokeWidth: 2 }}
                     isAnimationActive={animate}
                   />
                 );
@@ -392,7 +401,8 @@ export default function RechartsRenderer({
                     name={axis.name}
                     fill={color}
                     stroke={color}
-                    fillOpacity={0.3}
+                    fillOpacity={0.25}
+                    strokeWidth={2}
                     stackId={stacked ? 'stack' : undefined}
                     isAnimationActive={animate}
                   />
@@ -416,11 +426,9 @@ export default function RechartsRenderer({
       }
 
       case 'radar': {
-        // Use all data points - the radar chart will handle the rendering
-        // Consider filtering server-side if there are too many categories
         return (
           <RadarChart data={chartData} cx="50%" cy="50%" outerRadius="80%">
-            <PolarGrid stroke="var(--border-light)" />
+            <PolarGrid stroke="var(--border-light)" opacity={0.3} />
             <PolarAngleAxis
               dataKey="_xValue"
               tick={{ fontSize: 10, fill: 'var(--text-secondary)' }}
@@ -435,7 +443,8 @@ export default function RechartsRenderer({
                 dataKey={axis.field}
                 stroke={axis.color || colors[index % colors.length]}
                 fill={axis.color || colors[index % colors.length]}
-                fillOpacity={0.3}
+                fillOpacity={0.25}
+                strokeWidth={2}
                 isAnimationActive={animate}
               />
             ))}
@@ -468,10 +477,13 @@ export default function RechartsRenderer({
   if (!data || data.length === 0) {
     return (
       <div
-        className={`flex items-center justify-center rounded-lg border border-border-light bg-surface-secondary ${className}`}
+        className={`flex items-center justify-center rounded-2xl border border-border-light/60 bg-surface-secondary/50 ${className}`}
         style={{ width, height }}
       >
-        <p className="text-sm text-text-secondary">No data available</p>
+        <div className="flex flex-col items-center gap-2">
+          <div className="h-10 w-10 rounded-xl bg-surface-tertiary" />
+          <p className="text-sm text-text-secondary">No data available</p>
+        </div>
       </div>
     );
   }

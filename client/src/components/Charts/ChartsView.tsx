@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom';
 import { Outlet, useNavigate } from 'react-router-dom';
 import {
   BarChart3,
-  Plus,
   Search,
   Grid3X3,
   List,
@@ -15,6 +14,7 @@ import {
   FileBarChart,
   ArrowLeft,
   X,
+  Sparkles,
 } from 'lucide-react';
 import {
   useGetChartsQuery,
@@ -40,7 +40,6 @@ import { OrgBadge } from '~/components/Organization';
 
 type ChartListItem = ChartsListResponse['charts'][number];
 
-// Lazy load chart editor modal
 const ChartEditorModal = lazy(() => import('./ChartEditorModal'));
 
 type ViewMode = 'grid' | 'list';
@@ -54,11 +53,8 @@ export default function ChartsView() {
   const [pinnedOnly, setPinnedOnly] = useState(false);
   const [selectedChartId, setSelectedChartId] = useState<string | null>(null);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
-
-  // Delete confirmation dialog state
   const [chartToDelete, setChartToDelete] = useState<string | null>(null);
 
-  // Get last conversation ID for back navigation
   const getConversationId = (prevPath: string) => {
     if (!prevPath || prevPath.includes('/d/')) {
       return 'new';
@@ -73,7 +69,6 @@ export default function ChartsView() {
   );
   const chatLinkHandler = useCustomLink('/c/' + lastConversationId);
 
-  // Fetch charts
   const {
     data: chartsData,
     isLoading,
@@ -84,17 +79,14 @@ export default function ChartsView() {
     pageSize: 50,
   });
 
-  // Mutations
   const deleteChartMutation = useDeleteChartMutation();
   const duplicateChartMutation = useDuplicateChartMutation();
   const updateChartMutation = useUpdateChartMutation();
 
-  // Filter charts based on search
   const charts = useMemo(() => {
     return chartsData?.charts || [];
   }, [chartsData]);
 
-  // Handle chart actions
   const handleDelete = (chartId: string) => {
     setChartToDelete(chartId);
   };
@@ -126,10 +118,9 @@ export default function ChartsView() {
     setIsEditorOpen(true);
   };
 
-  // Render empty state
   if (!isLoading && charts.length === 0 && !searchTerm && !pinnedOnly) {
     return (
-      <div className="flex h-screen w-full flex-col overflow-hidden bg-surface-primary">
+      <div className="flex h-screen w-full flex-col overflow-hidden bg-surface-primary-alt">
         <Header
           viewMode={viewMode}
           setViewMode={setViewMode}
@@ -141,30 +132,31 @@ export default function ChartsView() {
           chatLinkHandler={chatLinkHandler}
           localize={localize}
         />
-        <div className="flex flex-1 flex-col items-center justify-center overflow-auto p-8">
-          <div className="mb-4 rounded-full bg-surface-secondary p-4">
-            <FileBarChart className="h-12 w-12 text-text-tertiary" />
+        <div className="flex flex-1 items-center justify-center p-8">
+          <div className="flex max-w-md flex-col items-center text-center">
+            <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 ring-1 ring-primary/20">
+              <FileBarChart className="h-10 w-10 text-primary/70" />
+            </div>
+            <h3 className="mb-2 text-xl font-semibold text-text-primary">No charts yet</h3>
+            <p className="mb-6 text-sm leading-relaxed text-text-secondary">
+              Create your first chart from query results in the chat interface. Click the
+              &quot;Chart&quot; button next to export options to get started.
+            </p>
+            <button
+              onClick={() => navigate('/c/new')}
+              className="group flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-primary/90 hover:shadow-md"
+            >
+              <BarChart3 className="h-4 w-4 transition-transform group-hover:scale-110" />
+              Go to Chat
+            </button>
           </div>
-          <h3 className="mb-2 text-lg font-medium text-text-primary">No charts yet</h3>
-          <p className="mb-4 text-center text-sm text-text-secondary">
-            Create your first chart from query results in the chat interface.
-            <br />
-            Click the &quot;Chart&quot; button next to export options.
-          </p>
-          <button
-            onClick={() => navigate('/c/new')}
-            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:opacity-90"
-          >
-            <BarChart3 className="h-4 w-4" />
-            Go to Chat
-          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-hidden bg-surface-primary">
+    <div className="flex h-screen w-full flex-col overflow-hidden bg-surface-primary-alt">
       <Header
         viewMode={viewMode}
         setViewMode={setViewMode}
@@ -177,44 +169,54 @@ export default function ChartsView() {
         localize={localize}
       />
 
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-4 lg:p-6">
         {isLoading ? (
           <div
             className={cn(
-              viewMode === 'grid' ? 'grid gap-4 sm:grid-cols-2 lg:grid-cols-3' : 'space-y-3',
+              viewMode === 'grid'
+                ? 'grid gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4'
+                : 'space-y-3',
             )}
           >
             {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className={viewMode === 'grid' ? 'h-64' : 'h-20'} />
+              <Skeleton
+                key={i}
+                className={cn(
+                  viewMode === 'grid' ? 'h-72 rounded-2xl' : 'h-24 rounded-xl',
+                )}
+              />
             ))}
           </div>
         ) : error ? (
-          <div className="flex flex-col items-center justify-center py-12">
-            <p className="text-sm text-destructive">Failed to load charts</p>
+          <div className="flex flex-col items-center justify-center py-16">
+            <div className="mb-4 rounded-xl bg-destructive/10 p-4">
+              <X className="h-6 w-6 text-destructive" />
+            </div>
+            <p className="text-sm font-medium text-destructive">Failed to load charts</p>
             <button
               onClick={() => window.location.reload()}
-              className="mt-2 text-sm text-primary hover:underline"
+              className="mt-3 rounded-lg bg-primary/10 px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
             >
               Retry
             </button>
           </div>
         ) : charts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12">
-            <p className="text-text-secondary">No charts found</p>
+          <div className="flex flex-col items-center justify-center py-16">
+            <p className="text-sm text-text-secondary">No charts found</p>
             {(searchTerm || pinnedOnly) && (
               <button
                 onClick={() => {
                   setSearchTerm('');
                   setPinnedOnly(false);
                 }}
-                className="mt-2 text-sm text-primary hover:underline"
+                className="mt-3 rounded-lg bg-primary/10 px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
               >
                 Clear filters
               </button>
             )}
           </div>
         ) : viewMode === 'grid' ? (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {charts.map((chart) => (
               <ChartCard
                 key={chart._id}
@@ -242,7 +244,6 @@ export default function ChartsView() {
         )}
       </div>
 
-      {/* Chart Editor Modal */}
       {selectedChartId && isEditorOpen && (
         <Suspense fallback={null}>
           <ChartEditorModal
@@ -256,7 +257,6 @@ export default function ChartsView() {
         </Suspense>
       )}
 
-      {/* Delete Confirmation Dialog */}
       {chartToDelete && (
         <OGDialog open={!!chartToDelete} onOpenChange={(open) => !open && handleCancelDelete()}>
           <OGDialogContent className="sm:max-w-md">
@@ -296,7 +296,6 @@ export default function ChartsView() {
   );
 }
 
-// Header component
 function Header({
   viewMode,
   setViewMode,
@@ -319,96 +318,94 @@ function Header({
   localize: (phraseKey: TranslationKeys) => string;
 }) {
   return (
-    <div className="bg-surface-primary/80 sticky top-0 z-20 flex h-16 w-full items-center justify-between border-b border-border-light px-4 backdrop-blur-md lg:px-6">
-      <div className="flex items-center gap-4">
-        <a
-          href="/"
-          onClick={chatLinkHandler}
-          className="flex items-center gap-2 text-sm font-medium text-text-secondary transition-colors hover:text-text-primary"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          <span className="hidden text-base sm:inline">{localize('com_ui_back_to_chat')}</span>
-        </a>
-        <div className="h-6 w-px shrink-0 bg-border-light" />
-        <div className="flex items-center gap-2">
-          <h1 className="text-lg font-semibold text-text-primary">My Charts</h1>
-          {totalCharts > 0 && (
-            <span className="rounded-full bg-surface-secondary px-2.5 py-0.5 text-xs font-medium text-text-secondary">
-              {totalCharts}
-            </span>
-          )}
+    <div className="sticky top-0 z-20 w-full border-b border-border-light/60 bg-surface-primary/80 backdrop-blur-xl">
+      <div className="flex h-16 items-center justify-between px-4 lg:px-6">
+        <div className="flex items-center gap-4">
+          <a
+            href="/"
+            onClick={chatLinkHandler}
+            className="group flex items-center gap-2 text-sm font-medium text-text-secondary transition-colors hover:text-text-primary"
+          >
+            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+            <span className="hidden text-sm font-medium sm:inline">{localize('com_ui_back_to_chat')}</span>
+          </a>
+          <div className="h-5 w-px shrink-0 bg-border-light/60" />
+          <div className="flex items-center gap-3">
+            <h1 className="text-lg font-semibold text-text-primary">Charts Library</h1>
+            {totalCharts > 0 && (
+              <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-surface-secondary px-2 text-xs font-semibold text-text-secondary ring-1 ring-border-light/50">
+                {totalCharts}
+              </span>
+            )}
+          </div>
         </div>
-      </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        {/* Search */}
-        <div className="relative hidden sm:block">
-          <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-tertiary" />
-          <input
-            type="text"
-            placeholder="Search charts..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="bg-surface-primary/50 h-9 w-48 rounded-lg border border-border-light pl-8 pr-3 text-sm text-text-primary transition-all placeholder:text-text-tertiary focus:border-border-medium focus:bg-surface-primary focus:outline-none focus:ring-1 focus:ring-ring"
-          />
-          {searchTerm && (
+        <div className="flex items-center gap-2.5">
+          <div className="relative hidden sm:block">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-tertiary" />
+            <input
+              type="text"
+              placeholder="Search charts..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="h-9 w-52 rounded-xl border border-border-light/60 bg-surface-secondary/50 pl-9 pr-8 text-sm text-text-primary transition-all placeholder:text-text-tertiary focus:border-primary/30 focus:bg-surface-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-0.5 text-text-tertiary transition-colors hover:bg-surface-hover hover:text-text-primary"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+
+          <button
+            onClick={() => setPinnedOnly(!pinnedOnly)}
+            className={cn(
+              'flex h-9 items-center gap-1.5 rounded-xl border px-3 text-sm font-medium transition-all',
+              pinnedOnly
+                ? 'border-primary/30 bg-primary/10 text-primary ring-1 ring-primary/10'
+                : 'border-border-light/60 bg-surface-secondary/50 text-text-secondary hover:border-border-medium hover:bg-surface-hover hover:text-text-primary',
+            )}
+            title={pinnedOnly ? 'Show all charts' : 'Show pinned charts only'}
+          >
+            <Pin className={cn('h-4 w-4', pinnedOnly && 'fill-current')} />
+            <span className="hidden lg:inline">Pinned</span>
+          </button>
+
+          <div className="flex items-center rounded-xl border border-border-light/60 bg-surface-secondary/50 p-1">
             <button
-              onClick={() => setSearchTerm('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-primary"
+              onClick={() => setViewMode('grid')}
+              className={cn(
+                'flex h-7 w-7 items-center justify-center rounded-lg text-sm transition-all',
+                viewMode === 'grid'
+                  ? 'bg-surface-primary text-text-primary shadow-sm ring-1 ring-border-light/50'
+                  : 'text-text-tertiary hover:text-text-primary',
+              )}
+              title="Grid view"
             >
-              <X className="h-3 w-3" />
+              <Grid3X3 className="h-3.5 w-3.5" />
             </button>
-          )}
-        </div>
-
-        {/* Pinned filter */}
-        <button
-          onClick={() => setPinnedOnly(!pinnedOnly)}
-          className={cn(
-            'flex h-9 items-center gap-1.5 rounded-lg border px-3 text-sm transition-colors',
-            pinnedOnly
-              ? 'border-primary bg-primary/10 text-primary'
-              : 'border-border-light text-text-secondary hover:bg-surface-hover hover:text-text-primary',
-          )}
-          title={pinnedOnly ? 'Show all charts' : 'Show pinned charts only'}
-        >
-          <Pin className="h-4 w-4" />
-          <span className="hidden lg:inline">Pinned</span>
-        </button>
-
-        {/* View mode toggle */}
-        <div className="flex rounded-lg border border-border-light bg-surface-tertiary p-0.5">
-          <button
-            onClick={() => setViewMode('grid')}
-            className={cn(
-              'flex h-8 w-8 items-center justify-center rounded-md transition-all',
-              viewMode === 'grid'
-                ? 'bg-surface-primary text-text-primary shadow-sm'
-                : 'text-text-secondary hover:text-text-primary',
-            )}
-            title="Grid view"
-          >
-            <Grid3X3 className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => setViewMode('list')}
-            className={cn(
-              'flex h-8 w-8 items-center justify-center rounded-md transition-all',
-              viewMode === 'list'
-                ? 'bg-surface-primary text-text-primary shadow-sm'
-                : 'text-text-secondary hover:text-text-primary',
-            )}
-            title="List view"
-          >
-            <List className="h-4 w-4" />
-          </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={cn(
+                'flex h-7 w-7 items-center justify-center rounded-lg text-sm transition-all',
+                viewMode === 'list'
+                  ? 'bg-surface-primary text-text-primary shadow-sm ring-1 ring-border-light/50'
+                  : 'text-text-tertiary hover:text-text-primary',
+              )}
+              title="List view"
+            >
+              <List className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-// Chart card component for grid view
 function ChartCard({
   chart,
   onEdit,
@@ -424,28 +421,26 @@ function ChartCard({
 }) {
   return (
     <div
-      className="group relative cursor-pointer overflow-visible rounded-lg border border-border-light bg-surface-primary transition-shadow hover:shadow-lg"
+      className="group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-border-light/60 bg-surface-primary shadow-sm transition-all duration-200 hover:border-border-medium hover:shadow-md"
       onClick={onEdit}
     >
-      {/* Chart Preview */}
-      <div className="relative h-40 overflow-hidden bg-surface-secondary p-2">
+      <div className="relative h-44 overflow-hidden bg-gradient-to-br from-surface-secondary to-surface-tertiary/50 p-3">
         <RechartsRenderer
           config={chart.config as unknown as ChartConfig}
-          data={[]} // Preview with empty data - chart will render with no data label
-          height={144}
+          data={[]}
+          height={160}
         />
         {chart.pinned && (
-          <div className="absolute right-2 top-2">
-            <Pin className="h-4 w-4 text-primary" />
+          <div className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 ring-1 ring-primary/20">
+            <Pin className="h-3.5 w-3.5 fill-primary text-primary" />
           </div>
         )}
       </div>
 
-      {/* Card Info */}
-      <div className="p-3">
-        <div className="mb-1 flex items-start justify-between gap-2">
+      <div className="flex flex-col gap-2 p-4">
+        <div className="flex items-start justify-between gap-2">
           <div className="flex min-w-0 flex-1 items-center gap-2">
-            <h3 className="line-clamp-1 flex-1 font-medium text-text-primary">
+            <h3 className="line-clamp-1 flex-1 text-sm font-semibold text-text-primary">
               {chart.name}
             </h3>
             <OrgBadge organizationId={chart.organizationId} />
@@ -458,15 +453,21 @@ function ChartCard({
             isPinned={chart.pinned}
           />
         </div>
+
         {chart.description && (
-          <p className="mb-2 line-clamp-2 text-xs text-text-secondary">{chart.description}</p>
+          <p className="line-clamp-2 text-xs leading-relaxed text-text-secondary">
+            {chart.description}
+          </p>
         )}
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-text-tertiary">
-          <span className="whitespace-nowrap">{chart.rowCount} rows</span>
-          <span className="whitespace-nowrap">·</span>
-          <span className="whitespace-nowrap">{chart.config.type}</span>
-          <span className="whitespace-nowrap">·</span>
-          <span className="whitespace-nowrap">
+
+        <div className="mt-auto flex items-center gap-2 pt-2">
+          <span className="inline-flex items-center rounded-lg bg-surface-secondary px-2 py-1 text-[11px] font-medium text-text-secondary ring-1 ring-border-light/50">
+            {chart.rowCount} rows
+          </span>
+          <span className="inline-flex items-center rounded-lg bg-surface-secondary px-2 py-1 text-[11px] font-medium text-text-secondary ring-1 ring-border-light/50 capitalize">
+            {chart.config.type}
+          </span>
+          <span className="ml-auto text-[11px] text-text-tertiary">
             {new Date(chart.updatedAt).toLocaleDateString()}
           </span>
         </div>
@@ -475,7 +476,6 @@ function ChartCard({
   );
 }
 
-// Chart list item component for list view
 function ChartListItem({
   chart,
   onEdit,
@@ -491,33 +491,34 @@ function ChartListItem({
 }) {
   return (
     <div
-      className="group flex cursor-pointer items-center gap-4 rounded-lg border border-border-light bg-surface-primary p-3 transition-colors hover:bg-surface-hover"
+      className="group flex cursor-pointer items-center gap-4 rounded-xl border border-border-light/60 bg-surface-primary p-4 shadow-sm transition-all duration-200 hover:border-border-medium hover:shadow-md"
       onClick={onEdit}
     >
-      {/* Icon */}
-      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-surface-secondary">
+      <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 ring-1 ring-primary/10">
         <BarChart3 className="h-5 w-5 text-primary" />
       </div>
 
-      {/* Info */}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <h3 className="min-w-0 flex-1 truncate font-medium text-text-primary">{chart.name}</h3>
+          <h3 className="min-w-0 flex-1 truncate text-sm font-semibold text-text-primary">
+            {chart.name}
+          </h3>
           <OrgBadge organizationId={chart.organizationId} />
-          {chart.pinned && <Pin className="h-3 w-3 flex-shrink-0 text-primary" />}
+          {chart.pinned && (
+            <div className="flex h-5 w-5 items-center justify-center rounded-md bg-primary/10">
+              <Pin className="h-3 w-3 fill-primary text-primary" />
+            </div>
+          )}
         </div>
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-text-tertiary">
-          <span className="whitespace-nowrap">{chart.rowCount} rows</span>
-          <span className="whitespace-nowrap">·</span>
-          <span className="whitespace-nowrap">{chart.config.type}</span>
-          <span className="whitespace-nowrap">·</span>
-          <span className="whitespace-nowrap">
-            {new Date(chart.updatedAt).toLocaleDateString()}
-          </span>
+        <div className="mt-1 flex items-center gap-3 text-xs text-text-tertiary">
+          <span className="font-medium">{chart.rowCount} rows</span>
+          <span className="h-1 w-1 rounded-full bg-border-medium" />
+          <span className="capitalize">{chart.config.type}</span>
+          <span className="h-1 w-1 rounded-full bg-border-medium" />
+          <span>{new Date(chart.updatedAt).toLocaleDateString()}</span>
         </div>
       </div>
 
-      {/* Actions */}
       <ChartActions
         onEdit={onEdit}
         onDelete={onDelete}
@@ -529,7 +530,6 @@ function ChartListItem({
   );
 }
 
-// Chart actions dropdown
 function ChartActions({
   onEdit,
   onDelete,
@@ -554,7 +554,6 @@ function ChartActions({
     setIsOpen(false);
   };
 
-  // Calculate dropdown position
   useEffect(() => {
     if (isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
@@ -565,7 +564,6 @@ function ChartActions({
     }
   }, [isOpen]);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -593,7 +591,7 @@ function ChartActions({
             e.stopPropagation();
             setIsOpen(!isOpen);
           }}
-          className="rounded p-1 text-text-tertiary opacity-0 transition-opacity hover:bg-surface-hover group-hover:opacity-100"
+          className="rounded-lg p-1.5 text-text-tertiary opacity-0 transition-all hover:bg-surface-hover hover:text-text-primary group-hover:opacity-100"
           aria-label="Chart actions"
         >
           <MoreVertical className="h-4 w-4" />
@@ -606,33 +604,43 @@ function ChartActions({
             <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
             <div
               ref={dropdownRef}
-              className="fixed z-[100] w-36 rounded-lg border border-border-light bg-surface-primary py-1 shadow-xl"
+              className="fixed z-[100] w-44 overflow-hidden rounded-xl border border-border-light/60 bg-surface-primary shadow-xl ring-1 ring-black/5"
               style={{
                 top: `${dropdownPosition.top}px`,
                 right: `${dropdownPosition.right}px`,
               }}
             >
-              <button
-                onClick={(e) => handleAction(e, onTogglePin)}
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-text-primary hover:bg-surface-hover"
-              >
-                <Pin className="h-4 w-4 flex-shrink-0" />
-                <span>{isPinned ? 'Unpin' : 'Pin'}</span>
-              </button>
-              <button
-                onClick={(e) => handleAction(e, onDuplicate)}
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-text-primary hover:bg-surface-hover"
-              >
-                <Copy className="h-4 w-4 flex-shrink-0" />
-                <span>Duplicate</span>
-              </button>
-              <button
-                onClick={(e) => handleAction(e, onDelete)}
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-destructive hover:bg-surface-hover"
-              >
-                <Trash2 className="h-4 w-4 flex-shrink-0" />
-                <span>Delete</span>
-              </button>
+              <div className="p-1">
+                <button
+                  onClick={(e) => handleAction(e, onEdit)}
+                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-text-primary transition-colors hover:bg-surface-hover"
+                >
+                  <Sparkles className="h-4 w-4 text-text-secondary" />
+                  <span>Edit</span>
+                </button>
+                <button
+                  onClick={(e) => handleAction(e, onTogglePin)}
+                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-text-primary transition-colors hover:bg-surface-hover"
+                >
+                  <Pin className={cn('h-4 w-4 text-text-secondary', isPinned && 'fill-current text-primary')} />
+                  <span>{isPinned ? 'Unpin' : 'Pin'}</span>
+                </button>
+                <div className="my-1 h-px bg-border-light/60" />
+                <button
+                  onClick={(e) => handleAction(e, onDuplicate)}
+                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-text-primary transition-colors hover:bg-surface-hover"
+                >
+                  <Copy className="h-4 w-4 text-text-secondary" />
+                  <span>Duplicate</span>
+                </button>
+                <button
+                  onClick={(e) => handleAction(e, onDelete)}
+                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-destructive transition-colors hover:bg-destructive/10"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  <span>Delete</span>
+                </button>
+              </div>
             </div>
           </>,
           document.body,

@@ -18,6 +18,7 @@ import {
   ChevronDown,
   History,
   AlertCircle,
+  X,
 } from 'lucide-react';
 import { OGDialog, OGDialogContent, OGDialogHeader, OGDialogTitle } from '@librechat/client';
 import {
@@ -34,7 +35,6 @@ interface ChartEditorModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
-// Chart type options
 const CHART_TYPES: {
   type: ChartType;
   label: string;
@@ -49,7 +49,6 @@ const CHART_TYPES: {
   { type: 'radar', label: 'Radar', icon: Hexagon, description: 'Compare multivariate data' },
 ];
 
-// Curated color palettes
 const COLOR_PALETTES = [
   {
     name: 'Studio',
@@ -88,20 +87,18 @@ const COLOR_PALETTES = [
   },
 ];
 
-// Section header component
 const SectionHeader: React.FC<{ icon: React.ElementType; label: string }> = ({
   icon: Icon,
   label,
 }) => (
   <div className="mb-3 flex items-center gap-2">
-    <Icon className="icon-sm text-text-secondary" strokeWidth={2} />
-    <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-text-secondary">
+    <Icon className="h-4 w-4 text-text-secondary" strokeWidth={2} />
+    <span className="text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
       {label}
     </span>
   </div>
 );
 
-// Custom select component
 const CustomSelect: React.FC<{
   value: string;
   onChange: (value: string) => void;
@@ -114,37 +111,41 @@ const CustomSelect: React.FC<{
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex w-full items-center justify-between rounded-lg border border-border-light bg-surface-primary px-3 py-2.5 text-sm text-text-primary transition-all hover:border-border-medium hover:bg-surface-secondary"
+        className="flex w-full items-center justify-between rounded-xl border border-border-light/60 bg-surface-secondary/50 px-3.5 py-2.5 text-sm text-text-primary transition-all hover:border-border-medium hover:bg-surface-hover"
       >
-        <span>{selected?.label}</span>
+        <span className="truncate">{selected?.label || 'Select...'}</span>
         <ChevronDown
-          className={cn('icon-sm text-text-secondary transition-transform', isOpen && 'rotate-180')}
+          className={cn('h-4 w-4 flex-shrink-0 text-text-tertiary transition-transform', isOpen && 'rotate-180')}
         />
       </button>
       {isOpen && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-          <div className="absolute top-full z-50 mt-1 w-full overflow-hidden rounded-lg border border-border-light bg-surface-primary shadow-xl">
-            {options.map((option) => (
-              <button
-                key={option.value}
-                onClick={() => {
-                  onChange(option.value);
-                  setIsOpen(false);
-                }}
-                className={cn(
-                  'flex w-full items-center justify-between px-3 py-2.5 text-left text-sm transition-colors',
-                  value === option.value
-                    ? 'bg-surface-active text-text-primary'
-                    : 'text-text-secondary hover:bg-surface-hover',
-                )}
-              >
-                <span>{option.label}</span>
-                {option.type && (
-                  <span className="text-[10px] text-text-secondary">{option.type}</span>
-                )}
-              </button>
-            ))}
+          <div className="absolute top-full z-50 mt-1.5 w-full overflow-hidden rounded-xl border border-border-light/60 bg-surface-primary shadow-xl ring-1 ring-black/5">
+            <div className="max-h-60 overflow-y-auto p-1">
+              {options.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => {
+                    onChange(option.value);
+                    setIsOpen(false);
+                  }}
+                  className={cn(
+                    'flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors',
+                    value === option.value
+                      ? 'bg-primary/10 font-medium text-primary'
+                      : 'text-text-secondary hover:bg-surface-hover',
+                  )}
+                >
+                  <span className="truncate">{option.label}</span>
+                  {option.type && (
+                    <span className="ml-2 rounded-md bg-surface-secondary px-1.5 py-0.5 text-[10px] font-medium text-text-tertiary">
+                      {option.type}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
         </>
       )}
@@ -152,8 +153,33 @@ const CustomSelect: React.FC<{
   );
 };
 
+const ToggleSwitch: React.FC<{ checked: boolean; onChange: () => void; label: string }> = ({
+  checked,
+  onChange,
+  label,
+}) => (
+  <button
+    onClick={onChange}
+    className="flex w-full items-center justify-between rounded-xl border border-border-light/60 bg-surface-secondary/50 px-4 py-3 transition-all hover:border-border-medium"
+  >
+    <span className="text-sm text-text-secondary">{label}</span>
+    <div
+      className={cn(
+        'relative h-5 w-9 rounded-full transition-colors',
+        checked ? 'bg-primary' : 'bg-surface-tertiary',
+      )}
+    >
+      <div
+        className={cn(
+          'absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform',
+          checked ? 'left-4' : 'left-0.5',
+        )}
+      />
+    </div>
+  </button>
+);
+
 export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartEditorModalProps) {
-  // Fetch chart data
   const {
     data: chartData,
     isLoading,
@@ -166,12 +192,10 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
   const updateChartMutation = useUpdateChartMutation();
   const refreshChartMutation = useRefreshChartDataMutation();
 
-  // Check if chart has queryRef for refresh capability
   const canRefresh = useMemo(() => {
     return chartData?.chart?.queryRef?.sql && chartData?.chart?.queryRef?.connectionId;
   }, [chartData]);
 
-  // Handle refresh - re-run the SQL query to get fresh data
   const handleRefresh = useCallback(async () => {
     if (!canRefresh) return;
     try {
@@ -182,7 +206,6 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
     }
   }, [chartId, canRefresh, refreshChartMutation, refetch]);
 
-  // Chart configuration state
   const [chartName, setChartName] = useState('');
   const [chartDescription, setChartDescription] = useState('');
   const [chartType, setChartType] = useState<ChartType>('bar');
@@ -195,7 +218,6 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
   const [hasChanges, setHasChanges] = useState(false);
   const [activeTab, setActiveTab] = useState<'configure' | 'data'>('configure');
 
-  // Initialize state from fetched chart
   useEffect(() => {
     if (chartData?.chart) {
       const chart = chartData.chart;
@@ -211,10 +233,8 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
       setShowGrid(chart.config.showGrid ?? true);
       setStacked(chart.config.stacked ?? false);
 
-      // Find matching color palette using robust array comparison
       if (chart.config.colors && chart.config.colors.length > 0) {
         const paletteIndex = COLOR_PALETTES.findIndex((p) => {
-          // Compare first 4 colors with case-insensitive matching
           const paletteColors = p.colors.slice(0, 4);
           const chartColors = chart.config.colors?.slice(0, 4) || [];
 
@@ -231,7 +251,6 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
     }
   }, [chartData]);
 
-  // Track changes
   useEffect(() => {
     if (chartData?.chart) {
       setHasChanges(true);
@@ -248,12 +267,10 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
     chartDescription,
   ]);
 
-  // Get headers from data
   const headers = useMemo(() => {
     return chartData?.data?.columns?.map((c) => c.name) || [];
   }, [chartData]);
 
-  // Get column types
   const columnTypes = useMemo(() => {
     const types: Record<string, string> = {};
     chartData?.data?.columns?.forEach((c) => {
@@ -262,7 +279,6 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
     return types;
   }, [chartData]);
 
-  // Transform data for chart
   const chartDisplayData = useMemo(() => {
     if (!chartData?.data?.rows || !xAxisField) return [];
     return chartData.data.rows.map((row) => {
@@ -276,7 +292,6 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
     });
   }, [chartData, xAxisField, yAxisFields]);
 
-  // Build chart config
   const chartConfig: ChartConfig = useMemo(() => {
     return {
       type: chartType,
@@ -307,7 +322,6 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
     stacked,
   ]);
 
-  // Handle Y-axis field toggle
   const toggleYAxisField = useCallback((field: string) => {
     setYAxisFields((prev) => {
       if (prev.includes(field)) {
@@ -317,7 +331,6 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
     });
   }, []);
 
-  // Handle save
   const handleSave = useCallback(async () => {
     try {
       await updateChartMutation.mutateAsync({
@@ -334,7 +347,6 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
     }
   }, [chartId, chartName, chartDescription, chartConfig, updateChartMutation]);
 
-  // Handle close with discard confirmation
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
   const [pendingCloseAction, setPendingCloseAction] = useState<(() => void) | null>(null);
 
@@ -369,15 +381,16 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
     return (
       <OGDialog open={open} onOpenChange={onOpenChange}>
         <OGDialogContent
-          className="flex max-h-[90vh] w-[95vw] max-w-6xl flex-col border-border-heavy bg-surface-secondary p-0 shadow-2xl"
+          className="flex max-h-[90vh] w-[95vw] max-w-6xl flex-col rounded-2xl border-border-light/60 bg-surface-primary p-0 shadow-2xl"
           title="Loading..."
         >
-          <div className="flex flex-1 items-center justify-center p-8">
+          <div className="flex flex-1 items-center justify-center p-12">
             <div className="flex flex-col items-center gap-4">
-              <Loader2
-                className="h-8 w-8 animate-spin"
-                style={{ color: currentPalette.colors[0] }}
-              />
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                <Loader2
+                  className="h-6 w-6 animate-spin text-primary"
+                />
+              </div>
               <p className="text-sm text-text-secondary">Loading chart data...</p>
             </div>
           </div>
@@ -390,15 +403,17 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
     return (
       <OGDialog open={open} onOpenChange={onOpenChange}>
         <OGDialogContent
-          className="flex max-h-[90vh] w-[95vw] max-w-6xl flex-col border-border-heavy bg-surface-secondary p-0 shadow-2xl"
+          className="flex max-h-[90vh] w-[95vw] max-w-6xl flex-col rounded-2xl border-border-light/60 bg-surface-primary p-0 shadow-2xl"
           title="Error"
         >
-          <div className="flex flex-1 flex-col items-center justify-center p-8">
-            <AlertCircle className="mb-3 h-10 w-10 text-surface-destructive" />
-            <p className="text-text-secondary">Failed to load chart</p>
+          <div className="flex flex-1 flex-col items-center justify-center p-12">
+            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-destructive/10">
+              <AlertCircle className="h-7 w-7 text-destructive" />
+            </div>
+            <p className="text-sm font-medium text-text-secondary">Failed to load chart</p>
             <button
               onClick={() => refetch()}
-              className="mt-4 rounded-lg bg-text-primary px-4 py-2 text-sm font-medium text-surface-primary transition-colors hover:opacity-90"
+              className="mt-4 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90"
             >
               Retry
             </button>
@@ -412,19 +427,18 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
     <>
       <OGDialog open={open} onOpenChange={handleOpenChange}>
         <OGDialogContent
-          className="flex max-h-[92vh] w-[95vw] max-w-6xl flex-col overflow-hidden border-border-heavy bg-surface-secondary p-0 shadow-2xl"
+          className="flex max-h-[92vh] w-[95vw] max-w-6xl flex-col overflow-hidden rounded-2xl border-border-light/60 bg-surface-primary p-0 shadow-2xl"
           title={chartName || 'Edit Chart'}
           showCloseButton={false}
         >
-          {/* Header */}
-          <OGDialogHeader className="bg-surface-secondary/50 flex-shrink-0 border-b border-border-light px-6 py-4">
+          <OGDialogHeader className="flex-shrink-0 border-b border-border-light/60 px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div
-                  className="flex h-10 w-10 items-center justify-center rounded-xl"
+                  className="flex h-11 w-11 items-center justify-center rounded-xl ring-1"
                   style={{
-                    background: `linear-gradient(135deg, ${currentPalette.colors[0]}20, ${currentPalette.colors[1]}20)`,
-                    border: `1px solid ${currentPalette.colors[0]}40`,
+                    background: `linear-gradient(135deg, ${currentPalette.colors[0]}15, ${currentPalette.colors[1]}15)`,
+                    borderColor: `${currentPalette.colors[0]}30`,
                   }}
                 >
                   <BarChart3 className="h-5 w-5" style={{ color: currentPalette.colors[0] }} />
@@ -453,7 +467,7 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
                   <button
                     onClick={handleRefresh}
                     disabled={refreshChartMutation.isLoading}
-                    className="flex items-center gap-2 rounded-lg border border-border-light px-3 py-2 text-sm text-text-secondary transition-all hover:border-border-medium hover:text-text-primary disabled:opacity-50"
+                    className="flex items-center gap-2 rounded-xl border border-border-light/60 bg-surface-secondary/50 px-3.5 py-2 text-sm font-medium text-text-secondary transition-all hover:border-border-medium hover:text-text-primary disabled:opacity-50"
                     title="Refresh data from database"
                   >
                     {refreshChartMutation.isLoading ? (
@@ -467,7 +481,7 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
                 <button
                   onClick={handleSave}
                   disabled={!hasChanges || updateChartMutation.isLoading}
-                  className="group relative flex items-center gap-2 overflow-hidden rounded-lg px-4 py-2 text-sm font-medium text-white transition-all disabled:opacity-50"
+                  className="group flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:shadow-md disabled:opacity-50 disabled:hover:shadow-sm"
                   style={{
                     background: !hasChanges
                       ? '#9CA3AF'
@@ -486,67 +500,62 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
           </OGDialogHeader>
 
           <div className="relative flex min-h-0 flex-1">
-            {/* Left Sidebar - Configuration */}
-            <div className="bg-surface-secondary/30 flex w-72 flex-col border-r border-border-light">
-              {/* Tab Navigation */}
-              <div className="flex border-b border-border-light">
+            <div className="flex w-72 flex-col border-r border-border-light/60 bg-surface-primary-alt">
+              <div className="flex border-b border-border-light/60">
                 <button
                   onClick={() => setActiveTab('configure')}
                   className={cn(
-                    'flex flex-1 items-center justify-center gap-2 py-3 text-xs font-medium uppercase tracking-wider transition-all',
+                    'flex flex-1 items-center justify-center gap-2 py-3 text-xs font-semibold uppercase tracking-wider transition-all',
                     activeTab === 'configure'
-                      ? 'border-b-2 border-text-primary text-text-primary'
+                      ? 'border-b-2 border-primary text-primary'
                       : 'text-text-secondary hover:text-text-primary',
                   )}
                 >
-                  <Settings2 className="h-3.5 w-3.5" />
+                  <Settings2 className="h-4 w-4" />
                   Configure
                 </button>
                 <button
                   onClick={() => setActiveTab('data')}
                   className={cn(
-                    'flex flex-1 items-center justify-center gap-2 py-3 text-xs font-medium uppercase tracking-wider transition-all',
+                    'flex flex-1 items-center justify-center gap-2 py-3 text-xs font-semibold uppercase tracking-wider transition-all',
                     activeTab === 'data'
-                      ? 'border-b-2 border-text-primary text-text-primary'
+                      ? 'border-b-2 border-primary text-primary'
                       : 'text-text-secondary hover:text-text-primary',
                   )}
                 >
-                  <Database className="h-3.5 w-3.5" />
+                  <Database className="h-4 w-4" />
                   Data
                 </button>
               </div>
 
-              {/* Tab Content */}
               <div className="flex-1 overflow-y-auto p-4">
                 {activeTab === 'configure' ? (
                   <div className="space-y-6">
-                    {/* Name & Description */}
                     <div className="space-y-3">
                       <div>
-                        <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.15em] text-text-secondary">
+                        <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
                           Chart Name
                         </label>
                         <input
                           type="text"
                           value={chartName}
                           onChange={(e) => setChartName(e.target.value)}
-                          className="w-full rounded-lg border border-border-light bg-surface-primary px-3 py-2 text-sm text-text-primary focus:border-border-xheavy focus:outline-none focus:ring-1 focus:ring-ring"
+                          className="w-full rounded-xl border border-border-light/60 bg-surface-secondary/50 px-3.5 py-2.5 text-sm text-text-primary transition-all focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10"
                         />
                       </div>
                       <div>
-                        <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.15em] text-text-secondary">
+                        <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
                           Description
                         </label>
                         <textarea
                           value={chartDescription}
                           onChange={(e) => setChartDescription(e.target.value)}
                           rows={2}
-                          className="w-full resize-none rounded-lg border border-border-light bg-surface-primary px-3 py-2 text-sm text-text-primary focus:border-border-xheavy focus:outline-none focus:ring-1 focus:ring-ring"
+                          className="w-full resize-none rounded-xl border border-border-light/60 bg-surface-secondary/50 px-3.5 py-2.5 text-sm text-text-primary transition-all focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10"
                         />
                       </div>
                     </div>
 
-                    {/* Chart Type */}
                     <div>
                       <SectionHeader icon={BarChart3} label="Visualization" />
                       <div className="grid grid-cols-2 gap-2">
@@ -555,36 +564,36 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
                             key={type}
                             onClick={() => setChartType(type)}
                             className={cn(
-                              'group relative flex flex-col items-start gap-2 rounded-lg border p-3 text-left transition-all',
+                              'group relative flex flex-col items-start gap-2 rounded-xl border p-3 text-left transition-all',
                               chartType === type
-                                ? 'border-border-xheavy bg-surface-active'
-                                : 'border-border-light bg-surface-primary hover:border-border-medium hover:bg-surface-hover',
+                                ? 'border-primary/30 bg-primary/5 ring-1 ring-primary/10'
+                                : 'border-border-light/60 bg-surface-secondary/50 hover:border-border-medium hover:bg-surface-hover',
                             )}
                           >
                             <Icon
                               className={cn(
                                 'h-4 w-4 transition-colors',
                                 chartType === type
-                                  ? 'text-text-primary'
+                                  ? 'text-primary'
                                   : 'text-text-secondary group-hover:text-text-primary',
                               )}
                             />
                             <div>
                               <div
                                 className={cn(
-                                  'text-xs font-medium',
+                                  'text-xs font-semibold',
                                   chartType === type ? 'text-text-primary' : 'text-text-secondary',
                                 )}
                               >
                                 {label}
                               </div>
-                              <div className="mt-0.5 text-[10px] leading-tight text-text-secondary">
+                              <div className="mt-0.5 text-[10px] leading-tight text-text-tertiary">
                                 {description}
                               </div>
                             </div>
                             {chartType === type && (
                               <div className="absolute right-2 top-2">
-                                <Check className="icon-xs text-text-primary" />
+                                <Check className="h-3.5 w-3.5 text-primary" />
                               </div>
                             )}
                           </button>
@@ -592,12 +601,11 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
                       </div>
                     </div>
 
-                    {/* Axes Configuration */}
                     <div>
                       <SectionHeader icon={Axis3D} label="Axes" />
                       <div className="space-y-3">
                         <div>
-                          <label className="mb-1.5 block text-[10px] font-medium uppercase tracking-wider text-text-secondary">
+                          <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-text-secondary">
                             X-Axis (Category)
                           </label>
                           <CustomSelect
@@ -612,10 +620,10 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
                         </div>
 
                         <div>
-                          <label className="mb-1.5 block text-[10px] font-medium uppercase tracking-wider text-text-secondary">
+                          <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-text-secondary">
                             Y-Axis (Values)
                           </label>
-                          <div className="space-y-1">
+                          <div className="space-y-1.5">
                             {headers
                               .filter((h) => h !== xAxisField)
                               .map((header) => {
@@ -625,14 +633,14 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
                                     key={header}
                                     onClick={() => toggleYAxisField(header)}
                                     className={cn(
-                                      'flex w-full items-center justify-between rounded-lg border px-3 py-2 text-sm transition-all',
+                                      'flex w-full items-center justify-between rounded-xl border px-3.5 py-2.5 text-sm transition-all',
                                       isSelected
-                                        ? 'border-border-xheavy bg-surface-active text-text-primary'
-                                        : 'border-border-light bg-surface-primary text-text-secondary hover:border-border-medium hover:bg-surface-hover',
+                                        ? 'border-primary/30 bg-primary/5 font-medium text-text-primary ring-1 ring-primary/10'
+                                        : 'border-border-light/60 bg-surface-secondary/50 text-text-secondary hover:border-border-medium hover:bg-surface-hover',
                                     )}
                                   >
                                     <span className="text-xs">{header}</span>
-                                    {isSelected && <Check className="icon-xs" />}
+                                    {isSelected && <Check className="h-3.5 w-3.5 text-primary" />}
                                   </button>
                                 );
                               })}
@@ -641,7 +649,6 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
                       </div>
                     </div>
 
-                    {/* Color Palette */}
                     <div>
                       <SectionHeader icon={Palette} label="Color System" />
                       <div className="space-y-2">
@@ -650,10 +657,10 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
                             key={palette.name}
                             onClick={() => setSelectedPalette(index)}
                             className={cn(
-                              'flex w-full items-center gap-3 rounded-lg border p-2.5 transition-all',
+                              'flex w-full items-center gap-3 rounded-xl border p-3 transition-all',
                               selectedPalette === index
-                                ? 'border-border-xheavy bg-surface-secondary'
-                                : 'border-transparent hover:border-border-light hover:bg-surface-secondary',
+                                ? 'border-primary/30 bg-primary/5 ring-1 ring-primary/10'
+                                : 'border-transparent hover:border-border-light/60 hover:bg-surface-secondary/50',
                             )}
                           >
                             <div className="flex -space-x-1.5">
@@ -667,7 +674,7 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
                             </div>
                             <span
                               className={cn(
-                                'text-xs font-medium',
+                                'text-xs font-semibold',
                                 selectedPalette === index
                                   ? 'text-text-primary'
                                   : 'text-text-secondary',
@@ -676,79 +683,56 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
                               {palette.name}
                             </span>
                             {selectedPalette === index && (
-                              <Check className="icon-sm ml-auto text-text-primary" />
+                              <Check className="ml-auto h-4 w-4 text-primary" />
                             )}
                           </button>
                         ))}
                       </div>
                     </div>
 
-                    {/* Options */}
                     <div>
                       <SectionHeader icon={Settings2} label="Options" />
                       <div className="space-y-2">
-                        {[
-                          {
-                            key: 'legend',
-                            label: 'Show Legend',
-                            value: showLegend,
-                            set: setShowLegend,
-                          },
-                          { key: 'grid', label: 'Show Grid', value: showGrid, set: setShowGrid },
-                          ...(chartType === 'bar' || chartType === 'area'
-                            ? [
-                                {
-                                  key: 'stacked',
-                                  label: 'Stack Values',
-                                  value: stacked,
-                                  set: setStacked,
-                                },
-                              ]
-                            : []),
-                        ].map((option) => (
-                          <button
-                            key={option.key}
-                            onClick={() => option.set(!option.value)}
-                            className="flex w-full items-center justify-between rounded-lg border border-border-light bg-surface-primary px-3 py-2 text-sm transition-all hover:border-border-medium"
-                          >
-                            <span className="text-xs text-text-secondary">{option.label}</span>
-                            <div
-                              className={cn(
-                                'flex h-4 w-7 items-center rounded-full transition-colors',
-                                option.value ? 'bg-text-primary' : 'bg-surface-tertiary',
-                              )}
-                            >
-                              <div
-                                className={cn(
-                                  'h-3 w-3 rounded-full bg-surface-primary transition-transform',
-                                  option.value ? 'translate-x-3.5' : 'translate-x-0.5',
-                                )}
-                              />
-                            </div>
-                          </button>
-                        ))}
+                        <ToggleSwitch
+                          checked={showLegend}
+                          onChange={() => setShowLegend(!showLegend)}
+                          label="Show Legend"
+                        />
+                        <ToggleSwitch
+                          checked={showGrid}
+                          onChange={() => setShowGrid(!showGrid)}
+                          label="Show Grid"
+                        />
+                        {(chartType === 'bar' || chartType === 'area') && (
+                          <ToggleSwitch
+                            checked={stacked}
+                            onChange={() => setStacked(!stacked)}
+                            label="Stack Values"
+                          />
+                        )}
                       </div>
                     </div>
                   </div>
                 ) : (
-                  /* Data Tab */
                   <div className="space-y-4">
-                    <div className="rounded-lg border border-border-light bg-surface-primary p-3">
-                      <div className="mb-2 flex items-center gap-2 text-xs text-text-secondary">
-                        <Database className="h-3.5 w-3.5" />
-                        <span>Data Preview</span>
-                        <span className="ml-auto text-[10px] text-text-secondary-alt">
+                    <div className="overflow-hidden rounded-xl border border-border-light/60 bg-surface-secondary/50">
+                      <div className="flex items-center justify-between border-b border-border-light/60 px-4 py-3">
+                        <div className="flex items-center gap-2 text-xs font-medium text-text-secondary">
+                          <Database className="h-4 w-4" />
+                          <span>Data Preview</span>
+                        </div>
+                        <span className="rounded-lg bg-surface-primary px-2 py-1 text-[10px] font-semibold text-text-tertiary ring-1 ring-border-light/50">
                           {chartData.data.rowCount} rows
                         </span>
                       </div>
                       <div className="overflow-x-auto">
-                        <table className="w-full text-[10px]">
+                        <table className="w-full text-[11px]">
                           <thead>
-                            <tr className="border-b border-border-light">
+                            <tr className="border-b border-border-light/60 bg-surface-primary/50">
                               {headers.map((header) => (
                                 <th
                                   key={header}
-                                  className="pb-2 text-left font-medium text-text-secondary"
+                                  className="px-4 py-2.5 text-left font-semibold text-text-secondary"
                                 >
                                   {header}
                                 </th>
@@ -757,9 +741,12 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
                           </thead>
                           <tbody>
                             {chartData.data.rows.slice(0, 5).map((row, i) => (
-                              <tr key={i} className="border-b border-border-light last:border-0">
+                              <tr
+                                key={i}
+                                className="border-b border-border-light/40 last:border-0"
+                              >
                                 {headers.map((header, j) => (
-                                  <td key={j} className="py-2 text-text-secondary">
+                                  <td key={j} className="px-4 py-2 text-text-secondary">
                                     {String(row[header])}
                                   </td>
                                 ))}
@@ -769,28 +756,27 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
                         </table>
                       </div>
                       {chartData.data.rowCount > 5 && (
-                        <div className="mt-2 text-center text-[10px] text-text-secondary-alt">
+                        <div className="border-t border-border-light/60 px-4 py-2 text-center text-[11px] font-medium text-text-tertiary">
                           + {chartData.data.rowCount - 5} more rows
                         </div>
                       )}
                     </div>
 
                     <div className="space-y-2">
-                      <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-text-secondary">
+                      <div className="text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
                         Column Types
                       </div>
                       {chartData.data.columns.map((col) => (
                         <div
                           key={col.name}
-                          className="flex items-center justify-between rounded-lg border border-border-light bg-surface-primary px-3 py-2"
+                          className="flex items-center justify-between rounded-xl border border-border-light/60 bg-surface-secondary/50 px-4 py-2.5"
                         >
-                          <span className="text-xs text-text-secondary">{col.name}</span>
+                          <span className="text-xs font-medium text-text-secondary">{col.name}</span>
                           <span
                             className={cn(
-                              'rounded px-1.5 py-0.5 text-[10px] font-medium uppercase',
-                              col.type === 'number' && 'bg-surface-submit/10 text-surface-submit',
-                              col.type === 'date' &&
-                                'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+                              'rounded-lg px-2 py-1 text-[10px] font-semibold uppercase',
+                              col.type === 'number' && 'bg-primary/10 text-primary',
+                              col.type === 'date' && 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
                               col.type === 'string' && 'bg-surface-active-alt text-text-secondary',
                             )}
                           >
@@ -804,33 +790,30 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
               </div>
             </div>
 
-            {/* Main Preview Area */}
             <div className="flex min-h-0 flex-1 flex-col bg-surface-primary-alt">
-              {/* Preview Header */}
-              <div className="flex items-center justify-between border-b border-border-light px-6 py-3">
+              <div className="flex items-center justify-between border-b border-border-light/60 px-6 py-3">
                 <div className="flex items-center gap-2">
-                  <Eye className="h-3.5 w-3.5 text-text-secondary" />
-                  <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-text-secondary">
+                  <Eye className="h-4 w-4 text-text-secondary" />
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
                     Live Preview
                   </span>
                 </div>
-                <div className="flex items-center gap-4 text-xs text-text-secondary">
-                  <span>{chartDisplayData.length} data points</span>
-                  <span className="h-1 w-1 rounded-full bg-border-medium" />
-                  <span>{yAxisFields.length} series</span>
+                <div className="flex items-center gap-3 text-xs text-text-secondary">
+                  <span className="rounded-lg bg-surface-secondary/50 px-2 py-1 ring-1 ring-border-light/50">
+                    {chartDisplayData.length} data points
+                  </span>
+                  <span className="rounded-lg bg-surface-secondary/50 px-2 py-1 ring-1 ring-border-light/50">
+                    {yAxisFields.length} series
+                  </span>
                   {hasChanges && (
-                    <>
-                      <span className="h-1 w-1 rounded-full bg-border-medium" />
-                      <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
-                        <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />
-                        Unsaved changes
-                      </span>
-                    </>
+                    <span className="flex items-center gap-1.5 rounded-lg bg-amber-500/10 px-2 py-1 text-amber-600 dark:text-amber-400">
+                      <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />
+                      Unsaved
+                    </span>
                   )}
                 </div>
               </div>
 
-              {/* Chart Preview */}
               <div className="flex min-h-0 flex-1 items-center justify-center p-6">
                 {yAxisFields.length > 0 ? (
                   <div className="w-full max-w-3xl">
@@ -856,31 +839,30 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
                       />
                     </div>
                     <p className="text-sm font-medium text-text-secondary">No data to visualize</p>
-                    <p className="mt-1 text-xs text-text-secondary-alt">
+                    <p className="mt-1 text-xs text-text-tertiary">
                       Select at least one Y-axis field
                     </p>
                   </div>
                 )}
               </div>
 
-              {/* Data Strip */}
-              <div className="bg-surface-secondary/50 flex-shrink-0 border-t border-border-light px-6 py-3">
-                <div className="flex items-center gap-6 overflow-x-auto text-xs">
+              <div className="flex-shrink-0 border-t border-border-light/60 bg-surface-primary/50 px-6 py-3">
+                <div className="flex items-center gap-4 overflow-x-auto text-xs">
                   <div className="flex items-center gap-2">
-                    <span className="text-text-secondary">X-Axis:</span>
+                    <span className="text-text-tertiary">X-Axis:</span>
                     <span className="font-medium text-text-primary">{xAxisField || '—'}</span>
                   </div>
-                  <div className="h-3 w-px bg-border-light" />
+                  <div className="h-4 w-px bg-border-light/60" />
                   <div className="flex items-center gap-2">
-                    <span className="text-text-secondary">Y-Axis:</span>
+                    <span className="text-text-tertiary">Y-Axis:</span>
                     <span className="font-medium text-text-primary">
                       {yAxisFields.join(', ') || '—'}
                     </span>
                   </div>
-                  <div className="h-3 w-px bg-border-light" />
+                  <div className="h-4 w-px bg-border-light/60" />
                   <div className="flex items-center gap-2">
-                    <span className="text-text-secondary">Type:</span>
-                    <span className="font-medium text-text-primary">
+                    <span className="text-text-tertiary">Type:</span>
+                    <span className="rounded-lg bg-surface-secondary/50 px-2 py-0.5 font-medium capitalize text-text-primary ring-1 ring-border-light/50">
                       {CHART_TYPES.find((t) => t.type === chartType)?.label}
                     </span>
                   </div>
@@ -891,9 +873,8 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
         </OGDialogContent>
       </OGDialog>
 
-      {/* Discard Changes Confirmation Dialog */}
       <OGDialog open={showDiscardDialog} onOpenChange={setShowDiscardDialog}>
-        <OGDialogContent className="sm:max-w-md">
+        <OGDialogContent className="sm:max-w-md rounded-2xl">
           <OGDialogHeader>
             <OGDialogTitle>Unsaved Changes</OGDialogTitle>
           </OGDialogHeader>
@@ -904,13 +885,13 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
             <div className="flex justify-end gap-3">
               <button
                 onClick={handleCancelDiscard}
-                className="rounded-lg border border-border-light px-4 py-2 text-sm font-medium text-text-secondary transition-all hover:border-border-medium hover:text-text-primary"
+                className="rounded-xl border border-border-light/60 px-4 py-2 text-sm font-medium text-text-secondary transition-all hover:border-border-medium hover:text-text-primary"
               >
                 Keep Editing
               </button>
               <button
                 onClick={handleConfirmDiscard}
-                className="rounded-lg bg-destructive px-4 py-2 text-sm font-medium text-white transition-all hover:bg-destructive/80"
+                className="rounded-xl bg-destructive px-4 py-2 text-sm font-medium text-white transition-all hover:bg-destructive/80"
               >
                 Discard Changes
               </button>
