@@ -73,7 +73,7 @@ export default function SkillsPanel() {
           {skills.map((skill) => (
             <div
               key={skill._id}
-              className="flex items-start justify-between rounded-lg border border-border-medium p-3"
+              className="flex items-start justify-between rounded-xl border border-border-light bg-surface-secondary p-3"
             >
               <div className="flex flex-col flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
@@ -115,7 +115,7 @@ export default function SkillsPanel() {
           ))}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center py-8 text-center">
+        <div className="bg-surface-secondary/50 flex flex-col items-center justify-center rounded-xl border border-dashed border-border-light py-8 text-center">
           <BookOpen className="mb-2 h-8 w-8 text-text-tertiary" />
           <p className="text-text-secondary">No skills created yet</p>
           <p className="text-xs text-text-tertiary">

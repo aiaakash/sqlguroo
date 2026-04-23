@@ -151,17 +151,18 @@ export default function GitHubConnectionsPanel() {
 
   return (
     <div className="flex flex-col gap-3 p-3 text-sm text-text-primary">
-      <div className="mb-2 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Github className="h-4 w-4" />
-          <span className="font-medium">GitHub Repositories</span>
-        </div>
-        <OGDialog
-          open={isFormOpen}
-          onOpenChange={(open) => {
-            if (!open) handleCloseForm();
-          }}
-        >
+      <div className="border-b border-border-medium pb-3">
+        <div className="mb-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Github className="h-4 w-4" />
+            <span className="font-medium">GitHub Repositories</span>
+          </div>
+          <OGDialog
+            open={isFormOpen}
+            onOpenChange={(open) => {
+              if (!open) handleCloseForm();
+            }}
+          >
             <OGDialogTrigger asChild>
               <Button
                 variant="outline"
@@ -173,15 +174,16 @@ export default function GitHubConnectionsPanel() {
                 Add Repository
               </Button>
             </OGDialogTrigger>
-          <GitHubConnectionForm
-            editingConnection={editingConnection}
-            onClose={handleCloseForm}
-            onSuccess={() => {
-              refetch();
-              handleCloseForm();
-            }}
-          />
-        </OGDialog>
+            <GitHubConnectionForm
+              editingConnection={editingConnection}
+              onClose={handleCloseForm}
+              onSuccess={() => {
+                refetch();
+                handleCloseForm();
+              }}
+            />
+          </OGDialog>
+        </div>
       </div>
 
       {isLoading ? (

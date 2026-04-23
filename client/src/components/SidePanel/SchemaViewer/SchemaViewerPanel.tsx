@@ -97,7 +97,7 @@ export default function SchemaViewerPanel() {
 
       {/* Connections List */}
       {!connections || connections.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-8 text-center">
+        <div className="bg-surface-secondary/50 flex flex-col items-center justify-center rounded-xl border border-dashed border-border-light py-8 text-center">
           <Database className="mb-2 h-8 w-8 text-text-tertiary" />
           <p className="text-text-secondary">{localize('com_sidepanel_no_connections')}</p>
           <p className="text-xs text-text-tertiary">
@@ -105,7 +105,7 @@ export default function SchemaViewerPanel() {
           </p>
         </div>
       ) : filteredConnections.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-8 text-center">
+        <div className="bg-surface-secondary/50 flex flex-col items-center justify-center rounded-xl border border-dashed border-border-light py-8 text-center">
           <Search className="mb-2 h-8 w-8 text-text-tertiary" />
           <p className="text-text-secondary">{localize('com_sidepanel_no_matching_schemas')}</p>
         </div>
@@ -145,7 +145,7 @@ function ConnectionItem({
   const icon = getDatabaseIcon(connection.type);
 
   return (
-    <div className="rounded-lg border border-border-medium bg-surface-primary">
+    <div className="rounded-xl border border-border-light bg-surface-secondary">
       {/* Connection Header */}
       <button
         onClick={onToggle}
