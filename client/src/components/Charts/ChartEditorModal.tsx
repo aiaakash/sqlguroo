@@ -530,7 +530,7 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
                           type="text"
                           value={chartName}
                           onChange={(e) => setChartName(e.target.value)}
-                          className="w-full rounded-lg border border-border-light bg-surface-primary px-3 py-2 text-sm text-text-primary focus:border-border-xheavy focus:outline-none"
+                          className="w-full rounded-lg border border-border-light bg-surface-primary px-3 py-2 text-sm text-text-primary focus:border-border-xheavy focus:outline-none focus:ring-1 focus:ring-ring"
                         />
                       </div>
                       <div>
@@ -541,7 +541,7 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
                           value={chartDescription}
                           onChange={(e) => setChartDescription(e.target.value)}
                           rows={2}
-                          className="w-full resize-none rounded-lg border border-border-light bg-surface-primary px-3 py-2 text-sm text-text-primary focus:border-border-xheavy focus:outline-none"
+                          className="w-full resize-none rounded-lg border border-border-light bg-surface-primary px-3 py-2 text-sm text-text-primary focus:border-border-xheavy focus:outline-none focus:ring-1 focus:ring-ring"
                         />
                       </div>
                     </div>
@@ -910,7 +910,7 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
               </button>
               <button
                 onClick={handleConfirmDiscard}
-                className="rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-red-600"
+                className="rounded-lg bg-destructive px-4 py-2 text-sm font-medium text-white transition-all hover:bg-destructive/80"
               >
                 Discard Changes
               </button>

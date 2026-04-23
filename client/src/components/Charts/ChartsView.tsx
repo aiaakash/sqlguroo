@@ -153,7 +153,7 @@ export default function ChartsView() {
           </p>
           <button
             onClick={() => navigate('/c/new')}
-            className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:opacity-90"
           >
             <BarChart3 className="h-4 w-4" />
             Go to Chat
@@ -190,10 +190,10 @@ export default function ChartsView() {
           </div>
         ) : error ? (
           <div className="flex flex-col items-center justify-center py-12">
-            <p className="text-sm text-red-500">Failed to load charts</p>
+            <p className="text-sm text-destructive">Failed to load charts</p>
             <button
               onClick={() => window.location.reload()}
-              className="mt-2 text-sm text-blue-500 hover:underline"
+              className="mt-2 text-sm text-primary hover:underline"
             >
               Retry
             </button>
@@ -207,7 +207,7 @@ export default function ChartsView() {
                   setSearchTerm('');
                   setPinnedOnly(false);
                 }}
-                className="mt-2 text-sm text-blue-500 hover:underline"
+                className="mt-2 text-sm text-primary hover:underline"
               >
                 Clear filters
               </button>
@@ -277,7 +277,7 @@ export default function ChartsView() {
                 <button
                   onClick={handleConfirmDelete}
                   disabled={deleteChartMutation.isLoading}
-                  className="rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-red-600 disabled:opacity-50"
+                  className="rounded-lg bg-destructive px-4 py-2 text-sm font-medium text-white transition-all hover:bg-destructive/80 disabled:opacity-50"
                 >
                   {deleteChartMutation.isLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -319,7 +319,7 @@ function Header({
   localize: (phraseKey: TranslationKeys) => string;
 }) {
   return (
-    <div className="bg-surface-primary/80 dark:border-border-dark sticky top-0 z-20 flex h-16 w-full items-center justify-between border-b border-border-light px-4 backdrop-blur-md lg:px-6">
+    <div className="bg-surface-primary/80 sticky top-0 z-20 flex h-16 w-full items-center justify-between border-b border-border-light px-4 backdrop-blur-md lg:px-6">
       <div className="flex items-center gap-4">
         <a
           href="/"
@@ -329,7 +329,7 @@ function Header({
           <ArrowLeft className="h-4 w-4" />
           <span className="hidden text-base sm:inline">{localize('com_ui_back_to_chat')}</span>
         </a>
-        <div className="dark:bg-border-dark h-6 w-px shrink-0 bg-border-light" />
+        <div className="h-6 w-px shrink-0 bg-border-light" />
         <div className="flex items-center gap-2">
           <h1 className="text-lg font-semibold text-text-primary">My Charts</h1>
           {totalCharts > 0 && (
@@ -349,7 +349,7 @@ function Header({
             placeholder="Search charts..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="bg-surface-primary/50 h-9 w-48 rounded-lg border border-border-light pl-8 pr-3 text-sm text-text-primary transition-all placeholder:text-text-tertiary focus:border-blue-500 focus:bg-surface-primary focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="bg-surface-primary/50 h-9 w-48 rounded-lg border border-border-light pl-8 pr-3 text-sm text-text-primary transition-all placeholder:text-text-tertiary focus:border-border-medium focus:bg-surface-primary focus:outline-none focus:ring-1 focus:ring-ring"
           />
           {searchTerm && (
             <button
@@ -367,7 +367,7 @@ function Header({
           className={cn(
             'flex h-9 items-center gap-1.5 rounded-lg border px-3 text-sm transition-colors',
             pinnedOnly
-              ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400'
+              ? 'border-primary bg-primary/10 text-primary'
               : 'border-border-light text-text-secondary hover:bg-surface-hover hover:text-text-primary',
           )}
           title={pinnedOnly ? 'Show all charts' : 'Show pinned charts only'}
@@ -436,7 +436,7 @@ function ChartCard({
         />
         {chart.pinned && (
           <div className="absolute right-2 top-2">
-            <Pin className="h-4 w-4 text-blue-500" />
+            <Pin className="h-4 w-4 text-primary" />
           </div>
         )}
       </div>
@@ -496,7 +496,7 @@ function ChartListItem({
     >
       {/* Icon */}
       <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-surface-secondary">
-        <BarChart3 className="h-5 w-5 text-blue-500" />
+        <BarChart3 className="h-5 w-5 text-primary" />
       </div>
 
       {/* Info */}
@@ -504,7 +504,7 @@ function ChartListItem({
         <div className="flex items-center gap-2">
           <h3 className="min-w-0 flex-1 truncate font-medium text-text-primary">{chart.name}</h3>
           <OrgBadge organizationId={chart.organizationId} />
-          {chart.pinned && <Pin className="h-3 w-3 flex-shrink-0 text-blue-500" />}
+          {chart.pinned && <Pin className="h-3 w-3 flex-shrink-0 text-primary" />}
         </div>
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-text-tertiary">
           <span className="whitespace-nowrap">{chart.rowCount} rows</span>
@@ -628,7 +628,7 @@ function ChartActions({
               </button>
               <button
                 onClick={(e) => handleAction(e, onDelete)}
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-red-600 hover:bg-surface-hover"
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-destructive hover:bg-surface-hover"
               >
                 <Trash2 className="h-4 w-4 flex-shrink-0" />
                 <span>Delete</span>

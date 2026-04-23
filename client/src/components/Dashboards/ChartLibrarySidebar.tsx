@@ -46,9 +46,9 @@ export default function ChartLibrarySidebar({
   };
 
   return (
-    <div className="flex h-full w-80 flex-col border-r border-border-light bg-surface-secondary dark:border-border-dark dark:bg-surface-secondary-dark">
+    <div className="flex h-full w-80 flex-col border-r border-border-light bg-surface-secondary">
       {/* Header */}
-      <div className="flex-shrink-0 border-b border-border-light p-4 dark:border-border-dark">
+      <div className="flex-shrink-0 border-b border-border-light p-4">
         <h3 className="mb-3 text-sm font-semibold text-text-primary">Chart Library</h3>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-tertiary" />
@@ -57,7 +57,7 @@ export default function ChartLibrarySidebar({
             placeholder="Search charts..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full rounded-lg border border-border-light bg-surface-primary py-2 pl-9 pr-3 text-sm text-text-primary placeholder:text-text-tertiary focus:border-blue-500 focus:outline-none dark:border-border-dark dark:bg-surface-primary-dark"
+            className="w-full rounded-lg border border-border-light bg-surface-primary py-2 pl-9 pr-3 text-sm text-text-primary placeholder:text-text-tertiary focus:border-border-medium focus:outline-none focus:ring-1 focus:ring-ring"
           />
           {searchTerm && (
             <button
@@ -89,7 +89,7 @@ export default function ChartLibrarySidebar({
                   : 'No charts in your library'}
             </p>
             {!searchTerm && existingChartIds.length === 0 && (
-              <a href="/d/charts" className="mt-2 text-sm text-blue-500 hover:underline">
+              <a href="/d/charts" className="mt-2 text-sm text-primary hover:underline">
                 Create a chart first
               </a>
             )}
@@ -103,8 +103,8 @@ export default function ChartLibrarySidebar({
                 className={cn(
                   'flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-all',
                   selectedChartId === chart._id
-                    ? 'border-blue-500 bg-blue-500/10'
-                    : 'border-transparent bg-surface-primary hover:bg-surface-hover dark:bg-surface-primary-dark'
+                    ? 'border-primary bg-primary/10'
+                    : 'border-transparent bg-surface-primary hover:bg-surface-hover'
                 )}
               >
                 <div
@@ -126,7 +126,7 @@ export default function ChartLibrarySidebar({
                 <ChevronRight
                   className={cn(
                     'h-4 w-4 flex-shrink-0 text-text-tertiary transition-transform',
-                    selectedChartId === chart._id && 'rotate-90 text-blue-500'
+                    selectedChartId === chart._id && 'rotate-90 text-primary'
                   )}
                 />
               </button>
@@ -137,7 +137,7 @@ export default function ChartLibrarySidebar({
 
       {/* Add Panel */}
       {selectedChartId && (
-        <div className="flex-shrink-0 border-t border-border-light p-4 dark:border-border-dark">
+        <div className="flex-shrink-0 border-t border-border-light p-4">
           <p className="mb-3 text-xs font-medium uppercase text-text-tertiary">Select Size</p>
           <div className="mb-4 grid grid-cols-3 gap-2">
             {CHART_SIZES.map((size) => (
@@ -146,9 +146,9 @@ export default function ChartLibrarySidebar({
                 onClick={() => setSelectedSize(size)}
                 className={cn(
                   'rounded-lg border px-2 py-2 text-xs font-medium transition-all',
-                  selectedSize.value === size.value
-                    ? 'border-blue-500 bg-blue-500/10 text-blue-500'
-                    : 'border-border-light bg-surface-primary text-text-secondary hover:border-blue-500/50 hover:text-text-primary dark:border-border-dark dark:bg-surface-primary-dark'
+                    selectedSize.value === size.value
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-border-light bg-surface-primary text-text-secondary hover:border-primary/50 hover:text-text-primary'
                 )}
               >
                 {size.label}
@@ -157,7 +157,7 @@ export default function ChartLibrarySidebar({
           </div>
           <button
             onClick={handleAddChart}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-500 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-600"
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:opacity-90"
           >
             <Plus className="h-4 w-4" />
             Add to Dashboard
