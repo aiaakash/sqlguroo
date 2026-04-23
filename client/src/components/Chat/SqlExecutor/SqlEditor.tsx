@@ -170,6 +170,22 @@ const SqlEditor = forwardRef(function SqlEditor(
     };
   }, [schema]);
 
+  const handleFormat = useCallback(() => {
+    if (!value.trim() || !editorRef.current) return;
+    try {
+      const formatted = format(value, {
+        language: 'sql',
+        tabWidth: 2,
+        keywordCase: 'upper',
+        indentStyle: 'standard',
+        linesBetweenQueries: 2,
+      });
+      onChange(formatted);
+    } catch {
+      // silently ignore formatting errors
+    }
+  }, [value, onChange]);
+
   const handleEditorDidMount = useCallback((editor: monaco.editor.IStandaloneCodeEditor, monaco: Monaco) => {
     monacoRef.current = monaco;
     editorRef.current = editor;
@@ -191,22 +207,6 @@ const SqlEditor = forwardRef(function SqlEditor(
       handleFormat();
     });
   }, [handleFormat]);
-
-  const handleFormat = useCallback(() => {
-    if (!value.trim() || !editorRef.current) return;
-    try {
-      const formatted = format(value, {
-        language: 'sql',
-        tabWidth: 2,
-        keywordCase: 'upper',
-        indentStyle: 'standard',
-        linesBetweenQueries: 2,
-      });
-      onChange(formatted);
-    } catch {
-      // silently ignore formatting errors
-    }
-  }, [value, onChange]);
 
   useImperativeHandle(ref, () => ({
     format: handleFormat,
