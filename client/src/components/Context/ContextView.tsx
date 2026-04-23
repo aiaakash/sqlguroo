@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Outlet } from 'react-router-dom';
 import {
   ArrowLeft,
   Database,
@@ -14,9 +14,10 @@ import {
   X,
   Info,
   Check,
+  Loader2,
 } from 'lucide-react';
 import { Spinner } from '@librechat/client';
-import { useLocalize, useCustomLink } from '~/hooks';
+import { useLocalize, useCustomLink, type TranslationKeys } from '~/hooks';
 import { useDashboardContext } from '~/Providers';
 import {
   useAnalyticsConnections,
@@ -36,22 +37,18 @@ export const ContextView: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedTables, setExpandedTables] = useState<Set<string>>(new Set());
 
-  // State for table descriptions (local edits)
   const [localTableDescriptions, setLocalTableDescriptions] = useState<Record<string, string>>({});
   const [editingTable, setEditingTable] = useState<string | null>(null);
   const [tempTableDescription, setTempTableDescription] = useState('');
 
-  // State for column descriptions (local edits)
   const [localColumnDescriptions, setLocalColumnDescriptions] = useState<Record<string, string>>(
     {},
   );
   const [editingColumn, setEditingColumn] = useState<string | null>(null);
   const [tempColumnDescription, setTempColumnDescription] = useState('');
 
-  // Track unsaved changes
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-  // Get last conversation ID for back navigation
   const getConversationId = (prevPath: string) => {
     if (!prevPath || prevPath.includes('/d/')) {
       return 'new';
@@ -66,11 +63,8 @@ export const ContextView: React.FC = () => {
   );
   const chatLinkHandler = useCustomLink('/c/' + lastConversationId);
 
-  // Load connections
-  const { data: connections, isLoading: isLoadingConnections } =
-    useAnalyticsConnections();
+  const { data: connections, isLoading: isLoadingConnections } = useAnalyticsConnections();
 
-  // Load schema for selected connection
   const {
     data: schemaData,
     isLoading: isLoadingSchema,
@@ -79,7 +73,6 @@ export const ContextView: React.FC = () => {
     enabled: !!selectedConnection && selectedConnection.length > 0,
   });
 
-  // Load saved descriptions from database
   const { data: savedDescriptions, isLoading: isLoadingDescriptions } = useTableDescriptions(
     selectedConnection ?? '',
     {
@@ -87,10 +80,8 @@ export const ContextView: React.FC = () => {
     },
   );
 
-  // Save descriptions mutation
   const saveDescriptionsMutation = useSaveTableDescriptions();
 
-  // Sync local state with saved descriptions when they load
   useEffect(() => {
     if (savedDescriptions) {
       setLocalTableDescriptions(savedDescriptions.tableDescriptions || {});
@@ -125,7 +116,6 @@ export const ContextView: React.FC = () => {
     });
   };
 
-  // Table description handlers
   const startEditingTable = (tableName: string, currentDescription: string = '') => {
     setEditingTable(tableName);
     setTempTableDescription(currentDescription);
@@ -146,8 +136,6 @@ export const ContextView: React.FC = () => {
     setTempTableDescription('');
   };
 
-  // Column description handlers
-  // Use a separator that doesn't conflict with MongoDB field names
   const COLUMN_KEY_SEPARATOR = '::';
 
   const startEditingColumn = (
@@ -183,7 +171,6 @@ export const ContextView: React.FC = () => {
     return localColumnDescriptions[`${tableName}${COLUMN_KEY_SEPARATOR}${columnName}`] || '';
   };
 
-  // Save all descriptions to database
   const handleSaveAll = async () => {
     if (!selectedConnection) return;
 
@@ -200,91 +187,70 @@ export const ContextView: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-hidden bg-surface-primary">
-      {/* Header */}
-      <div className="bg-surface-primary/80 dark:border-border-dark sticky top-0 z-20 flex h-16 w-full items-center justify-between border-b border-border-light px-4 backdrop-blur-md lg:px-6">
-        <div className="flex items-center gap-4">
-          <a
-            href="/"
-            onClick={chatLinkHandler}
-            className="flex items-center gap-2 text-sm font-medium text-text-secondary transition-colors hover:text-text-primary"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span className="hidden text-base sm:inline">{localize('com_ui_back_to_chat')}</span>
-          </a>
-          <div className="dark:bg-border-dark h-6 w-px shrink-0 bg-border-light" />
-          <div className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-blue-500" />
-            <h1 className="text-lg font-semibold text-text-primary">
-              {localize('com_context_title')}
-            </h1>
-          </div>
-        </div>
+    <div className="flex h-screen w-full flex-col overflow-hidden bg-surface-primary-alt">
+      <Header
+        selectedConnection={selectedConnection}
+        hasUnsavedChanges={hasUnsavedChanges}
+        isSaving={saveDescriptionsMutation.isLoading}
+        onSave={handleSaveAll}
+        chatLinkHandler={chatLinkHandler}
+        localize={localize}
+      />
 
-        {selectedConnection && hasUnsavedChanges && (
-          <button
-            onClick={handleSaveAll}
-            disabled={saveDescriptionsMutation.isLoading}
-            className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
-          >
-            {saveDescriptionsMutation.isLoading ? (
-              <Spinner className="h-4 w-4" />
-            ) : (
-              <Save className="h-4 w-4" />
-            )}
-            {localize('com_ui_save')}
-          </button>
-        )}
-      </div>
-
-      {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left Sidebar - Connections */}
-        <div className="bg-surface-secondary/30 flex w-72 flex-col border-r border-border-light">
-          <div className="border-b border-border-light p-4">
-            <h2 className="flex items-center gap-2 text-sm font-medium text-text-primary">
-              <Database className="h-4 w-4" />
-              {localize('com_context_connections')}
+        <div className="flex w-72 flex-col border-r border-border-light/60 bg-surface-primary-alt">
+          <div className="border-b border-border-light/60 p-4">
+            <h2 className="mb-1 flex items-center gap-2 text-sm font-semibold text-text-primary">
+              <Database className="h-4 w-4 text-primary" />
+              Connections
             </h2>
-            <p className="mt-1 text-xs text-text-secondary">
-              {localize('com_context_select_connection')}
-            </p>
+            <p className="text-xs text-text-tertiary">Select a database connection</p>
           </div>
 
           <div className="flex-1 overflow-y-auto p-2">
             {isLoadingConnections ? (
               <div className="flex justify-center p-4">
-                <Spinner className="h-5 w-5" />
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
               </div>
             ) : !connections || connections.length === 0 ? (
-              <div className="p-4 text-center">
-                <Database className="mx-auto mb-2 h-8 w-8 text-text-tertiary" />
-                <p className="text-sm text-text-secondary">
-                  {localize('com_context_no_connections')}
-                </p>
+              <div className="flex flex-col items-center py-8 text-center">
+                <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-surface-secondary/50">
+                  <Database className="h-6 w-6 text-text-tertiary" />
+                </div>
+                <p className="text-sm text-text-secondary">No connections found</p>
               </div>
             ) : (
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-1.5">
                 {connections.map((connection) => (
                   <button
                     key={connection._id}
                     onClick={() => setSelectedConnection(connection._id)}
                     className={cn(
-                      'flex items-start gap-3 rounded-lg border p-3 text-left transition-colors',
+                      'flex items-start gap-3 rounded-xl border p-3 text-left transition-all',
                       selectedConnection === connection._id
-                        ? 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20'
-                        : 'border-transparent hover:bg-surface-secondary',
+                        ? 'border-primary/30 bg-primary/5 ring-1 ring-primary/10'
+                        : 'border-border-light/60 bg-surface-secondary/50 hover:border-border-medium hover:bg-surface-hover',
                     )}
                   >
-                    <div className="mt-0.5 flex-shrink-0">
-                      <div
+                    <div className="mt-1 flex h-2.5 w-2.5 flex-shrink-0">
+                      <span
                         className={cn(
-                          'h-2 w-2 rounded-full',
+                          'absolute h-2.5 w-2.5 rounded-full',
                           connection.lastTestSuccess
-                            ? 'bg-green-500'
+                            ? 'bg-emerald-500'
                             : connection.lastTestSuccess === false
-                              ? 'bg-red-500'
-                              : 'bg-gray-400',
+                              ? 'bg-destructive'
+                              : 'bg-text-tertiary',
+                        )}
+                      />
+                      <span
+                        className={cn(
+                          'h-2.5 w-2.5 animate-ping rounded-full opacity-75',
+                          connection.lastTestSuccess
+                            ? 'bg-emerald-500'
+                            : connection.lastTestSuccess === false
+                              ? 'bg-destructive'
+                              : 'bg-text-tertiary',
                         )}
                       />
                     </div>
@@ -303,59 +269,58 @@ export const ContextView: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Content - Tables */}
         <div className="flex-1 overflow-y-auto">
           {!selectedConnection ? (
             <div className="flex h-full flex-col items-center justify-center p-8">
-              <Database className="mb-4 h-16 w-16 text-text-tertiary" />
-              <h3 className="mb-2 text-lg font-medium text-text-primary">
-                {localize('com_context_select_connection_title')}
+              <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 ring-1 ring-primary/20">
+                <Database className="h-10 w-10 text-primary/70" />
+              </div>
+              <h3 className="mb-2 text-xl font-semibold text-text-primary">
+                Select a connection
               </h3>
-              <p className="max-w-md text-center text-sm text-text-secondary">
-                {localize('com_context_select_connection_description')}
+              <p className="max-w-md text-center text-sm leading-relaxed text-text-secondary">
+                Choose a database connection from the sidebar to view and manage table schemas and
+                descriptions.
               </p>
             </div>
           ) : isLoadingSchema || isLoadingDescriptions ? (
-            <div className="flex h-full items-center justify-center">
-              <div className="text-center">
-                <Spinner className="mx-auto mb-4 h-8 w-8" />
-                <p className="text-text-secondary">{localize('com_context_loading_schema')}</p>
-              </div>
+            <div className="flex h-full flex-col items-center justify-center">
+              <Loader2 className="mb-4 h-8 w-8 animate-spin text-primary" />
+              <p className="text-sm text-text-secondary">Loading schema...</p>
             </div>
           ) : schemaError ? (
             <div className="flex h-full flex-col items-center justify-center p-8">
-              <div className="mb-4 rounded-full bg-red-100 p-4 dark:bg-red-900/20">
-                <Database className="h-12 w-12 text-red-500" />
+              <div className="mb-4 rounded-xl bg-destructive/10 p-4">
+                <Database className="h-8 w-8 text-destructive" />
               </div>
-              <h3 className="mb-2 text-lg font-medium text-text-primary">
-                {localize('com_context_schema_error')}
+              <h3 className="mb-2 text-lg font-semibold text-text-primary">
+                Failed to load schema
               </h3>
               <p className="max-w-md text-center text-sm text-text-secondary">
                 {schemaError instanceof Error
                   ? schemaError.message
-                  : localize('com_context_schema_error_generic')}
+                  : 'An unexpected error occurred'}
               </p>
             </div>
           ) : tables.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center p-8">
-              <Table2 className="mb-4 h-16 w-16 text-text-tertiary" />
-              <h3 className="mb-2 text-lg font-medium text-text-primary">
-                {localize('com_context_no_tables')}
-              </h3>
-              <p className="max-w-md text-center text-sm text-text-secondary">
-                {localize('com_context_no_tables_description')}
+              <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 ring-1 ring-primary/20">
+                <Table2 className="h-10 w-10 text-primary/70" />
+              </div>
+              <h3 className="mb-2 text-xl font-semibold text-text-primary">No tables found</h3>
+              <p className="max-w-md text-center text-sm leading-relaxed text-text-secondary">
+                This connection does not have any tables in its schema.
               </p>
             </div>
           ) : (
-            <div className="p-6">
-              {/* Connection Info & Search */}
+            <div className="p-4 lg:p-6">
               <div className="mb-6">
                 <div className="mb-4 flex items-center justify-between">
                   <div>
                     <h2 className="text-lg font-semibold text-text-primary">
                       {connections?.find((c) => c._id === selectedConnection)?.name}
                     </h2>
-                    <p className="text-sm text-text-secondary">
+                    <p className="text-sm text-text-tertiary">
                       {tables.length} {tables.length === 1 ? 'table' : 'tables'}
                     </p>
                   </div>
@@ -363,29 +328,31 @@ export const ContextView: React.FC = () => {
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-tertiary" />
                     <input
                       type="text"
-                      placeholder={localize('com_context_search_tables')}
+                      placeholder="Search tables..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="bg-surface-primary/50 h-9 w-64 rounded-lg border border-border-light pl-9 pr-3 text-sm text-text-primary transition-all placeholder:text-text-tertiary focus:border-blue-500 focus:bg-surface-primary focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="h-9 w-64 rounded-xl border border-border-light/60 bg-surface-secondary/50 pl-9 pr-8 text-sm text-text-primary transition-all placeholder:text-text-tertiary focus:border-primary/30 focus:bg-surface-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
                     />
                     {searchQuery && (
                       <button
                         onClick={() => setSearchQuery('')}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-primary"
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-0.5 text-text-tertiary transition-colors hover:bg-surface-hover hover:text-text-primary"
                       >
-                        <X className="h-3 w-3" />
+                        <X className="h-3.5 w-3.5" />
                       </button>
                     )}
                   </div>
                 </div>
 
-                <div className="flex items-start gap-2 rounded-lg bg-blue-50 p-3 text-sm text-text-secondary dark:bg-blue-900/20">
-                  <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-500" />
-                  <p>{localize('com_context_description_hint')}</p>
+                <div className="flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
+                  <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
+                  <p className="text-sm leading-relaxed text-text-secondary">
+                    Add descriptions to tables and columns to provide context for AI-generated
+                    queries. These descriptions help the AI understand your database structure.
+                  </p>
                 </div>
               </div>
 
-              {/* Tables List */}
               <div className="space-y-4">
                 {filteredTables.map((table) => (
                   <TableContextCard
@@ -412,10 +379,14 @@ export const ContextView: React.FC = () => {
                         getColumnDescription(table.name, columnName),
                       )
                     }
-                    onSaveColumn={(columnName) => saveColumnDescription(table.name, columnName)}
+                    onSaveColumn={(columnName) =>
+                      saveColumnDescription(table.name, columnName)
+                    }
                     onCancelColumn={cancelEditingColumn}
                     onTempColumnChange={setTempColumnDescription}
-                    getColumnDescription={(colName) => getColumnDescription(table.name, colName)}
+                    getColumnDescription={(colName) =>
+                      getColumnDescription(table.name, colName)
+                    }
                     localize={localize}
                   />
                 ))}
@@ -424,9 +395,70 @@ export const ContextView: React.FC = () => {
           )}
         </div>
       </div>
+
+      <Outlet />
     </div>
   );
 };
+
+function Header({
+  selectedConnection,
+  hasUnsavedChanges,
+  isSaving,
+  onSave,
+  chatLinkHandler,
+  localize,
+}: {
+  selectedConnection: string | null;
+  hasUnsavedChanges: boolean;
+  isSaving: boolean;
+  onSave: () => void;
+  chatLinkHandler: (e: React.MouseEvent<HTMLAnchorElement>) => void;
+  localize: (phraseKey: TranslationKeys) => string;
+}) {
+  return (
+    <div className="sticky top-0 z-20 w-full border-b border-border-light/60 bg-surface-primary/80 backdrop-blur-xl">
+      <div className="flex h-16 items-center justify-between px-4 lg:px-6">
+        <div className="flex items-center gap-4">
+          <a
+            href="/"
+            onClick={chatLinkHandler}
+            className="group flex items-center gap-2 text-sm font-medium text-text-secondary transition-colors hover:text-text-primary"
+          >
+            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+            <span className="hidden text-sm font-medium sm:inline">
+              {localize('com_ui_back_to_chat')}
+            </span>
+          </a>
+          <div className="h-5 w-px shrink-0 bg-border-light/60" />
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 ring-1 ring-primary/10">
+              <FileText className="h-4 w-4 text-primary" />
+            </div>
+            <h1 className="text-lg font-semibold text-text-primary">
+              {localize('com_context_title')}
+            </h1>
+          </div>
+        </div>
+
+        {selectedConnection && hasUnsavedChanges && (
+          <button
+            onClick={onSave}
+            disabled={isSaving}
+            className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-primary/90 hover:shadow-md disabled:opacity-50"
+          >
+            {isSaving ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            {localize('com_ui_save')}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
 
 interface TableContextCardProps {
   table: TTableSchema;
@@ -447,7 +479,7 @@ interface TableContextCardProps {
   onCancelColumn: () => void;
   onTempColumnChange: (value: string) => void;
   getColumnDescription: (columnName: string) => string;
-  localize: (key: string) => string;
+  localize: (phraseKey: TranslationKeys) => string;
 }
 
 function TableContextCard({
@@ -471,18 +503,19 @@ function TableContextCard({
   localize,
 }: TableContextCardProps) {
   return (
-    <div className="overflow-hidden rounded-lg border border-border-light bg-surface-primary">
-      {/* Table Header */}
-      <div className="bg-surface-secondary/50 flex items-center justify-between border-b border-border-light p-4">
+    <div className="overflow-hidden rounded-2xl border border-border-light/60 bg-surface-primary shadow-sm transition-all duration-200 hover:shadow-md">
+      <div className="flex items-center justify-between border-b border-border-light/60 p-4">
         <button onClick={onToggle} className="flex flex-1 items-center gap-3 text-left">
           {isExpanded ? (
             <ChevronDown className="h-5 w-5 flex-shrink-0 text-text-tertiary" />
           ) : (
             <ChevronRight className="h-5 w-5 flex-shrink-0 text-text-tertiary" />
           )}
-          <Table2 className="h-5 w-5 flex-shrink-0 text-blue-500" />
-          <span className="text-base font-semibold text-text-primary">{table.name}</span>
-          <span className="rounded-full bg-surface-tertiary px-2 py-0.5 text-xs text-text-tertiary">
+          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 ring-1 ring-primary/10">
+            <Table2 className="h-4 w-4 text-primary" />
+          </div>
+          <span className="text-sm font-semibold text-text-primary">{table.name}</span>
+          <span className="inline-flex items-center rounded-lg bg-surface-secondary px-2 py-1 text-[11px] font-medium text-text-secondary ring-1 ring-border-light/50">
             {table.columns.length} columns
           </span>
         </button>
@@ -490,9 +523,9 @@ function TableContextCard({
         {!editingTable && (
           <button
             onClick={onEditTable}
-            className="flex items-center gap-1 rounded-md px-3 py-1.5 text-sm text-blue-600 transition-colors hover:bg-blue-50 dark:hover:bg-blue-900/20"
+            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
           >
-            <Edit2 className="h-4 w-4" />
+            <Edit2 className="h-3.5 w-3.5" />
             {tableDescription
               ? localize('com_context_edit')
               : localize('com_context_add_description')}
@@ -500,10 +533,9 @@ function TableContextCard({
         )}
       </div>
 
-      {/* Table Description Section */}
       {editingTable ? (
-        <div className="border-b border-blue-100 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/10">
-          <label className="mb-2 block text-sm font-medium text-text-primary">
+        <div className="border-b border-border-light/60 bg-surface-secondary/30 p-4">
+          <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-text-secondary">
             {localize('com_context_table_description_label')}
           </label>
           <textarea
@@ -511,44 +543,45 @@ function TableContextCard({
             onChange={(e) => onTempTableChange(e.target.value)}
             placeholder={localize('com_context_table_description_placeholder')}
             rows={3}
-            className="w-full resize-none rounded-lg border border-border-light bg-surface-primary px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="w-full resize-none rounded-xl border border-border-light/60 bg-surface-primary px-3 py-2.5 text-sm text-text-primary placeholder:text-text-tertiary transition-all focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10"
           />
           <div className="mt-3 flex items-center gap-2">
             <button
               onClick={onSaveTable}
-              className="flex items-center gap-1.5 rounded-md bg-blue-600 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+              className="flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-primary/90"
             >
-              <Save className="h-4 w-4" />
+              <Save className="h-3.5 w-3.5" />
               {localize('com_ui_save')}
             </button>
             <button
               onClick={onCancelTable}
-              className="px-4 py-1.5 text-sm text-text-secondary transition-colors hover:text-text-primary"
+              className="rounded-xl border border-border-light/60 px-4 py-2 text-sm font-medium text-text-secondary transition-all hover:border-border-medium hover:text-text-primary"
             >
               {localize('com_ui_cancel')}
             </button>
           </div>
         </div>
       ) : tableDescription ? (
-        <div className="bg-surface-secondary/30 border-b border-border-light p-4">
-          <div className="flex items-start gap-2">
-            <MessageSquare className="mt-0.5 h-4 w-4 flex-shrink-0 text-text-tertiary" />
-            <p className="text-sm text-text-secondary">{tableDescription}</p>
+        <div className="border-b border-border-light/60 bg-surface-secondary/30 p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10">
+              <MessageSquare className="h-3.5 w-3.5 text-primary" />
+            </div>
+            <p className="text-sm leading-relaxed text-text-secondary">{tableDescription}</p>
           </div>
         </div>
       ) : null}
 
-      {/* Columns Section */}
       {isExpanded && (
         <div className="p-4">
-          <h4 className="mb-3 flex items-center gap-2 text-sm font-medium text-text-primary">
-            <span>{localize('com_context_columns')}</span>
-            <span className="rounded-full bg-surface-tertiary px-2 py-0.5 text-xs text-text-tertiary">
+          <h4 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-text-secondary">
+            Columns
+            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-surface-secondary px-1.5 text-[10px] font-semibold text-text-tertiary ring-1 ring-border-light/50">
               {table.columns.length}
             </span>
           </h4>
 
-          <div className="space-y-3">
+          <div className="space-y-2">
             {table.columns.map((column) => (
               <ColumnContextItem
                 key={column.name}
@@ -579,7 +612,7 @@ interface ColumnContextItemProps {
   onSave: () => void;
   onCancel: () => void;
   onTempChange: (value: string) => void;
-  localize: (key: string) => string;
+  localize: (phraseKey: TranslationKeys) => string;
 }
 
 function ColumnContextItem({
@@ -594,14 +627,18 @@ function ColumnContextItem({
   localize,
 }: ColumnContextItemProps) {
   return (
-    <div className="bg-surface-secondary/30 hover:bg-surface-secondary/50 flex items-start gap-3 rounded-lg border border-border-light p-3 transition-colors">
+    <div className="group flex items-start gap-3 rounded-xl border border-border-light/60 bg-surface-secondary/30 p-3 transition-all hover:border-border-medium hover:bg-surface-hover">
       <div className="min-w-0 flex-1">
-        <div className="mb-1 flex items-center gap-2">
+        <div className="mb-1.5 flex flex-wrap items-center gap-2">
           <span className="text-sm font-medium text-text-primary">{column.name}</span>
-          <span className="rounded bg-surface-tertiary px-1.5 py-0.5 text-xs text-text-tertiary">
+          <span className="inline-flex items-center rounded-lg bg-surface-secondary px-2 py-0.5 text-[11px] font-medium text-text-secondary ring-1 ring-border-light/50">
             {column.type}
           </span>
-          {column.nullable && <span className="text-text-quaternary text-[10px]">NULLABLE</span>}
+          {column.nullable && (
+            <span className="text-[10px] font-medium uppercase tracking-wider text-text-tertiary">
+              Nullable
+            </span>
+          )}
         </div>
 
         {isEditing ? (
@@ -611,19 +648,19 @@ function ColumnContextItem({
               onChange={(e) => onTempChange(e.target.value)}
               placeholder={localize('com_context_column_description_placeholder')}
               rows={2}
-              className="w-full resize-none rounded-md border border-border-light bg-surface-primary px-2 py-1.5 text-sm text-text-primary placeholder:text-text-tertiary focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full resize-none rounded-xl border border-border-light/60 bg-surface-primary px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary transition-all focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10"
             />
             <div className="mt-2 flex items-center gap-2">
               <button
                 onClick={onSave}
-                className="flex items-center gap-1 rounded bg-blue-600 px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-blue-700"
+                className="flex items-center gap-1.5 rounded-xl bg-primary px-3 py-1.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-primary/90"
               >
                 <Save className="h-3 w-3" />
                 {localize('com_ui_save')}
               </button>
               <button
                 onClick={onCancel}
-                className="px-3 py-1 text-xs text-text-secondary transition-colors hover:text-text-primary"
+                className="rounded-xl border border-border-light/60 px-3 py-1.5 text-xs font-medium text-text-secondary transition-all hover:border-border-medium hover:text-text-primary"
               >
                 {localize('com_ui_cancel')}
               </button>
@@ -631,13 +668,15 @@ function ColumnContextItem({
           </div>
         ) : description ? (
           <div className="flex items-start gap-2">
-            <MessageSquare className="mt-0.5 h-3 w-3 flex-shrink-0 text-text-tertiary" />
-            <p className="text-xs text-text-secondary">{description}</p>
+            <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md bg-primary/10">
+              <MessageSquare className="h-3 w-3 text-primary" />
+            </div>
+            <p className="text-xs leading-relaxed text-text-secondary">{description}</p>
           </div>
         ) : (
           <button
             onClick={onEdit}
-            className="text-xs text-blue-600 transition-colors hover:text-blue-700"
+            className="text-xs font-medium text-primary transition-colors hover:text-primary/80"
           >
             {localize('com_context_add_column_description')}
           </button>
@@ -647,7 +686,7 @@ function ColumnContextItem({
       {!isEditing && (
         <button
           onClick={onEdit}
-          className="flex-shrink-0 rounded-md p-1.5 text-text-tertiary transition-colors hover:bg-surface-hover hover:text-text-primary"
+          className="flex-shrink-0 rounded-lg p-1.5 text-text-tertiary opacity-0 transition-all hover:bg-surface-hover hover:text-text-primary group-hover:opacity-100"
           title={
             description ? localize('com_context_edit') : localize('com_context_add_description')
           }
