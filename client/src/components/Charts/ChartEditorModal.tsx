@@ -33,6 +33,8 @@ import {
   SelectItem,
   Switch,
   Button,
+  Input,
+  Textarea,
 } from '@librechat/client';
 import {
   useGetChartWithDataQuery,
@@ -344,12 +346,9 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
               <AlertCircle className="h-7 w-7 text-destructive" />
             </div>
             <p className="text-sm font-medium text-text-secondary">Failed to load chart</p>
-            <button
-              onClick={() => refetch()}
-              className="mt-4 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90"
-            >
+            <Button onClick={() => refetch()}>
               Retry
-            </button>
+            </Button>
           </div>
         </OGDialogContent>
       </OGDialog>
@@ -415,13 +414,8 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
                 <Button
                   onClick={handleSave}
                   disabled={!hasChanges || updateChartMutation.isLoading}
-                  className="group gap-2"
-                  style={{
-                    background: !hasChanges
-                      ? '#9CA3AF'
-                      : `linear-gradient(135deg, ${currentPalette.colors[0]}, ${currentPalette.colors[1]})`,
-                  }}
                   variant="submit"
+                  className="group gap-2"
                 >
                   {updateChartMutation.isLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -471,7 +465,7 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
                         <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
                           Chart Name
                         </label>
-                        <input
+                        <Input
                           type="text"
                           value={chartName}
                           onChange={(e) => setChartName(e.target.value)}
@@ -482,7 +476,7 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
                         <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
                           Description
                         </label>
-                        <textarea
+                        <Textarea
                           value={chartDescription}
                           onChange={(e) => setChartDescription(e.target.value)}
                           rows={2}

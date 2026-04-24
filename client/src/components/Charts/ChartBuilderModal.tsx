@@ -33,6 +33,8 @@ import {
   SelectItem,
   Switch,
   Button,
+  Input,
+  Textarea,
 } from '@librechat/client';
 import RechartsRenderer, { ChartConfig, ChartType } from './RechartsRenderer';
 import { useCreateChartMutation } from 'librechat-data-provider';
@@ -575,13 +577,13 @@ const SectionHeader: React.FC<{ icon: React.ElementType; label: string }> = ({
                                   <Type className="h-3.5 w-3.5" />
                                   Custom Label
                                 </label>
-                                <input
-                                  type="text"
-                                  placeholder={xAxisField}
-                                  value={xAxisLabel || ''}
-                                  onChange={(e) => setXAxisLabel(e.target.value)}
-                                  className="w-full rounded-xl border border-border-light/60 bg-surface-secondary/50 px-3.5 py-2 text-xs text-text-primary placeholder:text-text-tertiary transition-all focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10"
-                                />
+<Input
+                                    type="text"
+                                    placeholder={xAxisField}
+                                    value={xAxisLabel || ''}
+                                    onChange={(e) => setXAxisLabel(e.target.value)}
+                                    className="w-full rounded-xl border border-border-light/60 bg-surface-secondary/50 px-3.5 py-2 text-xs text-text-primary placeholder:text-text-tertiary transition-all focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10"
+                                  />
                               </div>
                             )}
                           </div>
@@ -612,7 +614,7 @@ const SectionHeader: React.FC<{ icon: React.ElementType; label: string }> = ({
                                       </button>
                                       {isSelected && (
                                         <div className="mt-2">
-                                          <input
+                                          <Input
                                             type="text"
                                             placeholder={`Label for ${header}`}
                                             value={yAxisLabels[header] || ''}
@@ -868,7 +870,7 @@ const SectionHeader: React.FC<{ icon: React.ElementType; label: string }> = ({
                       <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
                         Chart Name *
                       </label>
-                      <input
+                      <Input
                         type="text"
                         placeholder="e.g., Revenue by Quarter"
                         value={chartName}
@@ -881,7 +883,7 @@ const SectionHeader: React.FC<{ icon: React.ElementType; label: string }> = ({
                       <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
                         Description
                       </label>
-                      <textarea
+                      <Textarea
                         placeholder="What does this chart represent?"
                         value={chartDescription}
                         onChange={(e) => setChartDescription(e.target.value)}
@@ -931,12 +933,8 @@ const SectionHeader: React.FC<{ icon: React.ElementType; label: string }> = ({
                     <Button
                       onClick={handleSave}
                       disabled={!chartName.trim() || createChartMutation.isLoading}
-                      className="w-full gap-2"
-                      style={{
-                        background: `linear-gradient(135deg, ${currentPalette.colors[0]}, ${currentPalette.colors[1]})`,
-                        opacity: !chartName.trim() || createChartMutation.isLoading ? 0.5 : 1,
-                      }}
                       variant="submit"
+                      className="w-full gap-2"
                     >
                       {createChartMutation.isLoading ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
