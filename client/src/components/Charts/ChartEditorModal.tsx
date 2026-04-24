@@ -20,7 +20,18 @@ import {
   AlertCircle,
   X,
 } from 'lucide-react';
-import { OGDialog, OGDialogContent, OGDialogHeader, OGDialogTitle } from '@librechat/client';
+import {
+  OGDialog,
+  OGDialogContent,
+  OGDialogHeader,
+  OGDialogTitle,
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+  Switch,
+} from '@librechat/client';
 import {
   useGetChartWithDataQuery,
   useUpdateChartMutation,
@@ -97,86 +108,6 @@ const SectionHeader: React.FC<{ icon: React.ElementType; label: string }> = ({
       {label}
     </span>
   </div>
-);
-
-const CustomSelect: React.FC<{
-  value: string;
-  onChange: (value: string) => void;
-  options: { value: string; label: string; type?: string }[];
-}> = ({ value, onChange, options }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const selected = options.find((o) => o.value === value);
-
-  return (
-    <div className="relative">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex w-full items-center justify-between rounded-xl border border-border-light/60 bg-surface-secondary/50 px-3.5 py-2.5 text-sm text-text-primary transition-all hover:border-border-medium hover:bg-surface-hover"
-      >
-        <span className="truncate">{selected?.label || 'Select...'}</span>
-        <ChevronDown
-          className={cn('h-4 w-4 flex-shrink-0 text-text-tertiary transition-transform', isOpen && 'rotate-180')}
-        />
-      </button>
-      {isOpen && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-          <div className="absolute top-full z-50 mt-1.5 w-full overflow-hidden rounded-xl border border-border-light/60 bg-surface-primary shadow-xl ring-1 ring-black/5">
-            <div className="max-h-60 overflow-y-auto p-1">
-              {options.map((option) => (
-                <button
-                  key={option.value}
-                  onClick={() => {
-                    onChange(option.value);
-                    setIsOpen(false);
-                  }}
-                  className={cn(
-                    'flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors',
-                    value === option.value
-                      ? 'bg-primary/10 font-medium text-primary'
-                      : 'text-text-secondary hover:bg-surface-hover',
-                  )}
-                >
-                  <span className="truncate">{option.label}</span>
-                  {option.type && (
-                    <span className="ml-2 rounded-md bg-surface-secondary px-1.5 py-0.5 text-[10px] font-medium text-text-tertiary">
-                      {option.type}
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
-    </div>
-  );
-};
-
-const ToggleSwitch: React.FC<{ checked: boolean; onChange: () => void; label: string }> = ({
-  checked,
-  onChange,
-  label,
-}) => (
-  <button
-    onClick={onChange}
-    className="flex w-full items-center justify-between rounded-xl border border-border-light/60 bg-surface-secondary/50 px-4 py-3 transition-all hover:border-border-medium"
-  >
-    <span className="text-sm text-text-secondary">{label}</span>
-    <div
-      className={cn(
-        'relative h-5 w-9 rounded-full transition-colors',
-        checked ? 'bg-primary' : 'bg-surface-tertiary',
-      )}
-    >
-      <div
-        className={cn(
-          'absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform',
-          checked ? 'left-4' : 'left-0.5',
-        )}
-      />
-    </div>
-  </button>
 );
 
 export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartEditorModalProps) {
@@ -608,15 +539,18 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
                           <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-text-secondary">
                             X-Axis (Category)
                           </label>
-                          <CustomSelect
-                            value={xAxisField}
-                            onChange={setXAxisField}
-                            options={headers.map((header) => ({
-                              value: header,
-                              label: header,
-                              type: columnTypes[header],
-                            }))}
-                          />
+                          <Select value={xAxisField} onValueChange={setXAxisField}>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select X-Axis..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {headers.map((header) => (
+                                <SelectItem key={header} value={header}>
+                                  {header}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
 
                         <div>
@@ -693,22 +627,31 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
                     <div>
                       <SectionHeader icon={Settings2} label="Options" />
                       <div className="space-y-2">
-                        <ToggleSwitch
-                          checked={showLegend}
-                          onChange={() => setShowLegend(!showLegend)}
-                          label="Show Legend"
-                        />
-                        <ToggleSwitch
-                          checked={showGrid}
-                          onChange={() => setShowGrid(!showGrid)}
-                          label="Show Grid"
-                        />
-                        {(chartType === 'bar' || chartType === 'area') && (
-                          <ToggleSwitch
-                            checked={stacked}
-                            onChange={() => setStacked(!stacked)}
-                            label="Stack Values"
+                        <div className="flex items-center justify-between rounded-xl border border-border-light/60 bg-surface-secondary/50 px-4 py-3 transition-all hover:border-border-medium">
+                          <span className="text-sm text-text-secondary">Show Legend</span>
+                          <Switch
+                            checked={showLegend}
+                            onCheckedChange={(checked) => setShowLegend(checked)}
+                            aria-label="Show Legend"
                           />
+                        </div>
+                        <div className="flex items-center justify-between rounded-xxl border border-border-light/60 bg-surface-secondary/50 px-4 py-3 transition-all hover:border-border-medium">
+                          <span className="text-sm text-text-secondary">Show Grid</span>
+                          <Switch
+                            checked={showGrid}
+                            onCheckedChange={(checked) => setShowGrid(checked)}
+                            aria-label="Show Grid"
+                          />
+                        </div>
+                        {(chartType === 'bar' || chartType === 'area') && (
+                          <div className="flex items-center justify-between rounded-xl border border-border-light/60 bg-surface-secondary/50 px-4 py-3 transition-all hover:border-border-medium">
+                            <span className="text-sm text-text-secondary">Stack Values</span>
+                            <Switch
+                              checked={stacked}
+                              onCheckedChange={(checked) => setStacked(checked)}
+                              aria-label="Stack Values"
+                            />
+                          </div>
                         )}
                       </div>
                     </div>
