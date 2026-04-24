@@ -32,6 +32,7 @@ import {
   SelectContent,
   SelectItem,
   Switch,
+  Button,
 } from '@librechat/client';
 import RechartsRenderer, { ChartConfig, ChartType } from './RechartsRenderer';
 import { useCreateChartMutation } from 'librechat-data-provider';
@@ -444,21 +445,23 @@ const SectionHeader: React.FC<{ icon: React.ElementType; label: string }> = ({
 
               <div className="flex items-center gap-3">
                 {!showSavePanel ? (
-                  <button
+                  <Button
                     onClick={() => setShowSavePanel(true)}
-                    className="group flex items-center gap-2 rounded-xl bg-text-primary px-4 py-2 text-sm font-medium text-surface-primary shadow-sm transition-all hover:shadow-md"
+                    className="group gap-2"
+                    variant="default"
                   >
                     <Save className="h-4 w-4" />
                     <span>Save Chart</span>
-                  </button>
+                  </Button>
                 ) : (
-                  <button
+                  <Button
                     onClick={() => setShowSavePanel(false)}
-                    className="flex items-center gap-2 rounded-xl border border-border-light/60 bg-surface-secondary/50 px-4 py-2 text-sm font-medium text-text-secondary transition-all hover:border-border-medium hover:text-text-primary"
+                    variant="outline"
+                    className="gap-2"
                   >
                     <X className="h-4 w-4" />
                     <span>Cancel</span>
-                  </button>
+                  </Button>
                 )}
               </div>
             </div>
@@ -468,7 +471,7 @@ const SectionHeader: React.FC<{ icon: React.ElementType; label: string }> = ({
             <div
               className={cn(
                 'flex flex-col border-r border-border-light/60 bg-surface-primary-alt transition-all duration-300',
-                showSavePanel ? 'w-80' : 'w-72',
+                showSavePanel ? 'w-80' : 'w-64',
               )}
             >
               <div className="flex border-b border-border-light/60">
@@ -774,19 +777,21 @@ const SectionHeader: React.FC<{ icon: React.ElementType; label: string }> = ({
                       </div>
                       {tableData.rows.length > DATA_PAGE_SIZE && (
                         <div className="flex items-center justify-between border-t border-border-light/60 px-4 py-2.5">
-                          <button
+                          <Button
                             onClick={() => setDataPage((p) => Math.max(0, p - 1))}
                             disabled={dataPage === 0}
-                            className="flex items-center gap-1 rounded-lg border border-border-light/60 px-2.5 py-1.5 text-xs font-medium text-text-secondary transition-all hover:bg-surface-hover disabled:opacity-50"
+                            variant="outline"
+                            size="sm"
+                            className="gap-1"
                           >
                             <ChevronLeft className="h-3.5 w-3.5" />
                             Prev
-                          </button>
+                          </Button>
                           <span className="text-[11px] font-medium text-text-tertiary">
                             Page {dataPage + 1} of{' '}
                             {Math.ceil(tableData.rows.length / DATA_PAGE_SIZE)}
                           </span>
-                          <button
+                          <Button
                             onClick={() =>
                               setDataPage((p) =>
                                 Math.min(
@@ -798,11 +803,13 @@ const SectionHeader: React.FC<{ icon: React.ElementType; label: string }> = ({
                             disabled={
                               dataPage >= Math.ceil(tableData.rows.length / DATA_PAGE_SIZE) - 1
                             }
-                            className="flex items-center gap-1 rounded-lg border border-border-light/60 px-2.5 py-1.5 text-xs font-medium text-text-secondary transition-all hover:bg-surface-hover disabled:opacity-50"
+                            variant="outline"
+                            size="sm"
+                            className="gap-1"
                           >
                             Next
                             <ChevronRight className="h-3.5 w-3.5" />
-                          </button>
+                          </Button>
                         </div>
                       )}
                     </div>
@@ -921,14 +928,15 @@ const SectionHeader: React.FC<{ icon: React.ElementType; label: string }> = ({
                   )}
 
                   <div className="mt-auto space-y-2 pt-4">
-                    <button
+                    <Button
                       onClick={handleSave}
                       disabled={!chartName.trim() || createChartMutation.isLoading}
-                      className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:shadow-md disabled:opacity-50 disabled:hover:shadow-sm"
+                      className="w-full gap-2"
                       style={{
                         background: `linear-gradient(135deg, ${currentPalette.colors[0]}, ${currentPalette.colors[1]})`,
                         opacity: !chartName.trim() || createChartMutation.isLoading ? 0.5 : 1,
                       }}
+                      variant="submit"
                     >
                       {createChartMutation.isLoading ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -936,14 +944,15 @@ const SectionHeader: React.FC<{ icon: React.ElementType; label: string }> = ({
                         <Save className="h-4 w-4" />
                       )}
                       Save to Library
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={() => setShowSavePanel(false)}
-                      className="flex w-full items-center justify-center gap-2 rounded-xl border border-border-light/60 py-2.5 text-sm font-medium text-text-secondary transition-all hover:border-border-medium hover:text-text-primary"
+                      variant="outline"
+                      className="w-full gap-2"
                     >
                       <X className="h-4 w-4" />
                       Cancel
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -965,34 +974,68 @@ const SectionHeader: React.FC<{ icon: React.ElementType; label: string }> = ({
                 </div>
               </div>
 
-              <div className="flex min-h-0 flex-1 items-center justify-center p-6">
+              <div className="flex min-h-0 flex-1 p-4 lg:p-6">
                 {yAxisFields.length > 0 ? (
-                  <div className="w-full max-w-3xl">
+                  <div className="flex h-full w-full flex-col">
                     <RechartsRenderer
                       config={chartConfig}
                       data={chartData}
-                      height={400}
-                      className="w-full"
+                      height={Math.max(240, (window.innerHeight * 0.42) - 180)}
+                      className="flex-1"
                     />
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center text-center">
-                    <div
-                      className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl"
-                      style={{
-                        background: `linear-gradient(135deg, ${currentPalette.colors[0]}10, ${currentPalette.colors[1]}10)`,
-                        border: `1px dashed ${currentPalette.colors[0]}40`,
-                      }}
-                    >
-                      <BarChart3
-                        className="h-8 w-8"
-                        style={{ color: `${currentPalette.colors[0]}60` }}
-                      />
+                  <div className="flex w-full max-w-4xl gap-8">
+                    <div className="flex flex-1 flex-col items-center justify-center text-center">
+                      <div
+                        className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl"
+                        style={{
+                          background: `linear-gradient(135deg, ${currentPalette.colors[0]}10, ${currentPalette.colors[1]}10)`,
+                          border: `1px dashed ${currentPalette.colors[0]}40`,
+                        }}
+                      >
+                        <BarChart3
+                          className="h-8 w-8"
+                          style={{ color: `${currentPalette.colors[0]}60` }}
+                        />
+                      </div>
+                      <p className="text-sm font-medium text-text-secondary">No data to visualize</p>
+                      <p className="mt-1 text-xs text-text-tertiary">
+                        Select at least one Y-axis field
+                      </p>
                     </div>
-                    <p className="text-sm font-medium text-text-secondary">No data to visualize</p>
-                    <p className="mt-1 text-xs text-text-tertiary">
-                      Select at least one Y-axis field
-                    </p>
+                    <div className="w-64 flex-shrink-0 rounded-xl border border-border-light/60 bg-surface-secondary/30 p-4">
+                      <h4 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-text-secondary">
+                        <Sparkles className="h-3.5 w-3.5 text-primary" />
+                        Quick Tips
+                      </h4>
+                      <ul className="space-y-2 text-xs text-text-secondary">
+                        <li className="flex items-start gap-2">
+                          <span className="mt-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                            1
+                          </span>
+                          <span>Select numeric columns for Y-axis to display values</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="mt-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                            2
+                          </span>
+                          <span>X-axis is typically a category or date column</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="mt-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                            3
+                          </span>
+                          <span>Choose chart type based on data relationship</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="mt-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                            4
+                          </span>
+                          <span>Enable legend to identify multiple series</span>
+                        </li>
+                      </ul>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1034,18 +1077,12 @@ const SectionHeader: React.FC<{ icon: React.ElementType; label: string }> = ({
               You have unsaved changes. Are you sure you want to discard them?
             </p>
             <div className="flex justify-end gap-3">
-              <button
-                onClick={handleCancelDiscard}
-                className="rounded-xl border border-border-light/60 px-4 py-2 text-sm font-medium text-text-secondary transition-all hover:border-border-medium hover:text-text-primary"
-              >
+              <Button onClick={handleCancelDiscard} variant="outline">
                 Keep Editing
-              </button>
-              <button
-                onClick={handleConfirmDiscard}
-                className="rounded-xl bg-destructive px-4 py-2 text-sm font-medium text-white transition-all hover:bg-destructive/80"
-              >
+              </Button>
+              <Button onClick={handleConfirmDiscard} variant="destructive">
                 Discard Changes
-              </button>
+              </Button>
             </div>
           </div>
         </OGDialogContent>

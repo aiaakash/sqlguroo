@@ -19,6 +19,7 @@ import {
   History,
   AlertCircle,
   X,
+  Sparkles,
 } from 'lucide-react';
 import {
   OGDialog,
@@ -31,6 +32,7 @@ import {
   SelectContent,
   SelectItem,
   Switch,
+  Button,
 } from '@librechat/client';
 import {
   useGetChartWithDataQuery,
@@ -395,11 +397,12 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
 
               <div className="flex items-center gap-3">
                 {canRefresh && (
-                  <button
+                  <Button
+                    variant="outline"
                     onClick={handleRefresh}
                     disabled={refreshChartMutation.isLoading}
-                    className="flex items-center gap-2 rounded-xl border border-border-light/60 bg-surface-secondary/50 px-3.5 py-2 text-sm font-medium text-text-secondary transition-all hover:border-border-medium hover:text-text-primary disabled:opacity-50"
                     title="Refresh data from database"
+                    className="gap-2"
                   >
                     {refreshChartMutation.isLoading ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -407,17 +410,18 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
                       <RefreshCw className="h-4 w-4" />
                     )}
                     <span className="hidden sm:inline">Refresh</span>
-                  </button>
+                  </Button>
                 )}
-                <button
+                <Button
                   onClick={handleSave}
                   disabled={!hasChanges || updateChartMutation.isLoading}
-                  className="group flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:shadow-md disabled:opacity-50 disabled:hover:shadow-sm"
+                  className="group gap-2"
                   style={{
                     background: !hasChanges
                       ? '#9CA3AF'
                       : `linear-gradient(135deg, ${currentPalette.colors[0]}, ${currentPalette.colors[1]})`,
                   }}
+                  variant="submit"
                 >
                   {updateChartMutation.isLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -425,13 +429,13 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
                     <Save className="h-4 w-4" />
                   )}
                   <span>Save Changes</span>
-                </button>
+                </Button>
               </div>
             </div>
           </OGDialogHeader>
 
-          <div className="relative flex min-h-0 flex-1">
-            <div className="flex w-72 flex-col border-r border-border-light/60 bg-surface-primary-alt">
+            <div className="relative flex min-h-0 flex-1">
+              <div className="flex w-64 flex-col border-r border-border-light/60 bg-surface-primary-alt">
               <div className="flex border-b border-border-light/60">
                 <button
                   onClick={() => setActiveTab('configure')}
@@ -757,34 +761,68 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
                 </div>
               </div>
 
-              <div className="flex min-h-0 flex-1 items-center justify-center p-6">
+              <div className="flex min-h-0 flex-1 p-4 lg:p-6">
                 {yAxisFields.length > 0 ? (
-                  <div className="w-full max-w-3xl">
+                  <div className="flex h-full w-full flex-col">
                     <RechartsRenderer
                       config={chartConfig}
                       data={chartDisplayData}
-                      height={400}
-                      className="w-full"
+                      height={Math.max(240, (window.innerHeight * 0.42) - 180)}
+                      className="flex-1"
                     />
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center text-center">
-                    <div
-                      className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl"
-                      style={{
-                        background: `linear-gradient(135deg, ${currentPalette.colors[0]}10, ${currentPalette.colors[1]}10)`,
-                        border: `1px dashed ${currentPalette.colors[0]}40`,
-                      }}
-                    >
-                      <BarChart3
-                        className="h-8 w-8"
-                        style={{ color: `${currentPalette.colors[0]}60` }}
-                      />
+                  <div className="flex w-full max-w-4xl gap-8">
+                    <div className="flex flex-1 flex-col items-center justify-center text-center">
+                      <div
+                        className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl"
+                        style={{
+                          background: `linear-gradient(135deg, ${currentPalette.colors[0]}10, ${currentPalette.colors[1]}10)`,
+                          border: `1px dashed ${currentPalette.colors[0]}40`,
+                        }}
+                      >
+                        <BarChart3
+                          className="h-8 w-8"
+                          style={{ color: `${currentPalette.colors[0]}60` }}
+                        />
+                      </div>
+                      <p className="text-sm font-medium text-text-secondary">No data to visualize</p>
+                      <p className="mt-1 text-xs text-text-tertiary">
+                        Select at least one Y-axis field
+                      </p>
                     </div>
-                    <p className="text-sm font-medium text-text-secondary">No data to visualize</p>
-                    <p className="mt-1 text-xs text-text-tertiary">
-                      Select at least one Y-axis field
-                    </p>
+                    <div className="w-64 flex-shrink-0 rounded-xl border border-border-light/60 bg-surface-secondary/30 p-4">
+                      <h4 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-text-secondary">
+                        <Sparkles className="h-3.5 w-3.5 text-primary" />
+                        Quick Tips
+                      </h4>
+                      <ul className="space-y-2 text-xs text-text-secondary">
+                        <li className="flex items-start gap-2">
+                          <span className="mt-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                            1
+                          </span>
+                          <span>Select numeric columns for Y-axis to display values</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="mt-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                            2
+                          </span>
+                          <span>X-axis is typically a category or date column</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="mt-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                            3
+                          </span>
+                          <span>Choose chart type based on data relationship</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="mt-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                            4
+                          </span>
+                          <span>Enable legend to identify multiple series</span>
+                        </li>
+                      </ul>
+                    </div>
                   </div>
                 )}
               </div>
@@ -826,18 +864,12 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
               You have unsaved changes. Are you sure you want to discard them?
             </p>
             <div className="flex justify-end gap-3">
-              <button
-                onClick={handleCancelDiscard}
-                className="rounded-xl border border-border-light/60 px-4 py-2 text-sm font-medium text-text-secondary transition-all hover:border-border-medium hover:text-text-primary"
-              >
+              <Button onClick={handleCancelDiscard} variant="outline">
                 Keep Editing
-              </button>
-              <button
-                onClick={handleConfirmDiscard}
-                className="rounded-xl bg-destructive px-4 py-2 text-sm font-medium text-white transition-all hover:bg-destructive/80"
-              >
+              </Button>
+              <Button onClick={handleConfirmDiscard} variant="destructive">
                 Discard Changes
-              </button>
+              </Button>
             </div>
           </div>
         </OGDialogContent>
