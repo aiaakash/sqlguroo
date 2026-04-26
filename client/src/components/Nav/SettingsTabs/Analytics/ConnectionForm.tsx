@@ -1,12 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { TestTube } from 'lucide-react';
 import {
   OGDialogContent,
   OGDialogHeader,
   OGDialogTitle,
+  OGDialogDescription,
   OGDialogClose,
+  OGDialogFooter,
   Spinner,
+  Button,
+  Label,
+  Input,
+  Textarea,
+  Checkbox,
 } from '@librechat/client';
 import { useToastContext } from '@librechat/client';
 import {
@@ -22,7 +29,7 @@ import type {
 } from 'librechat-data-provider';
 
 interface ConnectionFormProps {
-  organizationId: string;
+  organizationId?: string;
   connectionId?: string | null;
   onClose: () => void;
 }
@@ -64,6 +71,7 @@ export default function ConnectionForm({
     handleSubmit,
     watch,
     reset,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     defaultValues: {
@@ -174,10 +182,8 @@ export default function ConnectionForm({
 
       if (connectionId) {
         // For updates, only include password if it's a non-empty string
-        const updateData = { ...submitData };
-        if (!updateData.password || updateData.password === '') {
-          delete updateData.password;
-        }
+        const { password, ...updateDataWithoutPassword } = submitData;
+        const updateData = password && password !== '' ? { ...submitData } : updateDataWithoutPassword;
         await updateConnection.mutateAsync({
           id: connectionId,
           data: updateData,
@@ -205,16 +211,13 @@ export default function ConnectionForm({
   // Check if this is a system connection that cannot be edited
   if (existingConnection?.isSystem) {
     return (
-      <OGDialogContent className="w-[500px] !bg-card">
+      <OGDialogContent className="w-[500px]">
         <OGDialogHeader>
-          <OGDialogTitle>System Database Connection</OGDialogTitle>
-        </OGDialogHeader>
-        <div className="py-6 text-center">
-          <div className="mb-4 flex justify-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900/40">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/40">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6"
+                className="h-5 w-5 text-blue-600 dark:text-blue-400"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -227,7 +230,10 @@ export default function ConnectionForm({
                 />
               </svg>
             </div>
+            <OGDialogTitle>System Database Connection</OGDialogTitle>
           </div>
+        </OGDialogHeader>
+        <OGDialogDescription className="py-6 text-center">
           <p className="mb-2 text-text-primary">
             <strong>{existingConnection.name}</strong> is a shared sample database.
           </p>
@@ -235,17 +241,14 @@ export default function ConnectionForm({
             This connection is managed by the system administrator and cannot be modified. You can
             use it to run read-only queries and explore the sample data.
           </p>
-        </div>
-        <div className="flex justify-end">
+        </OGDialogDescription>
+        <OGDialogFooter className="flex justify-end">
           <OGDialogClose asChild>
-            <button
-              type="button"
-              className="rounded-lg border border-border-medium px-4 py-2 text-sm hover:bg-surface-hover"
-            >
+            <Button type="button" variant="outline">
               Close
-            </button>
+            </Button>
           </OGDialogClose>
-        </div>
+        </OGDialogFooter>
       </OGDialogContent>
     );
   }
@@ -261,30 +264,38 @@ export default function ConnectionForm({
   }
 
   return (
-    <OGDialogContent className="w-[500px] !bg-card">
+    <OGDialogContent className="w-[500px]">
       <OGDialogHeader>
         <OGDialogTitle>
           {connectionId ? 'Edit Database Connection' : 'Add Database Connection'}
         </OGDialogTitle>
+        <OGDialogDescription>
+          Configure your database connection settings below.
+        </OGDialogDescription>
       </OGDialogHeader>
 
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
         <div className="grid grid-cols-2 gap-4">
           <div className="col-span-2">
-            <label className="mb-1 block text-sm font-medium">Connection Name</label>
-            <input
+            <Label htmlFor="name" className="mb-1.5">
+              Connection Name
+            </Label>
+            <Input
+              id="name"
               {...register('name', { required: 'Name is required' })}
-              className="w-full rounded-lg border border-border-medium bg-surface-primary px-3 py-2 text-sm focus:border-border-heavy focus:outline-none"
               placeholder="My Database"
             />
             {errors.name && <span className="text-xs text-red-500">{errors.name.message}</span>}
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium">Database Type</label>
+            <Label htmlFor="type" className="mb-1.5">
+              Database Type
+            </Label>
             <select
+              id="type"
               {...register('type')}
-              className="w-full rounded-lg border border-border-medium bg-surface-primary px-3 py-2 text-sm focus:border-border-heavy focus:outline-none"
+              className="flex h-10 w-full items-center justify-between whitespace-nowrap rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             >
               <option value="mysql">MySQL</option>
               <option value="clickhouse">ClickHouse</option>
@@ -298,10 +309,13 @@ export default function ConnectionForm({
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium">Query Mode</label>
+            <Label htmlFor="queryMode" className="mb-1.5">
+              Query Mode
+            </Label>
             <select
+              id="queryMode"
               {...register('queryMode')}
-              className="w-full rounded-lg border border-border-medium bg-surface-primary px-3 py-2 text-sm focus:border-border-heavy focus:outline-none"
+              className="flex h-10 w-full items-center justify-between whitespace-nowrap rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             >
               <option value="read_only">Read Only (Recommended)</option>
               <option value="read_write">Read/Write</option>
@@ -311,24 +325,28 @@ export default function ConnectionForm({
           {!isBigQuery && (
             <>
               <div>
-                <label className="mb-1 block text-sm font-medium">Host</label>
-                <input
+                <Label htmlFor="host" className="mb-1.5">
+                  Host
+                </Label>
+                <Input
+                  id="host"
                   {...register('host', { required: !isBigQuery && 'Host is required' })}
-                  className="w-full rounded-lg border border-border-medium bg-surface-primary px-3 py-2 text-sm focus:border-border-heavy focus:outline-none"
                   placeholder="localhost"
                 />
                 {errors.host && <span className="text-xs text-red-500">{errors.host.message}</span>}
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-medium">Port</label>
-                <input
+                <Label htmlFor="port" className="mb-1.5">
+                  Port
+                </Label>
+                <Input
+                  id="port"
                   type="number"
                   {...register('port', {
                     required: !isBigQuery && 'Port is required',
                     valueAsNumber: true,
                   })}
-                  className="w-full rounded-lg border border-border-medium bg-surface-primary px-3 py-2 text-sm focus:border-border-heavy focus:outline-none"
                 />
                 {errors.port && <span className="text-xs text-red-500">{errors.port.message}</span>}
               </div>
@@ -336,12 +354,12 @@ export default function ConnectionForm({
           )}
 
           <div className="col-span-2">
-            <label className="mb-1 block text-sm font-medium">
+            <Label htmlFor="database" className="mb-1.5">
               {isBigQuery ? 'Project ID' : 'Database Name'}
-            </label>
-            <input
+            </Label>
+            <Input
+              id="database"
               {...register('database', { required: 'Database name is required' })}
-              className="w-full rounded-lg border border-border-medium bg-surface-primary px-3 py-2 text-sm focus:border-border-heavy focus:outline-none"
               placeholder={isBigQuery ? 'my-project-id' : 'my_database'}
             />
             {errors.database && (
@@ -354,10 +372,12 @@ export default function ConnectionForm({
 
           {!isBigQuery && (
             <div>
-              <label className="mb-1 block text-sm font-medium">Username</label>
-              <input
+              <Label htmlFor="username" className="mb-1.5">
+                Username
+              </Label>
+              <Input
+                id="username"
                 {...register('username', { required: !isBigQuery && 'Username is required' })}
-                className="w-full rounded-lg border border-border-medium bg-surface-primary px-3 py-2 text-sm focus:border-border-heavy focus:outline-none"
                 placeholder="root"
               />
               {errors.username && (
@@ -367,24 +387,24 @@ export default function ConnectionForm({
           )}
 
           <div className={isBigQuery ? 'col-span-2' : ''}>
-            <label className="mb-1 block text-sm font-medium">
+            <Label htmlFor="password" className="mb-1.5">
               {isBigQuery ? 'Service Account Credentials' : 'Password'}{' '}
               {connectionId && !isBigQuery && '(leave blank to keep existing)'}
-            </label>
+            </Label>
             {isBigQuery ? (
-              <textarea
+              <Textarea
+                id="password"
                 {...register('password', {
                   required: !connectionId && 'Service account credentials are required',
                 })}
-                className="w-full rounded-lg border border-border-medium bg-surface-primary px-3 py-2 text-sm focus:border-border-heavy focus:outline-none"
                 placeholder='{"type": "service_account", "project_id": "...", ...}'
                 rows={4}
               />
             ) : (
-              <input
+              <Input
+                id="password"
                 type="password"
                 {...register('password', { required: !connectionId && 'Password is required' })}
-                className="w-full rounded-lg border border-border-medium bg-surface-primary px-3 py-2 text-sm focus:border-border-heavy focus:outline-none"
                 placeholder="••••••••"
               />
             )}
@@ -399,37 +419,48 @@ export default function ConnectionForm({
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium">Query Timeout (ms)</label>
-            <input
+            <Label htmlFor="queryTimeout" className="mb-1.5">
+              Query Timeout (ms)
+            </Label>
+            <Input
+              id="queryTimeout"
               type="number"
               {...register('queryTimeout', { valueAsNumber: true })}
-              className="w-full rounded-lg border border-border-medium bg-surface-primary px-3 py-2 text-sm focus:border-border-heavy focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium">
+            <Label htmlFor="maxRows" className="mb-1.5">
               Max Rows <span className="text-text-tertiary">(optional)</span>
-            </label>
-            <input
+            </Label>
+            <Input
+              id="maxRows"
               type="number"
               placeholder="No limit"
               {...register('maxRows', { valueAsNumber: true })}
-              className="w-full rounded-lg border border-border-medium bg-surface-primary px-3 py-2 text-sm focus:border-border-heavy focus:outline-none"
             />
             <p className="mt-1 text-xs text-text-tertiary">Leave empty for no row limit</p>
           </div>
 
           {!isBigQuery && (
             <div className="col-span-2">
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  {...register('ssl')}
-                  className="rounded border-border-medium"
+              <div className="flex items-center gap-2">
+                <Controller
+                  name="ssl"
+                  control={control}
+                  render={({ field }) => (
+                    <Checkbox
+                      id="ssl"
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      aria-label="Use SSL/TLS connection"
+                    />
+                  )}
                 />
-                <span className="text-sm">Use SSL/TLS connection</span>
-              </label>
+                <Label htmlFor="ssl" className="text-sm font-normal">
+                  Use SSL/TLS connection
+                </Label>
+              </div>
             </div>
           )}
         </div>
@@ -453,36 +484,35 @@ export default function ConnectionForm({
           </div>
         )}
 
-        <div className="flex justify-between gap-2">
-          <button
+        <OGDialogFooter className="flex justify-between gap-2">
+          <Button
             type="button"
+            variant="outline"
             onClick={handleTest}
             disabled={isTesting}
-            className="flex items-center gap-1 rounded-lg border border-border-medium px-3 py-2 text-sm hover:bg-surface-hover disabled:opacity-50"
+            className="gap-1.5"
           >
             {isTesting ? <Spinner className="h-4 w-4" /> : <TestTube className="h-4 w-4" />}
             Test Connection
-          </button>
+          </Button>
 
           <div className="flex gap-2">
             <OGDialogClose asChild>
-              <button
-                type="button"
-                className="rounded-lg border border-border-medium px-4 py-2 text-sm hover:bg-surface-hover"
-              >
+              <Button type="button" variant="outline">
                 Cancel
-              </button>
+              </Button>
             </OGDialogClose>
-            <button
+            <Button
               type="submit"
               disabled={isSubmitting}
-              className="hover:!bg-primary/90 flex items-center gap-1 rounded-lg !bg-primary px-4 py-2 text-sm !text-primary-foreground disabled:opacity-50"
+              variant="submit"
+              className="gap-1.5"
             >
               {isSubmitting && <Spinner className="h-4 w-4" />}
               {connectionId ? 'Update' : 'Create'} Connection
-            </button>
+            </Button>
           </div>
-        </div>
+        </OGDialogFooter>
       </form>
     </OGDialogContent>
   );
