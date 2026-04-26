@@ -2,7 +2,15 @@ import React, { useState, useCallback } from 'react';
 import { Save, Check, X } from 'lucide-react';
 import { useCreateSavedQueryMutation } from 'librechat-data-provider';
 import { useToastContext } from '@librechat/client';
-import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from '@headlessui/react';
+import {
+  OGDialog,
+  OGDialogContent,
+  OGDialogHeader,
+  OGDialogTitle,
+  Button,
+  Input,
+  Label,
+} from '@librechat/client';
 import { NotificationSeverity } from '~/common';
 import { useLocalize } from '~/hooks';
 import { cn } from '~/utils';
@@ -89,8 +97,10 @@ export const SaveQueryButton: React.FC<SaveQueryButtonProps> = ({
 
   return (
     <>
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="icon"
         onClick={openModal}
         disabled={isSaved}
         className={
@@ -104,140 +114,97 @@ export const SaveQueryButton: React.FC<SaveQueryButtonProps> = ({
         ) : (
           <Save className="h-[18px] w-[18px]" />
         )}
-      </button>
+      </Button>
 
-      <Transition appear show={isModalOpen}>
-        <Dialog as="div" className="relative z-[100]" onClose={closeModal}>
-          <TransitionChild
-            enter="ease-out duration-200"
-            enterFrom="opacity-0"
-            enterTo="opacity-100"
-            leave="ease-in duration-200"
-            leaveFrom="opacity-100"
-            leaveTo="opacity-0"
-          >
-            <div className="fixed inset-0 bg-black opacity-50 dark:opacity-80" aria-hidden="true" />
-          </TransitionChild>
+      <OGDialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <OGDialogContent className="w-full max-w-lg overflow-hidden rounded-xl bg-card p-0 shadow-2xl backdrop-blur-2xl">
+          <OGDialogHeader className="flex items-center justify-between border-b border-border-light px-6 py-4">
+            <OGDialogTitle className="text-lg font-medium text-text-primary">
+              {localize('com_saved_queries_modal_title')}
+            </OGDialogTitle>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="rounded-md p-1 text-text-secondary opacity-70 transition-opacity hover:bg-surface-hover hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-border-xheavy"
+              onClick={closeModal}
+            >
+              <X className="h-5 w-5" />
+              <span className="sr-only">{localize('com_ui_close')}</span>
+            </Button>
+          </OGDialogHeader>
 
-          <TransitionChild
-            enter="ease-out duration-200"
-            enterFrom="opacity-0 scale-95"
-            enterTo="opacity-100 scale-100"
-            leave="ease-in duration-100"
-            leaveFrom="opacity-100 scale-100"
-            leaveTo="opacity-0 scale-95"
-          >
-            <div className="fixed inset-0 flex w-screen items-center justify-center p-4">
-              <DialogPanel
-                className={cn(
-                  'w-full max-w-lg overflow-hidden rounded-xl bg-card shadow-2xl backdrop-blur-2xl animate-in',
-                  'border border-border-light dark:border-border-dark',
-                )}
+          <div className="p-6">
+            {/* Query Name Input */}
+            <div className="mb-4">
+              <Label
+                htmlFor="queryName"
+                className="mb-2 block text-sm font-medium text-text-primary"
               >
-                {/* Header */}
-                <DialogTitle
-                  className="flex items-center justify-between border-b border-border-light px-6 py-4 dark:border-border-dark"
-                  as="div"
-                >
-                  <h2 className="text-lg font-medium text-text-primary">
-                    {localize('com_saved_queries_modal_title')}
-                  </h2>
-                  <button
-                    type="button"
-                    className="rounded-md p-1 text-text-secondary opacity-70 transition-opacity hover:bg-surface-hover hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-border-xheavy"
-                    onClick={closeModal}
-                  >
-                    <X className="h-5 w-5" />
-                    <span className="sr-only">{localize('com_ui_close')}</span>
-                  </button>
-                </DialogTitle>
-
-                {/* Content */}
-                <div className="p-6">
-                  {/* Query Name Input */}
-                  <div className="mb-4">
-                    <label
-                      htmlFor="queryName"
-                      className="mb-2 block text-sm font-medium text-text-primary"
-                    >
-                      {localize('com_saved_queries_name_label')}
-                    </label>
-                    <input
-                      id="queryName"
-                      type="text"
-                      value={queryName}
-                      onChange={(e) => setQueryName(e.target.value)}
-                      maxLength={100}
-                      placeholder={localize('com_saved_queries_name_placeholder')}
-                      className={cn(
-                        'w-full rounded-lg border bg-transparent px-3 py-2 text-sm text-text-primary',
-                        'border-border-light focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500',
-                        'dark:border-border-dark dark:focus:border-blue-400 dark:focus:ring-blue-400',
-                        'placeholder:text-text-tertiary',
-                      )}
-                      autoFocus
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          handleSave();
-                        } else if (e.key === 'Escape') {
-                          closeModal();
-                        }
-                      }}
-                    />
-                    <div className="mt-1 text-right text-xs text-text-tertiary">
-                      {queryName.length}/100
-                    </div>
-                  </div>
-
-                  {/* SQL Preview */}
-                  <div className="mb-6">
-                    <label className="mb-2 block text-sm font-medium text-text-primary">
-                      {localize('com_saved_queries_sql_preview')}
-                    </label>
-                    <div className="max-h-32 overflow-y-auto rounded-lg border border-border-light bg-surface-secondary p-3 dark:border-border-dark dark:bg-surface-tertiary">
-                      <code className="block whitespace-pre-wrap font-mono text-xs text-text-secondary">
-                        {sqlContent.length > 300 ? sqlContent.substring(0, 300) + '...' : sqlContent}
-                      </code>
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex justify-end gap-3">
-                    <button
-                      type="button"
-                      onClick={closeModal}
-                      className={cn(
-                        'rounded-lg border px-4 py-2 text-sm font-medium transition-colors',
-                        'border-border-light bg-transparent text-text-primary hover:bg-surface-hover',
-                        'dark:border-border-dark dark:hover:bg-surface-tertiary',
-                        'focus:outline-none focus:ring-2 focus:ring-border-xheavy',
-                      )}
-                    >
-                      {localize('com_ui_cancel')}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleSave}
-                      disabled={!queryName.trim() || createSavedQuery.isLoading}
-                      className={cn(
-                        'rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors',
-                        'bg-blue-600 hover:bg-blue-700',
-                        'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
-                        'disabled:cursor-not-allowed disabled:opacity-50',
-                        'dark:focus:ring-offset-surface-primary',
-                      )}
-                    >
-                      {createSavedQuery.isLoading
-                        ? localize('com_ui_saving')
-                        : localize('com_ui_save')}
-                    </button>
-                  </div>
-                </div>
-              </DialogPanel>
+                {localize('com_saved_queries_name_label')}
+              </Label>
+              <Input
+                id="queryName"
+                type="text"
+                value={queryName}
+                onChange={(e) => setQueryName(e.target.value)}
+                maxLength={100}
+                placeholder={localize('com_saved_queries_name_placeholder')}
+                className={cn(
+                  'w-full rounded-lg border bg-transparent px-3 py-2 text-sm text-text-primary',
+                  'border-border-light focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500',
+                  'dark:border-border-dark dark:focus:border-blue-400 dark:focus:ring-blue-400',
+                  'placeholder:text-text-tertiary',
+                )}
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSave();
+                  } else if (e.key === 'Escape') {
+                    closeModal();
+                  }
+                }}
+              />
+              <div className="mt-1 text-right text-xs text-text-tertiary">
+                {queryName.length}/100
+              </div>
             </div>
-          </TransitionChild>
-        </Dialog>
-      </Transition>
+
+            {/* SQL Preview */}
+            <div className="mb-6">
+              <Label className="mb-2 block text-sm font-medium text-text-primary">
+                {localize('com_saved_queries_sql_preview')}
+              </Label>
+              <div className="max-h-32 overflow-y-auto rounded-lg border border-border-light bg-surface-secondary p-3 dark:border-border-dark dark:bg-surface-tertiary">
+                <code className="block whitespace-pre-wrap font-mono text-xs text-text-secondary">
+                  {sqlContent.length > 300 ? sqlContent.substring(0, 300) + '...' : sqlContent}
+                </code>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={closeModal}
+              >
+                {localize('com_ui_cancel')}
+              </Button>
+              <Button
+                type="button"
+                variant="submit"
+                onClick={handleSave}
+                disabled={!queryName.trim() || createSavedQuery.isLoading}
+              >
+                {createSavedQuery.isLoading
+                  ? localize('com_ui_saving')
+                  : localize('com_ui_save')}
+              </Button>
+            </div>
+          </div>
+        </OGDialogContent>
+      </OGDialog>
     </>
   );
 };

@@ -16,7 +16,7 @@ import {
   Check,
   Loader2,
 } from 'lucide-react';
-import { Spinner } from '@librechat/client';
+import { Spinner, Button, Input, Textarea, Label, Separator } from '@librechat/client';
 import { useLocalize, useCustomLink, type TranslationKeys } from '~/hooks';
 import { useDashboardContext } from '~/Providers';
 import {
@@ -222,11 +222,12 @@ export const ContextView: React.FC = () => {
             ) : (
               <div className="flex flex-col gap-1.5">
                 {connections.map((connection) => (
-                  <button
+                  <Button
                     key={connection._id}
+                    variant="ghost"
                     onClick={() => setSelectedConnection(connection._id)}
                     className={cn(
-                      'flex items-start gap-3 rounded-xl border p-3 text-left transition-all',
+                      'flex items-start gap-3 rounded-xl border p-3 text-left transition-all h-auto justify-start',
                       selectedConnection === connection._id
                         ? 'border-primary/30 bg-primary/5 ring-1 ring-primary/10'
                         : 'border-border-light/60 bg-surface-secondary/50 hover:border-border-medium hover:bg-surface-hover',
@@ -262,7 +263,7 @@ export const ContextView: React.FC = () => {
                         {connection.type} • {connection.database}
                       </p>
                     </div>
-                  </button>
+                  </Button>
                 ))}
               </div>
             )}
@@ -326,7 +327,7 @@ export const ContextView: React.FC = () => {
                   </div>
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-tertiary" />
-                    <input
+                    <Input
                       type="text"
                       placeholder="Search tables..."
                       value={searchQuery}
@@ -334,12 +335,14 @@ export const ContextView: React.FC = () => {
                       className="h-9 w-64 rounded-xl border border-border-light/60 bg-surface-secondary/50 pl-9 pr-8 text-sm text-text-primary transition-all placeholder:text-text-tertiary focus:border-primary/30 focus:bg-surface-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
                     />
                     {searchQuery && (
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => setSearchQuery('')}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-0.5 text-text-tertiary transition-colors hover:bg-surface-hover hover:text-text-primary"
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 h-auto w-auto p-0.5 text-text-tertiary transition-colors hover:bg-surface-hover hover:text-text-primary"
                       >
                         <X className="h-3.5 w-3.5" />
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -430,7 +433,7 @@ function Header({
               {localize('com_ui_back_to_chat')}
             </span>
           </a>
-          <div className="h-5 w-px shrink-0 bg-border-light/60" />
+          <Separator orientation="vertical" className="h-5 bg-border-light/60" />
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 ring-1 ring-primary/10">
               <FileText className="h-4 w-4 text-primary" />
@@ -442,10 +445,11 @@ function Header({
         </div>
 
         {selectedConnection && hasUnsavedChanges && (
-          <button
+          <Button
             onClick={onSave}
             disabled={isSaving}
-            className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-primary/90 hover:shadow-md disabled:opacity-50"
+            variant="submit"
+            className="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium shadow-sm"
           >
             {isSaving ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -453,7 +457,7 @@ function Header({
               <Save className="h-4 w-4" />
             )}
             {localize('com_ui_save')}
-          </button>
+          </Button>
         )}
       </div>
     </div>
@@ -505,7 +509,7 @@ function TableContextCard({
   return (
     <div className="overflow-hidden rounded-2xl border border-border-light/60 bg-surface-primary shadow-sm transition-all duration-200 hover:shadow-md">
       <div className="flex items-center justify-between border-b border-border-light/60 p-4">
-        <button onClick={onToggle} className="flex flex-1 items-center gap-3 text-left">
+        <Button variant="ghost" onClick={onToggle} className="flex flex-1 items-center gap-3 text-left h-auto justify-start">
           {isExpanded ? (
             <ChevronDown className="h-5 w-5 flex-shrink-0 text-text-tertiary" />
           ) : (
@@ -517,11 +521,12 @@ function TableContextCard({
           <span className="text-sm font-semibold text-text-primary">{table.name}</span>
           <span className="inline-flex items-center rounded-lg bg-surface-secondary px-2 py-1 text-[11px] font-medium text-text-secondary ring-1 ring-border-light/50">
             {table.columns.length} columns
-          </span>
-        </button>
+           </span>
+         </Button>
 
-        {!editingTable && (
-          <button
+         {!editingTable && (
+          <Button
+            variant="ghost"
             onClick={onEditTable}
             className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
           >
@@ -529,16 +534,16 @@ function TableContextCard({
             {tableDescription
               ? localize('com_context_edit')
               : localize('com_context_add_description')}
-          </button>
+          </Button>
         )}
       </div>
 
       {editingTable ? (
         <div className="border-b border-border-light/60 bg-surface-secondary/30 p-4">
-          <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-text-secondary">
+          <Label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-text-secondary">
             {localize('com_context_table_description_label')}
-          </label>
-          <textarea
+          </Label>
+          <Textarea
             value={tempTableDescription}
             onChange={(e) => onTempTableChange(e.target.value)}
             placeholder={localize('com_context_table_description_placeholder')}
@@ -546,19 +551,21 @@ function TableContextCard({
             className="w-full resize-none rounded-xl border border-border-light/60 bg-surface-primary px-3 py-2.5 text-sm text-text-primary placeholder:text-text-tertiary transition-all focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10"
           />
           <div className="mt-3 flex items-center gap-2">
-            <button
+            <Button
               onClick={onSaveTable}
-              className="flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-primary/90"
+              variant="submit"
+              className="flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium shadow-sm"
             >
               <Save className="h-3.5 w-3.5" />
               {localize('com_ui_save')}
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={onCancelTable}
-              className="rounded-xl border border-border-light/60 px-4 py-2 text-sm font-medium text-text-secondary transition-all hover:border-border-medium hover:text-text-primary"
+              variant="outline"
+              className="rounded-xl px-4 py-2 text-sm font-medium"
             >
               {localize('com_ui_cancel')}
-            </button>
+            </Button>
           </div>
         </div>
       ) : tableDescription ? (
@@ -643,28 +650,32 @@ function ColumnContextItem({
 
         {isEditing ? (
           <div className="mt-2">
-            <textarea
-              value={tempDescription}
-              onChange={(e) => onTempChange(e.target.value)}
-              placeholder={localize('com_context_column_description_placeholder')}
-              rows={2}
-              className="w-full resize-none rounded-xl border border-border-light/60 bg-surface-primary px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary transition-all focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10"
-            />
-            <div className="mt-2 flex items-center gap-2">
-              <button
-                onClick={onSave}
-                className="flex items-center gap-1.5 rounded-xl bg-primary px-3 py-1.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-primary/90"
-              >
-                <Save className="h-3 w-3" />
-                {localize('com_ui_save')}
-              </button>
-              <button
-                onClick={onCancel}
-                className="rounded-xl border border-border-light/60 px-3 py-1.5 text-xs font-medium text-text-secondary transition-all hover:border-border-medium hover:text-text-primary"
-              >
-                {localize('com_ui_cancel')}
-              </button>
-            </div>
+          <Textarea
+            value={tempDescription}
+            onChange={(e) => onTempChange(e.target.value)}
+            placeholder={localize('com_context_column_description_placeholder')}
+            rows={2}
+            className="w-full resize-none rounded-xl border border-border-light/60 bg-surface-primary px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary transition-all focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10"
+          />
+          <div className="mt-2 flex items-center gap-2">
+            <Button
+              onClick={onSave}
+              variant="submit"
+              size="sm"
+              className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium shadow-sm"
+            >
+              <Save className="h-3 w-3" />
+              {localize('com_ui_save')}
+            </Button>
+            <Button
+              onClick={onCancel}
+              variant="outline"
+              size="sm"
+              className="rounded-xl px-3 py-1.5 text-xs font-medium"
+            >
+              {localize('com_ui_cancel')}
+            </Button>
+          </div>
           </div>
         ) : description ? (
           <div className="flex items-start gap-2">
@@ -674,28 +685,32 @@ function ColumnContextItem({
             <p className="text-xs leading-relaxed text-text-secondary">{description}</p>
           </div>
         ) : (
-          <button
+          <Button
+            variant="link"
+            size="sm"
             onClick={onEdit}
-            className="text-xs font-medium text-primary transition-colors hover:text-primary/80"
+            className="text-xs font-medium text-primary transition-colors hover:text-primary/80 h-auto p-0"
           >
             {localize('com_context_add_column_description')}
-          </button>
+          </Button>
         )}
       </div>
 
       {!isEditing && (
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={onEdit}
           className="flex-shrink-0 rounded-lg p-1.5 text-text-tertiary opacity-0 transition-all hover:bg-surface-hover hover:text-text-primary group-hover:opacity-100"
           title={
             description ? localize('com_context_edit') : localize('com_context_add_description')
           }
         >
-          <Edit2 className="h-3.5 w-3.5" />
-        </button>
-      )}
-    </div>
-  );
-}
+           <Edit2 className="h-3.5 w-3.5" />
+         </Button>
+       )}
+     </div>
+   );
+ }
 
 export default ContextView;

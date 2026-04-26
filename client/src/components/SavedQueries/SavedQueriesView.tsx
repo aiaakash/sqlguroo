@@ -1,5 +1,4 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { useNavigate, Outlet } from 'react-router-dom';
 import {
   Search,
@@ -30,6 +29,14 @@ import {
   OGDialogTitle,
   Skeleton,
   useToastContext,
+  Button,
+  Input,
+  Separator,
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
 } from '@librechat/client';
 import { NotificationSeverity } from '~/common';
 import { useLocalize, useCustomLink, type TranslationKeys } from '~/hooks';
@@ -195,13 +202,14 @@ export const SavedQueriesView: React.FC = () => {
             <p className="mb-6 text-sm leading-relaxed text-text-secondary">
               {localize('com_saved_queries_empty_subtitle')}
             </p>
-            <button
+            <Button
               onClick={() => navigate('/c/new')}
-              className="group flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-primary/90 hover:shadow-md"
+              variant="submit"
+              className="group flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium shadow-sm"
             >
               <MessageSquare className="h-4 w-4 transition-transform group-hover:scale-110" />
               {localize('com_ui_go_to_chat')}
-            </button>
+            </Button>
           </div>
         </div>
         <Outlet />
@@ -243,15 +251,16 @@ export const SavedQueriesView: React.FC = () => {
               No saved queries found matching &quot;{searchQuery}&quot;
             </p>
             {searchQuery && (
-              <button
+              <Button
                 onClick={() => {
                   setSearchQuery('');
                   setCurrentPage(1);
                 }}
-                className="mt-3 rounded-lg bg-primary/10 px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
+                variant="outline"
+                className="mt-3"
               >
                 Clear search
-              </button>
+              </Button>
             )}
           </div>
         ) : viewMode === 'grid' ? (
@@ -298,28 +307,32 @@ export const SavedQueriesView: React.FC = () => {
 
         {data && data.totalPages > 1 && (
           <div className="mt-6 flex items-center justify-center gap-2">
-            <button
+            <Button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="flex items-center gap-1 rounded-xl border border-border-light/60 bg-surface-secondary/50 px-3 py-2 text-sm font-medium text-text-secondary transition-all hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed"
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-1"
             >
               <ArrowLeft className="h-4 w-4" />
               Previous
-            </button>
+            </Button>
             <span className="text-sm text-text-secondary">
               {localize('com_saved_queries_page_info', {
                 page: currentPage,
                 total: data.totalPages,
               })}
             </span>
-            <button
+            <Button
               onClick={() => setCurrentPage((p) => p + 1)}
               disabled={!data.hasMore}
-              className="flex items-center gap-1 rounded-xl border border-border-light/60 bg-surface-secondary/50 px-3 py-2 text-sm font-medium text-text-secondary transition-all hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed"
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-1"
             >
               {localize('com_ui_next')}
               <ArrowLeft className="h-4 w-4 rotate-180" />
-            </button>
+            </Button>
           </div>
         )}
       </div>
@@ -335,23 +348,20 @@ export const SavedQueriesView: React.FC = () => {
                 Are you sure you want to delete this query? This action cannot be undone.
               </p>
               <div className="flex justify-end gap-3">
-                <button
-                  onClick={handleCancelDelete}
-                  className="rounded-lg border border-border-light px-4 py-2 text-sm font-medium text-text-secondary transition-all hover:border-border-medium hover:text-text-primary"
-                >
+                <Button onClick={handleCancelDelete} variant="outline">
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={handleConfirmDelete}
                   disabled={deleteMutation.isLoading}
-                  className="rounded-lg bg-destructive px-4 py-2 text-sm font-medium text-white transition-all hover:bg-destructive/80 disabled:opacity-50"
+                  variant="destructive"
                 >
                   {deleteMutation.isLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     'Delete'
                   )}
-                </button>
+                </Button>
               </div>
             </div>
           </OGDialogContent>
@@ -394,7 +404,7 @@ function Header({
               {localize('com_ui_back_to_chat')}
             </span>
           </a>
-          <div className="h-5 w-px shrink-0 bg-border-light/60" />
+          <Separator orientation="vertical" className="h-5 bg-border-light/60" />
           <div className="flex items-center gap-3">
             <h1 className="text-lg font-semibold text-text-primary">Saved Queries</h1>
             {totalQueries > 0 && (
@@ -408,7 +418,7 @@ function Header({
         <div className="flex items-center gap-2.5">
           <div className="relative hidden sm:block">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-tertiary" />
-            <input
+            <Input
               type="text"
               placeholder="Search queries..."
               value={searchQuery}
@@ -416,17 +426,21 @@ function Header({
               className="h-9 w-52 rounded-xl border border-border-light/60 bg-surface-secondary/50 pl-9 pr-8 text-sm text-text-primary transition-all placeholder:text-text-tertiary focus:border-primary/30 focus:bg-surface-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
             />
             {searchQuery && (
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-0.5 text-text-tertiary transition-colors hover:bg-surface-hover hover:text-text-primary"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 h-auto w-auto p-0.5 text-text-tertiary transition-colors hover:bg-surface-hover hover:text-text-primary"
               >
                 <X className="h-3.5 w-3.5" />
-              </button>
+              </Button>
             )}
           </div>
 
           <div className="flex items-center rounded-xl border border-border-light/60 bg-surface-secondary/50 p-1">
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => setViewMode('grid')}
               className={cn(
                 'flex h-7 w-7 items-center justify-center rounded-lg text-sm transition-all',
@@ -437,8 +451,10 @@ function Header({
               title="Grid view"
             >
               <Grid3X3 className="h-3.5 w-3.5" />
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => setViewMode('list')}
               className={cn(
                 'flex h-7 w-7 items-center justify-center rounded-lg text-sm transition-all',
@@ -449,7 +465,7 @@ function Header({
               title="List view"
             >
               <List className="h-3.5 w-3.5" />
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -506,7 +522,7 @@ function QueryCard({
       <div className="flex flex-col gap-2 p-4">
         {isEditing ? (
           <div className="flex flex-col gap-2">
-            <input
+            <Input
               type="text"
               value={editName}
               onChange={(e) => setEditName(e.target.value)}
@@ -519,19 +535,21 @@ function QueryCard({
               }}
             />
             <div className="flex gap-2">
-              <button
+              <Button
                 onClick={onSaveEdit}
                 disabled={!editName.trim() || updateMutation.isLoading}
-                className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white transition-all hover:bg-primary/90 disabled:opacity-50"
+                variant="submit"
+                size="sm"
               >
                 {localize('com_ui_save')}
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={onCancelEdit}
-                className="rounded-lg border border-border-light/60 px-3 py-1.5 text-xs font-medium text-text-secondary transition-all hover:border-border-medium hover:text-text-primary"
+                variant="outline"
+                size="sm"
               >
                 {localize('com_ui_cancel')}
-              </button>
+              </Button>
             </div>
           </div>
         ) : (
@@ -558,12 +576,13 @@ function QueryCard({
               </span>
             </div>
 
-            <button
+            <Button
               onClick={onUseInChat}
-              className="mt-2 w-full rounded-xl bg-primary px-3 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-primary/90 hover:shadow-md"
+              variant="submit"
+              className="mt-2 w-full"
             >
               {localize('com_saved_queries_use_in_chat')}
-            </button>
+            </Button>
           </>
         )}
       </div>
@@ -613,7 +632,7 @@ function QueryListItem({
           <Code className="h-5 w-5 text-primary" />
         </div>
         <div className="flex flex-1 items-center gap-2">
-          <input
+          <Input
             type="text"
             value={editName}
             onChange={(e) => setEditName(e.target.value)}
@@ -625,19 +644,19 @@ function QueryListItem({
               else if (e.key === 'Escape') onCancelEdit();
             }}
           />
-          <button
+          <Button
             onClick={onSaveEdit}
             disabled={!editName.trim() || updateMutation.isLoading}
-            className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-white transition-all hover:bg-primary/90 disabled:opacity-50"
+            variant="submit"
           >
             {localize('com_ui_save')}
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={onCancelEdit}
-            className="rounded-lg border border-border-light/60 px-3 py-2 text-sm font-medium text-text-secondary transition-all hover:border-border-medium hover:text-text-primary"
+            variant="outline"
           >
             {localize('com_ui_cancel')}
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -666,12 +685,12 @@ function QueryListItem({
         </div>
       </div>
 
-      <button
+      <Button
         onClick={onUseInChat}
-        className="rounded-xl bg-primary px-3 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-primary/90 hover:shadow-md"
+        variant="submit"
       >
         {localize('com_saved_queries_use_in_chat')}
-      </button>
+      </Button>
       <QueryActions onEdit={onStartEdit} onDelete={onDelete} onCopy={onCopy} />
     </div>
   );
@@ -686,102 +705,35 @@ function QueryActions({
   onDelete: () => void;
   onCopy: () => void;
 }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 });
-
-  const handleAction = (e: React.MouseEvent, action: () => void) => {
-    e.stopPropagation();
-    action();
-    setIsOpen(false);
-  };
-
-  useEffect(() => {
-    if (isOpen && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect();
-      setDropdownPosition({
-        top: rect.bottom + window.scrollY + 4,
-        right: window.innerWidth - rect.right - window.scrollX,
-      });
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node) &&
-        buttonRef.current &&
-        !buttonRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [isOpen]);
-
   return (
-    <>
-      <div className="relative flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-        <button
-          ref={buttonRef}
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsOpen(!isOpen);
-          }}
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
           className="rounded-lg p-1.5 text-text-tertiary opacity-0 transition-all hover:bg-surface-hover hover:text-text-primary group-hover:opacity-100"
           aria-label="Query actions"
+          onClick={(e) => e.stopPropagation()}
         >
           <MoreVertical className="h-4 w-4" />
-        </button>
-      </div>
-
-      {isOpen &&
-        createPortal(
-          <>
-            <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-            <div
-              ref={dropdownRef}
-              className="fixed z-[100] w-44 overflow-hidden rounded-xl border border-border-light/60 bg-surface-primary shadow-xl ring-1 ring-black/5"
-              style={{
-                top: `${dropdownPosition.top}px`,
-                right: `${dropdownPosition.right}px`,
-              }}
-            >
-              <div className="p-1">
-                <button
-                  onClick={(e) => handleAction(e, onCopy)}
-                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-text-primary transition-colors hover:bg-surface-hover"
-                >
-                  <Copy className="h-4 w-4 text-text-secondary" />
-                  <span>Copy SQL</span>
-                </button>
-                <button
-                  onClick={(e) => handleAction(e, onEdit)}
-                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-text-primary transition-colors hover:bg-surface-hover"
-                >
-                  <Sparkles className="h-4 w-4 text-text-secondary" />
-                  <span>Rename</span>
-                </button>
-                <div className="my-1 h-px bg-border-light/60" />
-                <button
-                  onClick={(e) => handleAction(e, onDelete)}
-                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-destructive transition-colors hover:bg-destructive/10"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  <span>Delete</span>
-                </button>
-              </div>
-            </div>
-          </>,
-          document.body,
-        )}
-    </>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-44">
+        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onCopy(); }}>
+          <Copy className="h-4 w-4 text-text-secondary" />
+          <span>Copy SQL</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(); }}>
+          <Sparkles className="h-4 w-4 text-text-secondary" />
+          <span>Rename</span>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem variant="destructive" onClick={(e) => { e.stopPropagation(); onDelete(); }}>
+          <Trash2 className="h-4 w-4" />
+          <span>Delete</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
