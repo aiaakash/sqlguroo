@@ -372,9 +372,6 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
         >
           <div className="flex flex-shrink-0 items-center justify-between border-b border-border-light/60 px-6 py-4">
             <div className="flex items-center gap-4">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                <BarChart3 className="h-5 w-5 text-primary" />
-              </div>
               <div>
                 <OGDialogTitle className="text-lg font-semibold leading-none tracking-tight">
                   {chartName}

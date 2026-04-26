@@ -71,19 +71,19 @@ const CHART_TYPES: {
   icon: React.ElementType;
   description: string;
 }[] = [
-  { type: 'bar', label: 'Bar', icon: BarChart3, description: 'Compare values across categories' },
-  { type: 'line', label: 'Line', icon: LineChart, description: 'Show trends over time' },
-  { type: 'area', label: 'Area', icon: AreaChart, description: 'Emphasize volume beneath trends' },
-  { type: 'pie', label: 'Pie', icon: PieChart, description: 'Show part-to-whole relationships' },
-  { type: 'scatter', label: 'Scatter', icon: ScatterChart, description: 'Reveal correlations' },
-  { type: 'radar', label: 'Radar', icon: Hexagon, description: 'Compare multivariate data' },
-  {
-    type: 'composed',
-    label: 'Composed',
-    icon: BarChart3,
-    description: 'Combine multiple chart types',
-  },
-];
+    { type: 'bar', label: 'Bar', icon: BarChart3, description: 'Compare values across categories' },
+    { type: 'line', label: 'Line', icon: LineChart, description: 'Show trends over time' },
+    { type: 'area', label: 'Area', icon: AreaChart, description: 'Emphasize volume beneath trends' },
+    { type: 'pie', label: 'Pie', icon: PieChart, description: 'Show part-to-whole relationships' },
+    { type: 'scatter', label: 'Scatter', icon: ScatterChart, description: 'Reveal correlations' },
+    { type: 'radar', label: 'Radar', icon: Hexagon, description: 'Compare multivariate data' },
+    {
+      type: 'composed',
+      label: 'Composed',
+      icon: BarChart3,
+      description: 'Combine multiple chart types',
+    },
+  ];
 
 const COLOR_PALETTES = [
   {
@@ -149,9 +149,9 @@ const SectionHeader: React.FC<{ icon: React.ElementType; label: string }> = ({
       {label}
     </span>
   </div>
-  );
+);
 
-  export default function ChartBuilderModal({
+export default function ChartBuilderModal({
   open,
   onOpenChange,
   tableData,
@@ -431,9 +431,6 @@ const SectionHeader: React.FC<{ icon: React.ElementType; label: string }> = ({
         >
           <div className="flex flex-shrink-0 items-center justify-between border-b border-border-light/60 px-6 py-4">
             <div className="flex items-center gap-4">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                <BarChart3 className="h-5 w-5 text-primary" />
-              </div>
               <div>
                 <OGDialogTitle className="text-lg font-semibold leading-none tracking-tight">
                   Chart Studio
@@ -548,35 +545,35 @@ const SectionHeader: React.FC<{ icon: React.ElementType; label: string }> = ({
                       <div>
                         <SectionHeader icon={Axis3D} label="Axes" />
                         <div className="space-y-3">
-                           <div>
-                             <Label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-text-secondary">
-                               X-Axis (Category)
-                             </Label>
-                             <Select value={xAxisField} onValueChange={setXAxisField}>
-                               <SelectTrigger className="w-full">
-                                 <SelectValue placeholder="Select X-Axis..." />
-                               </SelectTrigger>
-                               <SelectContent>
-                                 {tableData.headers.map((header) => (
-                                   <SelectItem key={header} value={header}>
-                                     {header}
-                                   </SelectItem>
-                                 ))}
-                               </SelectContent>
-                             </Select>
+                          <div>
+                            <Label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-text-secondary">
+                              X-Axis (Category)
+                            </Label>
+                            <Select value={xAxisField} onValueChange={setXAxisField}>
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Select X-Axis..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {tableData.headers.map((header) => (
+                                  <SelectItem key={header} value={header}>
+                                    {header}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                             {xAxisField && (
                               <div className="mt-2">
                                 <Label className="mb-1.5 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-text-secondary">
                                   <Type className="h-3.5 w-3.5" />
                                   Custom Label
                                 </Label>
-<Input
-                                    type="text"
-                                    placeholder={xAxisField}
-                                    value={xAxisLabel || ''}
-                                    onChange={(e) => setXAxisLabel(e.target.value)}
-                                    className="w-full rounded-xl border border-border-light/60 bg-surface-secondary/50 px-3.5 py-2 text-xs text-text-primary placeholder:text-text-tertiary transition-all focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10"
-                                  />
+                                <Input
+                                  type="text"
+                                  placeholder={xAxisField}
+                                  value={xAxisLabel || ''}
+                                  onChange={(e) => setXAxisLabel(e.target.value)}
+                                  className="w-full rounded-xl border border-border-light/60 bg-surface-secondary/50 px-3.5 py-2 text-xs text-text-primary placeholder:text-text-tertiary transition-all focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10"
+                                />
                               </div>
                             )}
                           </div>
