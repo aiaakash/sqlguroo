@@ -26,6 +26,7 @@ import {
   OGDialogContent,
   OGDialogHeader,
   OGDialogTitle,
+  OGDialogDescription,
   Select,
   SelectTrigger,
   SelectValue,
@@ -322,7 +323,7 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
     return (
       <OGDialog open={open} onOpenChange={onOpenChange}>
         <OGDialogContent
-          className="flex max-h-[90vh] w-[95vw] max-w-6xl flex-col rounded-2xl border-border-light/60 bg-surface-primary p-0 shadow-2xl"
+          className="flex max-h-[90vh] w-[95vw] max-w-6xl flex-col p-0"
           title="Loading..."
         >
           <div className="flex flex-1 items-center justify-center p-12">
@@ -344,7 +345,7 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
     return (
       <OGDialog open={open} onOpenChange={onOpenChange}>
         <OGDialogContent
-          className="flex max-h-[90vh] w-[95vw] max-w-6xl flex-col rounded-2xl border-border-light/60 bg-surface-primary p-0 shadow-2xl"
+          className="flex max-h-[90vh] w-[95vw] max-w-6xl flex-col p-0"
           title="Error"
         >
           <div className="flex flex-1 flex-col items-center justify-center p-12">
@@ -365,7 +366,7 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
     <>
       <OGDialog open={open} onOpenChange={handleOpenChange}>
         <OGDialogContent
-          className="flex max-h-[92vh] w-[95vw] max-w-6xl flex-col overflow-hidden rounded-2xl border-border-light/60 bg-surface-primary p-0 shadow-2xl"
+          className="flex max-h-[92vh] w-[95vw] max-w-6xl flex-col overflow-hidden p-0"
           title={chartName || 'Edit Chart'}
           showCloseButton={false}
         >
@@ -385,7 +386,7 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
                   <OGDialogTitle className="text-lg font-semibold text-text-primary">
                     {chartName}
                   </OGDialogTitle>
-                  <div className="flex items-center gap-2 text-xs text-text-secondary">
+                  <OGDialogDescription className="flex items-center gap-2 text-xs">
                     <span>Edit Chart</span>
                     {chartData.data.fromCache && (
                       <>
@@ -396,7 +397,7 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
                         </span>
                       </>
                     )}
-                  </div>
+                  </OGDialogDescription>
                 </div>
               </div>
 

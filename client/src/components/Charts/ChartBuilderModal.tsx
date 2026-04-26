@@ -26,6 +26,7 @@ import {
   OGDialogContent,
   OGDialogHeader,
   OGDialogTitle,
+  OGDialogDescription,
   Select,
   SelectTrigger,
   SelectValue,
@@ -424,7 +425,7 @@ const SectionHeader: React.FC<{ icon: React.ElementType; label: string }> = ({
     <>
       <OGDialog open={open} onOpenChange={handleOpenChange}>
         <OGDialogContent
-          className="flex max-h-[92vh] w-[95vw] max-w-6xl flex-col overflow-hidden rounded-2xl border-border-light/60 bg-surface-primary p-0 shadow-2xl"
+          className="flex max-h-[92vh] w-[95vw] max-w-6xl flex-col overflow-hidden p-0"
           title="Chart Studio"
           showCloseButton={false}
         >
@@ -444,10 +445,10 @@ const SectionHeader: React.FC<{ icon: React.ElementType; label: string }> = ({
                   <OGDialogTitle className="text-lg font-semibold text-text-primary">
                     Chart Studio
                   </OGDialogTitle>
-                  <p className="text-xs text-text-secondary">
+                  <OGDialogDescription className="text-xs text-text-secondary">
                     {tableData.rows.length.toLocaleString()} rows × {tableData.headers.length}{' '}
                     columns
-                  </p>
+                  </OGDialogDescription>
                 </div>
               </div>
 
