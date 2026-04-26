@@ -36,10 +36,10 @@
   --sidebar-accent-foreground: #1e9df1;
   --sidebar-border: #e1e8ed;
   --sidebar-ring: #1da1f2;
-  --font-sans: Inter, ui-sans-serif, sans-serif, system-ui;
+  --font-sans: 'Open Sans', sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: Menlo, monospace;
-  --radius: 0.5rem;
+  --radius: 1.3rem;
   --shadow-x: 0px;
   --shadow-y: 2px;
   --shadow-blur: 0px;
@@ -184,10 +184,10 @@ html {
   --sidebar-accent-foreground: #1c9cf0;
   --sidebar-border: #38444d;
   --sidebar-ring: #1da1f2;
-  --font-sans: Inter, ui-sans-serif, sans-serif, system-ui;
+  --font-sans: 'Open Sans', sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: Menlo, monospace;
-  --radius: 0.5rem;
+  --radius: 1.3rem;
   --shadow-x: 0px;
   --shadow-y: 2px;
   --shadow-blur: 0px;
@@ -202,6 +202,8 @@ html {
   --shadow-lg: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 4px 6px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
   --shadow-xl: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 8px 10px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
   --shadow-2xl: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
+  --tracking-normal: 0em;
+  --spacing: 0.25rem;
   
   /* Legacy Variables */
   --brand-purple: #ab68ff;
@@ -360,6 +362,7 @@ html {
   text-overflow: ellipsis;
 }
 
+/* Inter replaced with Open Sans via Google Fonts. Uncomment below to restore.
 @font-face {
   font-display: swap;
   font-family: Inter;
@@ -413,6 +416,7 @@ html {
   src: url('$fonts/Inter-BoldItalic.woff2') format('woff2');
   size-adjust: 94%;
 }
+*/
 
 @font-face {
   font-display: swap;
