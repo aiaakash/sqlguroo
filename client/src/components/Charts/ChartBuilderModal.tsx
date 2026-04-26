@@ -425,56 +425,48 @@ const SectionHeader: React.FC<{ icon: React.ElementType; label: string }> = ({
     <>
       <OGDialog open={open} onOpenChange={handleOpenChange}>
         <OGDialogContent
-          className="flex max-h-[92vh] w-[95vw] max-w-6xl flex-col overflow-hidden p-0"
+          className="flex max-h-[92vh] w-[95vw] max-w-6xl flex-col gap-0 overflow-hidden bg-surface-primary p-0"
           title="Chart Studio"
           showCloseButton={false}
         >
-          <OGDialogHeader className="flex-shrink-0 border-b border-border-light/60 px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div
-                  className="flex h-11 w-11 items-center justify-center rounded-xl ring-1"
-                  style={{
-                    background: `linear-gradient(135deg, ${currentPalette.colors[0]}15, ${currentPalette.colors[1]}15)`,
-                    borderColor: `${currentPalette.colors[0]}30`,
-                  }}
-                >
-                  <BarChart3 className="h-5 w-5" style={{ color: currentPalette.colors[0] }} />
-                </div>
-                <div>
-                  <OGDialogTitle className="text-lg font-semibold text-text-primary">
-                    Chart Studio
-                  </OGDialogTitle>
-                  <OGDialogDescription className="text-xs text-text-secondary">
-                    {tableData.rows.length.toLocaleString()} rows × {tableData.headers.length}{' '}
-                    columns
-                  </OGDialogDescription>
-                </div>
+          <div className="flex flex-shrink-0 items-center justify-between border-b border-border-light/60 px-6 py-4">
+            <div className="flex items-center gap-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                <BarChart3 className="h-5 w-5 text-primary" />
               </div>
-
-              <div className="flex items-center gap-3">
-                {!showSavePanel ? (
-                  <Button
-                    onClick={() => setShowSavePanel(true)}
-                    className="group gap-2"
-                    variant="default"
-                  >
-                    <Save className="h-4 w-4" />
-                    <span>Save Chart</span>
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={() => setShowSavePanel(false)}
-                    variant="outline"
-                    className="gap-2"
-                  >
-                    <X className="h-4 w-4" />
-                    <span>Cancel</span>
-                  </Button>
-                )}
+              <div>
+                <OGDialogTitle className="text-lg font-semibold leading-none tracking-tight">
+                  Chart Studio
+                </OGDialogTitle>
+                <OGDialogDescription>
+                  {tableData.rows.length.toLocaleString()} rows × {tableData.headers.length}{' '}
+                  columns
+                </OGDialogDescription>
               </div>
             </div>
-          </OGDialogHeader>
+
+            <div className="flex items-center gap-3">
+              {!showSavePanel ? (
+                <Button
+                  onClick={() => setShowSavePanel(true)}
+                  className="group gap-2"
+                  variant="default"
+                >
+                  <Save className="h-4 w-4" />
+                  <span>Save Chart</span>
+                </Button>
+              ) : (
+                <Button
+                  onClick={() => setShowSavePanel(false)}
+                  variant="outline"
+                  className="gap-2"
+                >
+                  <X className="h-4 w-4" />
+                  <span>Cancel</span>
+                </Button>
+              )}
+            </div>
+          </div>
 
           <div className="relative flex min-h-0 flex-1">
             <div

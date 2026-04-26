@@ -63,13 +63,13 @@ const CHART_TYPES: {
   icon: React.ElementType;
   description: string;
 }[] = [
-  { type: 'bar', label: 'Bar', icon: BarChart3, description: 'Compare values across categories' },
-  { type: 'line', label: 'Line', icon: LineChart, description: 'Show trends over time' },
-  { type: 'area', label: 'Area', icon: AreaChart, description: 'Emphasize volume beneath trends' },
-  { type: 'pie', label: 'Pie', icon: PieChart, description: 'Show part-to-whole relationships' },
-  { type: 'scatter', label: 'Scatter', icon: ScatterChart, description: 'Reveal correlations' },
-  { type: 'radar', label: 'Radar', icon: Hexagon, description: 'Compare multivariate data' },
-];
+    { type: 'bar', label: 'Bar', icon: BarChart3, description: 'Compare values across categories' },
+    { type: 'line', label: 'Line', icon: LineChart, description: 'Show trends over time' },
+    { type: 'area', label: 'Area', icon: AreaChart, description: 'Emphasize volume beneath trends' },
+    { type: 'pie', label: 'Pie', icon: PieChart, description: 'Show part-to-whole relationships' },
+    { type: 'scatter', label: 'Scatter', icon: ScatterChart, description: 'Reveal correlations' },
+    { type: 'radar', label: 'Radar', icon: Hexagon, description: 'Compare multivariate data' },
+  ];
 
 const COLOR_PALETTES = [
   {
@@ -323,7 +323,7 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
     return (
       <OGDialog open={open} onOpenChange={onOpenChange}>
         <OGDialogContent
-          className="flex max-h-[90vh] w-[95vw] max-w-6xl flex-col p-0"
+          className="flex max-h-[90vh] w-[95vw] max-w-6xl flex-col gap-0 overflow-hidden bg-surface-primary p-0"
           title="Loading..."
         >
           <div className="flex flex-1 items-center justify-center p-12">
@@ -345,7 +345,7 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
     return (
       <OGDialog open={open} onOpenChange={onOpenChange}>
         <OGDialogContent
-          className="flex max-h-[90vh] w-[95vw] max-w-6xl flex-col p-0"
+          className="flex max-h-[90vh] w-[95vw] max-w-6xl flex-col gap-0 overflow-hidden bg-surface-primary p-0"
           title="Error"
         >
           <div className="flex flex-1 flex-col items-center justify-center p-12">
@@ -366,77 +366,69 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
     <>
       <OGDialog open={open} onOpenChange={handleOpenChange}>
         <OGDialogContent
-          className="flex max-h-[92vh] w-[95vw] max-w-6xl flex-col overflow-hidden p-0"
+          className="flex max-h-[92vh] w-[95vw] max-w-6xl flex-col gap-0 overflow-hidden bg-surface-primary p-0"
           title={chartName || 'Edit Chart'}
           showCloseButton={false}
         >
-          <OGDialogHeader className="flex-shrink-0 border-b border-border-light/60 px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div
-                  className="flex h-11 w-11 items-center justify-center rounded-xl ring-1"
-                  style={{
-                    background: `linear-gradient(135deg, ${currentPalette.colors[0]}15, ${currentPalette.colors[1]}15)`,
-                    borderColor: `${currentPalette.colors[0]}30`,
-                  }}
-                >
-                  <BarChart3 className="h-5 w-5" style={{ color: currentPalette.colors[0] }} />
-                </div>
-                <div>
-                  <OGDialogTitle className="text-lg font-semibold text-text-primary">
-                    {chartName}
-                  </OGDialogTitle>
-                  <OGDialogDescription className="flex items-center gap-2 text-xs">
-                    <span>Edit Chart</span>
-                    {chartData.data.fromCache && (
-                      <>
-                        <span className="h-1 w-1 rounded-full bg-border-medium" />
-                        <span className="flex items-center gap-1">
-                          <History className="h-3 w-3" />
-                          Cached
-                        </span>
-                      </>
-                    )}
-                  </OGDialogDescription>
-                </div>
+          <div className="flex flex-shrink-0 items-center justify-between border-b border-border-light/60 px-6 py-4">
+            <div className="flex items-center gap-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                <BarChart3 className="h-5 w-5 text-primary" />
               </div>
-
-              <div className="flex items-center gap-3">
-                {canRefresh && (
-                  <Button
-                    variant="outline"
-                    onClick={handleRefresh}
-                    disabled={refreshChartMutation.isLoading}
-                    title="Refresh data from database"
-                    className="gap-2"
-                  >
-                    {refreshChartMutation.isLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <RefreshCw className="h-4 w-4" />
-                    )}
-                    <span className="hidden sm:inline">Refresh</span>
-                  </Button>
-                )}
-                <Button
-                  onClick={handleSave}
-                  disabled={!hasChanges || updateChartMutation.isLoading}
-                  variant="submit"
-                  className="group gap-2"
-                >
-                  {updateChartMutation.isLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Save className="h-4 w-4" />
+              <div>
+                <OGDialogTitle className="text-lg font-semibold leading-none tracking-tight">
+                  {chartName}
+                </OGDialogTitle>
+                <OGDialogDescription className="flex items-center gap-2 text-xs">
+                  <span>Edit Chart</span>
+                  {chartData.data.fromCache && (
+                    <>
+                      <span className="h-1 w-1 rounded-full bg-border-medium" />
+                      <span className="flex items-center gap-1">
+                        <History className="h-3 w-3" />
+                        Cached
+                      </span>
+                    </>
                   )}
-                  <span>Save Changes</span>
-                </Button>
+                </OGDialogDescription>
               </div>
             </div>
-          </OGDialogHeader>
 
-            <div className="relative flex min-h-0 flex-1">
-              <div className="flex w-64 flex-col border-r border-border-light/60 bg-surface-primary-alt">
+            <div className="flex items-center gap-3">
+              {canRefresh && (
+                <Button
+                  variant="outline"
+                  onClick={handleRefresh}
+                  disabled={refreshChartMutation.isLoading}
+                  title="Refresh data from database"
+                  className="gap-2"
+                >
+                  {refreshChartMutation.isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                  <span className="hidden sm:inline">Refresh</span>
+                </Button>
+              )}
+              <Button
+                onClick={handleSave}
+                disabled={!hasChanges || updateChartMutation.isLoading}
+                variant="submit"
+                className="group gap-2"
+              >
+                {updateChartMutation.isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                <span>Save Changes</span>
+              </Button>
+            </div>
+          </div>
+
+          <div className="relative flex min-h-0 flex-1">
+            <div className="flex w-64 flex-col border-r border-border-light/60 bg-surface-primary-alt">
               <Tabs
                 value={activeTab}
                 onValueChange={(v) => setActiveTab(v as 'configure' | 'data')}
