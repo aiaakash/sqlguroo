@@ -310,7 +310,7 @@ export default function DashboardsView() {
           <div
             className={cn(
               viewMode === 'grid'
-                ? 'grid gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4'
+                ? 'grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6'
                 : 'space-y-3',
             )}
           >
@@ -318,7 +318,7 @@ export default function DashboardsView() {
               <Skeleton
                 key={i}
                 className={cn(
-                  viewMode === 'grid' ? 'h-72 rounded-2xl' : 'h-24 rounded-xl',
+                  viewMode === 'grid' ? 'h-56 rounded-xl' : 'h-20 rounded-lg',
                 )}
               />
             ))}
@@ -355,7 +355,7 @@ export default function DashboardsView() {
             renderEmptyState()
           )
         ) : viewMode === 'grid' ? (
-          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
             {dashboards.map((dashboard) => (
               <DashboardCard
                 key={dashboard._id}

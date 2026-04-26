@@ -96,44 +96,48 @@ export default function DashboardCard({
   return (
     <div
       onClick={handleClick}
-      className="group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-border-light/60 bg-surface-primary shadow-sm transition-all duration-200 hover:border-border-medium hover:shadow-md"
+      className="group relative flex cursor-pointer flex-col overflow-hidden rounded-xl border border-border-light/60 bg-surface-primary shadow-sm transition-all duration-200 hover:border-border-medium hover:shadow-md"
     >
-      <div className="relative h-44 overflow-hidden bg-gradient-to-br from-surface-secondary to-surface-tertiary/50 p-3">
-        <div className="grid h-full w-full grid-cols-4 grid-rows-3 gap-2">
-          {dashboard.chartPreviews.slice(0, 4).map((preview, idx) => (
+      <div className="relative h-36 overflow-hidden bg-gradient-to-br from-surface-secondary to-surface-tertiary/50 p-2">
+        <div className="grid h-full w-full grid-cols-3 grid-rows-2 gap-1.5">
+          {dashboard.chartPreviews.slice(0, 3).map((preview, idx) => (
             <div
               key={preview._id}
               className={cn(
-                'rounded-lg bg-gradient-to-br from-primary/10 to-primary/5 ring-1 ring-primary/10',
-                idx === 0 ? 'col-span-2 row-span-2' : '',
+                'rounded-md bg-gradient-to-br from-primary/10 to-primary/5 ring-1 ring-primary/10',
+                idx === 0 ? 'col-span-2' : '',
               )}
             />
           ))}
-          {Array.from({ length: Math.max(0, 4 - dashboard.chartPreviews.length) }).map((_, idx) => (
+          {Array.from({ length: Math.max(0, 3 - dashboard.chartPreviews.length) }).map((_, idx) => (
             <div
               key={`empty-${idx}`}
               className={cn(
-                'rounded-lg bg-surface-tertiary/50',
-                idx === 0 ? 'col-span-2 row-span-2' : '',
+                'rounded-md bg-surface-tertiary/50',
+                idx === 0 ? 'col-span-2' : '',
               )}
             />
           ))}
         </div>
 
         {dashboard.starred && (
-          <div className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/10 ring-1 ring-amber-500/20">
-            <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
+          <div className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-md bg-amber-500/10 ring-1 ring-amber-500/20">
+            <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
           </div>
         )}
       </div>
 
-      <div className="flex flex-col gap-2 p-4">
+      <div className="flex flex-1 flex-col gap-1.5 p-3">
         <div className="flex items-start justify-between gap-2">
-          <div className="flex min-w-0 flex-1 items-center gap-2">
-            <h3 className="line-clamp-1 flex-1 text-sm font-semibold text-text-primary">
+          <div className="flex min-w-0 flex-1 items-center gap-1.5">
+            <h3 className="line-clamp-1 flex-1 truncate text-xs font-semibold text-text-primary">
               {dashboard.name}
             </h3>
-            <OrgBadge organizationId={dashboard.organizationId} />
+            {dashboard.organizationId && (
+              <span className="flex shrink-0 items-center rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                Org
+              </span>
+            )}
           </div>
           <DashboardActions
             dashboard={dashboard}
@@ -145,19 +149,12 @@ export default function DashboardCard({
           />
         </div>
 
-        {dashboard.description && (
-          <p className="line-clamp-2 text-xs leading-relaxed text-text-secondary">
-            {dashboard.description}
-          </p>
-        )}
-
-        <div className="mt-auto flex items-center gap-2 pt-2">
-          <span className="inline-flex items-center rounded-lg bg-surface-secondary px-2 py-1 text-[11px] font-medium text-text-secondary ring-1 ring-border-light/50">
-            {dashboard.chartCount} charts
+        <div className="mt-auto flex items-center gap-1.5 text-[10px] text-text-tertiary">
+          <span className="inline-flex items-center rounded-md bg-surface-secondary/80 px-1.5 py-0.5 font-medium text-text-secondary">
+            {dashboard.chartCount}
           </span>
-          <span className="ml-auto text-[11px] text-text-tertiary">
-            {new Date(dashboard.updatedAt).toLocaleDateString()}
-          </span>
+          <span>charts</span>
+          <span className="ml-auto">{new Date(dashboard.updatedAt).toLocaleDateString()}</span>
         </div>
       </div>
     </div>
