@@ -36,10 +36,10 @@
   --sidebar-accent-foreground: #1e9df1;
   --sidebar-border: #e1e8ed;
   --sidebar-ring: #1da1f2;
-  --font-sans: 'Open Sans', sans-serif;
+  --font-sans: Inter, ui-sans-serif, sans-serif, system-ui;
   --font-serif: Georgia, serif;
   --font-mono: Menlo, monospace;
-  --radius: 1.3rem;
+  --radius: 0.3rem;
   --shadow-x: 0px;
   --shadow-y: 2px;
   --shadow-blur: 0px;
@@ -184,10 +184,10 @@ html {
   --sidebar-accent-foreground: #1c9cf0;
   --sidebar-border: #38444d;
   --sidebar-ring: #1da1f2;
-  --font-sans: 'Open Sans', sans-serif;
+  --font-sans: Inter, ui-sans-serif, sans-serif, system-ui;
   --font-serif: Georgia, serif;
   --font-mono: Menlo, monospace;
-  --radius: 1.3rem;
+  --radius: 0.3rem;
   --shadow-x: 0px;
   --shadow-y: 2px;
   --shadow-blur: 0px;
