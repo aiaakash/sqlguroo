@@ -1,12 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import {
   OGDialogContent,
   OGDialogHeader,
   OGDialogTitle,
+  OGDialogDescription,
   OGDialogClose,
   OGDialogFooter,
   Button,
+  Label,
+  Input,
+  Textarea,
+  Checkbox,
   Spinner,
 } from '@librechat/client';
 import { useCreateSkill, useUpdateSkill, useAnalyticsSkill } from './hooks';
@@ -36,6 +41,7 @@ export default function SkillForm({ skillId, onClose }: SkillFormProps) {
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     defaultValues: {
@@ -74,7 +80,7 @@ export default function SkillForm({ skillId, onClose }: SkillFormProps) {
 
   if (isLoadingSkill && skillId) {
     return (
-      <OGDialogContent className="w-[500px] !bg-card">
+      <OGDialogContent className="w-[500px]">
         <div className="flex items-center justify-center py-8">
           <Spinner className="h-6 w-6" />
         </div>
@@ -83,25 +89,27 @@ export default function SkillForm({ skillId, onClose }: SkillFormProps) {
   }
 
   return (
-    <OGDialogContent className="w-[500px] !bg-card">
+    <OGDialogContent className="w-[500px]">
       <OGDialogHeader>
         <OGDialogTitle>{skillId ? 'Edit Skill' : 'Create New Skill'}</OGDialogTitle>
+        <OGDialogDescription>
+          Skills provide reusable context that enhances the agent's understanding of your data.
+        </OGDialogDescription>
       </OGDialogHeader>
 
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
         {/* Title */}
         <div>
-          <label htmlFor="title" className="mb-1 block text-xs font-medium text-text-secondary">
+          <Label htmlFor="title" className="mb-1.5 text-xs">
             Title <span className="text-red-500">*</span>
-          </label>
-          <input
+          </Label>
+          <Input
             id="title"
             type="text"
             {...register('title', {
               required: 'Title is required',
               maxLength: { value: 100, message: 'Title cannot exceed 100 characters' },
             })}
-            className="focus:border-border-focus focus:ring-border-focus w-full rounded-lg border border-border-light bg-surface-primary px-3 py-2 text-sm focus:outline-none focus:ring-1"
             placeholder="e.g., Customer Revenue Analysis"
           />
           {errors.title && <p className="mt-1 text-xs text-red-500">{errors.title.message}</p>}
@@ -109,18 +117,17 @@ export default function SkillForm({ skillId, onClose }: SkillFormProps) {
 
         {/* Description */}
         <div>
-          <label htmlFor="description" className="mb-1 block text-xs font-medium text-text-secondary">
+          <Label htmlFor="description" className="mb-1.5 text-xs">
             Description <span className="text-red-500">*</span>
             <span className="ml-2 text-text-tertiary">(Used for semantic matching - max 500 chars)</span>
-          </label>
-          <textarea
+          </Label>
+          <Textarea
             id="description"
             {...register('description', {
               required: 'Description is required',
               maxLength: { value: 500, message: 'Description cannot exceed 500 characters' },
             })}
             rows={3}
-            className="focus:border-border-focus focus:ring-border-focus w-full rounded-lg border border-border-light bg-surface-primary px-3 py-2 text-sm focus:outline-none focus:ring-1 resize-none"
             placeholder="Brief semantic summary of what this skill provides"
           />
           {errors.description && (
@@ -130,17 +137,17 @@ export default function SkillForm({ skillId, onClose }: SkillFormProps) {
 
         {/* Content */}
         <div>
-          <label htmlFor="content" className="mb-1 block text-xs font-medium text-text-secondary">
+          <Label htmlFor="content" className="mb-1.5 text-xs">
             Content <span className="text-red-500">*</span>
             <span className="ml-2 text-text-tertiary">(SQL query or markdown documentation)</span>
-          </label>
-          <textarea
+          </Label>
+          <Textarea
             id="content"
             {...register('content', {
               required: 'Content is required',
             })}
             rows={10}
-            className="focus:border-border-focus focus:ring-border-focus w-full rounded-lg border border-border-light bg-surface-primary px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 resize-none"
+            className="font-mono"
             placeholder="SELECT customer_id, SUM(revenue) as total_revenue&#10;FROM orders&#10;GROUP BY customer_id&#10;ORDER BY total_revenue DESC&#10;LIMIT 10;"
           />
           {errors.content && (
@@ -150,15 +157,21 @@ export default function SkillForm({ skillId, onClose }: SkillFormProps) {
 
         {/* Active Toggle */}
         <div className="flex items-center gap-2">
-          <input
-            id="isActive"
-            type="checkbox"
-            {...register('isActive')}
-            className="h-4 w-4 rounded border-border-medium text-primary focus:ring-primary"
+          <Controller
+            name="isActive"
+            control={control}
+            render={({ field }) => (
+              <Checkbox
+                id="isActive"
+                checked={field.value}
+                onCheckedChange={field.onChange}
+                aria-label="Active skill"
+              />
+            )}
           />
-          <label htmlFor="isActive" className="text-sm text-text-primary">
+          <Label htmlFor="isActive" className="text-sm font-normal">
             Active (only active skills are used by the agent)
-          </label>
+          </Label>
         </div>
 
         {submitError && (
@@ -176,6 +189,7 @@ export default function SkillForm({ skillId, onClose }: SkillFormProps) {
           <Button
             type="submit"
             disabled={isSubmitting || createSkill.isPending || updateSkill.isPending}
+            variant="submit"
           >
             {isSubmitting || createSkill.isPending || updateSkill.isPending ? (
               <>

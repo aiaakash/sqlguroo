@@ -1,7 +1,18 @@
 import React, { useState } from 'react';
-import { BookOpen, Plus, Trash2, Edit2 } from 'lucide-react';
+import { BookOpen, Plus, Trash2, Edit2, AlertTriangle } from 'lucide-react';
 import { useLocalize } from '~/hooks';
-import { OGDialog, OGDialogTrigger, Spinner, Button } from '@librechat/client';
+import {
+  OGDialog,
+  OGDialogTrigger,
+  OGDialogContent,
+  OGDialogHeader,
+  OGDialogTitle,
+  OGDialogDescription,
+  OGDialogClose,
+  OGDialogFooter,
+  Spinner,
+  Button,
+} from '@librechat/client';
 import SkillForm from '~/components/Nav/SettingsTabs/Analytics/SkillForm';
 import { useAnalyticsSkills, useDeleteSkill } from '~/components/Nav/SettingsTabs/Analytics/hooks';
 import { OrgBadge } from '~/components/Organization';
@@ -10,13 +21,22 @@ export default function SkillsPanel() {
   const localize = useLocalize();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingSkill, setEditingSkill] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [skillToDelete, setSkillToDelete] = useState<string | null>(null);
 
   const { data: skills, isLoading, refetch } = useAnalyticsSkills();
   const deleteSkill = useDeleteSkill();
 
-  const handleDelete = async (skillId: string) => {
-    if (window.confirm('Are you sure you want to delete this skill?')) {
-      await deleteSkill.mutateAsync(skillId);
+  const handleDeleteClick = (skillId: string) => {
+    setSkillToDelete(skillId);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (skillToDelete) {
+      await deleteSkill.mutateAsync(skillToDelete);
+      setDeleteDialogOpen(false);
+      setSkillToDelete(null);
     }
   };
 
@@ -95,21 +115,24 @@ export default function SkillsPanel() {
                 </p>
               </div>
               <div className="flex items-center gap-2 ml-2 flex-shrink-0">
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => handleEdit(skill.skillId)}
-                  className="rounded p-1.5 hover:bg-surface-hover"
                   title="Edit skill"
                 >
                   <Edit2 className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => handleDelete(skill.skillId)}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleDeleteClick(skill.skillId)}
                   disabled={deleteSkill.isPending}
-                  className="rounded p-1.5 text-red-500 hover:bg-surface-hover disabled:opacity-50"
+                  className="text-red-500 hover:text-red-600"
                   title="Delete skill"
                 >
                   <Trash2 className="h-4 w-4" />
-                </button>
+                </Button>
               </div>
             </div>
           ))}
@@ -123,6 +146,33 @@ export default function SkillsPanel() {
           </p>
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <OGDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <OGDialogContent className="w-[400px]">
+          <OGDialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
+                <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
+              </div>
+              <OGDialogTitle>Delete Skill</OGDialogTitle>
+            </div>
+          </OGDialogHeader>
+          <OGDialogDescription className="text-sm text-text-secondary">
+            Are you sure you want to delete this skill? This action cannot be undone.
+          </OGDialogDescription>
+          <OGDialogFooter>
+            <OGDialogClose asChild>
+              <Button type="button" variant="outline">
+                Cancel
+              </Button>
+            </OGDialogClose>
+            <Button type="button" variant="destructive" onClick={handleDeleteConfirm}>
+              Delete
+            </Button>
+          </OGDialogFooter>
+        </OGDialogContent>
+      </OGDialog>
     </div>
   );
 }

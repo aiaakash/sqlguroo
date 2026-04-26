@@ -22,10 +22,15 @@ import {
   OGDialogContent,
   OGDialogHeader,
   OGDialogTitle,
+  OGDialogDescription,
   OGDialogClose,
   OGDialogFooter,
   Spinner,
   Button,
+  Label,
+  Input,
+  Textarea,
+  Checkbox,
 } from '@librechat/client';
 import {
   useAnalyticsGitHubConnections,
@@ -220,19 +225,21 @@ export default function GitHubConnectionsPanel() {
                   </div>
 
                   <div className="flex shrink-0 items-center gap-0.5 opacity-60 transition-opacity group-hover:opacity-100">
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       onClick={() => handleEdit(connection)}
-                      className="rounded-md p-1.5 text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary"
+                      className="h-8 w-8"
                       title="Edit connection"
                     >
                       <Pencil className="h-3.5 w-3.5" />
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       onClick={() => handleSync(connection._id)}
                       disabled={isSyncing}
-                      className={`rounded-md p-1.5 transition-colors hover:bg-surface-hover hover:text-text-primary disabled:opacity-50 ${
-                        isSyncing ? 'animate-pulse text-blue-500' : 'text-text-secondary'
-                      }`}
+                      className={`h-8 w-8 ${isSyncing ? 'animate-pulse text-blue-500' : ''}`}
                       title={isSyncing ? 'Syncing...' : 'Sync queries from repository'}
                     >
                       {isSyncing ? (
@@ -240,14 +247,16 @@ export default function GitHubConnectionsPanel() {
                       ) : (
                         <RefreshCw className="h-3.5 w-3.5" />
                       )}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       onClick={() => handleDeleteClick(connection._id)}
-                      className="rounded-md p-1.5 text-text-secondary transition-colors hover:bg-red-100 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 dark:hover:bg-red-900/30 dark:hover:text-red-400"
+                      className="h-8 w-8 text-text-secondary hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 dark:hover:text-red-400"
                       title="Delete connection"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+                    </Button>
                   </div>
                 </div>
 
@@ -304,15 +313,13 @@ export default function GitHubConnectionsPanel() {
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
                 <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
               </div>
-              <div>
-                <OGDialogTitle>Delete GitHub Connection</OGDialogTitle>
-              </div>
+              <OGDialogTitle>Delete GitHub Connection</OGDialogTitle>
             </div>
           </OGDialogHeader>
-          <p className="text-sm text-text-secondary">
+          <OGDialogDescription className="text-sm text-text-secondary">
             Are you sure you want to delete this GitHub connection? This action cannot be undone and
             all synced queries will be removed.
-          </p>
+          </OGDialogDescription>
           <OGDialogFooter>
             <OGDialogClose asChild>
               <Button type="button" variant="outline">
@@ -437,25 +444,28 @@ function GitHubConnectionForm({
     })) || [];
 
   return (
-    <OGDialogContent className="w-[450px] !bg-card">
+    <OGDialogContent className="w-[450px]">
       <OGDialogHeader>
         <OGDialogTitle>
           {isEditMode ? 'Edit GitHub Repository' : 'Connect GitHub Repository'}
         </OGDialogTitle>
+        <OGDialogDescription>
+          Link a GitHub repository to sync SQL queries for RAG-powered analytics.
+        </OGDialogDescription>
       </OGDialogHeader>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="space-y-3">
           <div>
-            <label className="mb-1 block text-xs font-medium text-text-secondary">
+            <Label htmlFor="name" className="mb-1.5 text-xs">
               Connection Name
-            </label>
-            <input
+            </Label>
+            <Input
+              id="name"
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="My Company Queries"
               required
-              className="focus:border-border-focus focus:ring-border-focus w-full rounded-lg border border-border-light bg-surface-primary px-3 py-2 text-sm focus:outline-none focus:ring-1"
             />
           </div>
 
@@ -475,55 +485,57 @@ function GitHubConnectionForm({
             <>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-text-secondary">
+                  <Label htmlFor="owner" className="mb-1.5 text-xs">
                     Owner
-                  </label>
-                  <input
+                  </Label>
+                  <Input
+                    id="owner"
                     type="text"
                     value={owner}
                     onChange={(e) => setOwner(e.target.value)}
                     placeholder="company-name"
                     required
-                    className="focus:border-border-focus focus:ring-border-focus w-full rounded-lg border border-border-light bg-surface-primary px-3 py-2 text-sm focus:outline-none focus:ring-1"
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-text-secondary">
+                  <Label htmlFor="repo" className="mb-1.5 text-xs">
                     Repository
-                  </label>
-                  <input
+                  </Label>
+                  <Input
+                    id="repo"
                     type="text"
                     value={repo}
                     onChange={(e) => setRepo(e.target.value)}
                     placeholder="analytics-queries"
                     required
-                    className="focus:border-border-focus focus:ring-border-focus w-full rounded-lg border border-border-light bg-surface-primary px-3 py-2 text-sm focus:outline-none focus:ring-1"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-medium text-text-secondary">Branch</label>
-                <input
+                <Label htmlFor="branch" className="mb-1.5 text-xs">
+                  Branch
+                </Label>
+                <Input
+                  id="branch"
                   type="text"
                   value={branch}
                   onChange={(e) => setBranch(e.target.value)}
                   placeholder="main"
-                  className="focus:border-border-focus focus:ring-border-focus w-full rounded-lg border border-border-light bg-surface-primary px-3 py-2 text-sm focus:outline-none focus:ring-1"
                 />
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-medium text-text-secondary">
+                <Label htmlFor="accessToken" className="mb-1.5 text-xs">
                   GitHub Personal Access Token
-                </label>
-                <input
+                </Label>
+                <Input
+                  id="accessToken"
                   type="password"
                   value={accessToken}
                   onChange={(e) => setAccessToken(e.target.value)}
                   placeholder="ghp_xxxxxxxxxxxx"
                   required
-                  className="focus:border-border-focus focus:ring-border-focus w-full rounded-lg border border-border-light bg-surface-primary px-3 py-2 text-sm focus:outline-none focus:ring-1"
                 />
                 <p className="mt-1 text-xs text-text-tertiary">
                   Token needs repo scope for private repos
@@ -533,9 +545,9 @@ function GitHubConnectionForm({
           )}
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-text-secondary">
+            <Label className="mb-1.5 text-xs">
               Link to Databases
-            </label>
+            </Label>
             <div className="relative" ref={dropdownRef}>
               <button
                 type="button"
@@ -559,26 +571,25 @@ function GitHubConnectionForm({
                     </div>
                   ) : (
                     databaseOptions.map((option) => (
-                      <label
+                      <div
                         key={option.value}
                         className="flex cursor-pointer items-center gap-2 px-3 py-2 text-sm hover:bg-surface-hover"
+                        onClick={() => {
+                          if (selectedConnectionIds.includes(option.value)) {
+                            setSelectedConnectionIds(
+                              selectedConnectionIds.filter((id) => id !== option.value),
+                            );
+                          } else {
+                            setSelectedConnectionIds([...selectedConnectionIds, option.value]);
+                          }
+                        }}
                       >
-                        <input
-                          type="checkbox"
+                        <Checkbox
                           checked={selectedConnectionIds.includes(option.value)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedConnectionIds([...selectedConnectionIds, option.value]);
-                            } else {
-                              setSelectedConnectionIds(
-                                selectedConnectionIds.filter((id) => id !== option.value),
-                              );
-                            }
-                          }}
-                          className="h-4 w-4 rounded border-border-medium text-primary focus:ring-primary"
+                          aria-label={option.label}
                         />
                         <span className="truncate text-text-primary">{option.label}</span>
-                      </label>
+                      </div>
                     ))
                   )}
                 </div>
@@ -632,7 +643,7 @@ function GitHubConnectionForm({
           )}
         </div>
 
-        <div className="flex justify-between gap-2">
+        <OGDialogFooter className="flex justify-between gap-2">
           {!isEditMode && (
             <Button
               type="button"
@@ -653,12 +664,13 @@ function GitHubConnectionForm({
             <Button
               type="submit"
               disabled={isSubmitting || !name || (!isEditMode && (!owner || !repo || !accessToken))}
+              variant="submit"
             >
               {isSubmitting ? <Spinner className="h-4 w-4" /> : null}
               {isEditMode ? 'Update' : 'Save'}
             </Button>
           </div>
-        </div>
+        </OGDialogFooter>
       </form>
     </OGDialogContent>
   );
