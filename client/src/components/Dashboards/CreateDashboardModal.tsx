@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { X, Plus } from 'lucide-react';
 import { useCreateDashboardMutation } from 'librechat-data-provider';
 import type { DashboardIcon as DashboardIconType } from 'librechat-data-provider';
-import { OGDialog, OGDialogContent } from '@librechat/client';
+import { OGDialog, OGDialogContent, Button, Input, Textarea, Label } from '@librechat/client';
 import DashboardIconComponent from './DashboardIcon';
 import { DASHBOARD_ICONS } from './types';
 import { cn } from '~/utils';
@@ -85,36 +85,24 @@ export default function CreateDashboardModal({
               Organize your charts into a dashboard
             </p>
           </div>
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => onOpenChange(false)}
             className="rounded-sm p-1.5 opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-border-xheavy focus:ring-offset-2"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-5 w-5 text-text-primary"
-            >
-              <line x1="18" x2="6" y1="6" y2="18"></line>
-              <line x1="6" x2="18" y1="6" y2="18"></line>
-            </svg>
-          </button>
+            <X className="h-5 w-5 text-text-primary" />
+          </Button>
         </div>
 
         <form onSubmit={handleSubmit} className="max-h-[calc(90vh-120px)] overflow-y-auto px-6 py-4">
           <div className="flex flex-col gap-3 p-1 text-sm text-text-primary">
             <div className="pb-3">
               <div className="flex flex-col gap-2">
-                <label className="text-sm text-text-primary">
+                <Label className="text-sm text-text-primary">
                   Dashboard Name <span className="text-destructive">*</span>
-                </label>
-                <input
+                </Label>
+                <Input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -127,8 +115,8 @@ export default function CreateDashboardModal({
 
             <div className="pb-3">
               <div className="flex flex-col gap-2">
-                <label className="text-sm text-text-primary">Description</label>
-                <textarea
+                <Label className="text-sm text-text-primary">Description</Label>
+                <Textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="A collection of key metrics and insights..."
@@ -140,12 +128,14 @@ export default function CreateDashboardModal({
 
             <div className="pb-3">
               <div className="flex items-center justify-between">
-                <div>Icon</div>
+                <Label className="text-sm text-text-primary">Icon</Label>
                 <div className="grid grid-cols-8 gap-1.5">
                   {DASHBOARD_ICONS.map(({ icon: iconValue, label }) => (
-                    <button
+                    <Button
                       key={iconValue}
                       type="button"
+                      variant="ghost"
+                      size="icon"
                       onClick={() => setIcon(iconValue)}
                       className={cn(
                         'flex h-9 w-9 items-center justify-center rounded-lg transition-all',
@@ -156,7 +146,7 @@ export default function CreateDashboardModal({
                       title={label}
                     >
                       <DashboardIconComponent icon={iconValue} size={16} />
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </div>
@@ -164,7 +154,7 @@ export default function CreateDashboardModal({
 
             <div className="pb-3">
               <div className="flex flex-col gap-2">
-                <label className="text-sm text-text-primary">Tags</label>
+                <Label className="text-sm text-text-primary">Tags</Label>
                 <div className="flex flex-wrap gap-2">
                   {tags.map((tag) => (
                     <span
@@ -172,17 +162,19 @@ export default function CreateDashboardModal({
                       className="flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-sm text-primary"
                     >
                       {tag}
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
+                        size="icon"
                         onClick={() => handleRemoveTag(tag)}
-                        className="rounded-full p-0.5 hover:bg-primary/20"
+                        className="h-5 w-5 rounded-full p-0.5 hover:bg-primary/20"
                       >
                         <X className="h-3 w-3" />
-                      </button>
+                      </Button>
                     </span>
                   ))}
                   <div className="flex items-center gap-2">
-                    <input
+                    <Input
                       type="text"
                       value={tagInput}
                       onChange={(e) => setTagInput(e.target.value)}
@@ -190,13 +182,15 @@ export default function CreateDashboardModal({
                       placeholder="Add tag..."
                       className="w-24 rounded-lg border border-border-light bg-surface-secondary px-3 py-1.5 text-sm text-text-primary placeholder:text-text-tertiary focus:border-border-medium focus:outline-none"
                     />
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="icon"
                       onClick={handleAddTag}
                       className="rounded-lg bg-surface-secondary p-1.5 text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary"
                     >
                       <Plus className="h-4 w-4" />
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -204,17 +198,18 @@ export default function CreateDashboardModal({
           </div>
 
           <div className="flex justify-end gap-3 border-t border-border-light pt-4">
-            <button
+            <Button
               type="button"
+              variant="outline"
               onClick={() => onOpenChange(false)}
-              className="rounded-lg px-4 py-2 text-sm font-medium text-text-secondary transition-all hover:bg-surface-hover hover:text-text-primary"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={!name.trim() || createMutation.isLoading}
-              className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-all hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+              variant="submit"
+              className="flex items-center gap-2"
             >
               {createMutation.isLoading ? (
                 <>
@@ -227,7 +222,7 @@ export default function CreateDashboardModal({
                   Create Dashboard
                 </>
               )}
-            </button>
+            </Button>
           </div>
         </form>
       </OGDialogContent>

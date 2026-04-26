@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Search, Plus, BarChart3, X, ChevronRight } from 'lucide-react';
 import { useGetChartsQuery } from 'librechat-data-provider';
 import type { IDashboardChartItem } from 'librechat-data-provider';
+import { Button, Input } from '@librechat/client';
 import { cn } from '~/utils';
 import { CHART_SIZES } from './types';
 
@@ -41,7 +42,7 @@ export default function ChartLibrarySidebar({
         <h3 className="mb-3 text-sm font-semibold text-text-primary">Chart Library</h3>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-tertiary" />
-          <input
+          <Input
             type="text"
             placeholder="Search charts..."
             value={searchTerm}
@@ -87,11 +88,12 @@ export default function ChartLibrarySidebar({
         ) : (
           <div className="space-y-2">
             {availableCharts.map((chart) => (
-              <button
+              <Button
                 key={chart._id}
+                variant="ghost"
                 onClick={() => setSelectedChartId(chart._id)}
                 className={cn(
-                  'flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-all',
+                  'flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-all h-auto',
                   selectedChartId === chart._id
                     ? 'border-primary/30 bg-primary/5 ring-1 ring-primary/10'
                     : 'border-border-light/60 bg-surface-secondary/50 hover:border-border-medium hover:bg-surface-hover'
@@ -114,7 +116,7 @@ export default function ChartLibrarySidebar({
                     selectedChartId === chart._id && 'rotate-90 text-primary'
                   )}
                 />
-              </button>
+              </Button>
             ))}
           </div>
         )}
@@ -125,27 +127,29 @@ export default function ChartLibrarySidebar({
           <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-text-secondary">Select Size</p>
           <div className="mb-4 grid grid-cols-3 gap-2">
             {CHART_SIZES.map((size) => (
-              <button
+              <Button
                 key={size.value}
+                variant="outline"
                 onClick={() => setSelectedSize(size)}
                 className={cn(
-                  'rounded-xl border px-2 py-2 text-xs font-medium transition-all',
+                  'rounded-xl border px-2 py-2 text-xs font-medium transition-all h-auto',
                   selectedSize.value === size.value
                     ? 'border-primary/30 bg-primary/5 text-primary ring-1 ring-primary/10'
                     : 'border-border-light/60 bg-surface-secondary/50 text-text-secondary hover:border-border-medium hover:text-text-primary'
                 )}
               >
                 {size.label}
-              </button>
+              </Button>
             ))}
           </div>
-          <button
+          <Button
             onClick={handleAddChart}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-primary/90 hover:shadow-md"
+            variant="submit"
+            className="flex w-full items-center justify-center gap-2"
           >
             <Plus className="h-4 w-4" />
             Add to Dashboard
-          </button>
+          </Button>
         </div>
       )}
     </div>

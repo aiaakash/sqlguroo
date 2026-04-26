@@ -1,5 +1,4 @@
-import React, { useState, useMemo, lazy, Suspense, useRef, useEffect, useCallback } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useState, useMemo, lazy, Suspense } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import {
   BarChart3,
@@ -28,7 +27,14 @@ import {
   OGDialogHeader,
   OGDialogTitle,
   Skeleton,
-  DropdownPopup,
+  Button,
+  Input,
+  Separator,
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
 } from '@librechat/client';
 import RechartsRenderer from './RechartsRenderer';
 import type { ChartConfig } from './RechartsRenderer';
@@ -142,13 +148,13 @@ export default function ChartsView() {
               Create your first chart from query results in the chat interface. Click the
               &quot;Chart&quot; button next to export options to get started.
             </p>
-            <button
+            <Button
               onClick={() => navigate('/c/new')}
               className="group flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-primary/90 hover:shadow-md"
             >
               <BarChart3 className="h-4 w-4 transition-transform group-hover:scale-110" />
               Go to Chat
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -193,26 +199,28 @@ export default function ChartsView() {
               <X className="h-6 w-6 text-destructive" />
             </div>
             <p className="text-sm font-medium text-destructive">Failed to load charts</p>
-            <button
+            <Button
               onClick={() => window.location.reload()}
-              className="mt-3 rounded-lg bg-primary/10 px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
+              variant="outline"
+              className="mt-3"
             >
               Retry
-            </button>
+            </Button>
           </div>
         ) : charts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16">
             <p className="text-sm text-text-secondary">No charts found</p>
             {(searchTerm || pinnedOnly) && (
-              <button
+              <Button
                 onClick={() => {
                   setSearchTerm('');
                   setPinnedOnly(false);
                 }}
-                className="mt-3 rounded-lg bg-primary/10 px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
+                variant="outline"
+                className="mt-3"
               >
                 Clear filters
-              </button>
+              </Button>
             )}
           </div>
         ) : viewMode === 'grid' ? (
@@ -268,23 +276,20 @@ export default function ChartsView() {
                 Are you sure you want to delete this chart? This action cannot be undone.
               </p>
               <div className="flex justify-end gap-3">
-                <button
-                  onClick={handleCancelDelete}
-                  className="rounded-lg border border-border-light px-4 py-2 text-sm font-medium text-text-secondary transition-all hover:border-border-medium hover:text-text-primary"
-                >
+                <Button onClick={handleCancelDelete} variant="outline">
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={handleConfirmDelete}
                   disabled={deleteChartMutation.isLoading}
-                  className="rounded-lg bg-destructive px-4 py-2 text-sm font-medium text-white transition-all hover:bg-destructive/80 disabled:opacity-50"
+                  variant="destructive"
                 >
                   {deleteChartMutation.isLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     'Delete'
                   )}
-                </button>
+                </Button>
               </div>
             </div>
           </OGDialogContent>
@@ -329,7 +334,7 @@ function Header({
             <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
             <span className="hidden text-sm font-medium sm:inline">{localize('com_ui_back_to_chat')}</span>
           </a>
-          <div className="h-5 w-px shrink-0 bg-border-light/60" />
+          <Separator orientation="vertical" className="h-5 bg-border-light/60" />
           <div className="flex items-center gap-3">
             <h1 className="text-lg font-semibold text-text-primary">Charts Library</h1>
             {totalCharts > 0 && (
@@ -343,7 +348,7 @@ function Header({
         <div className="flex items-center gap-2.5">
           <div className="relative hidden sm:block">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-tertiary" />
-            <input
+            <Input
               type="text"
               placeholder="Search charts..."
               value={searchTerm}
@@ -360,8 +365,9 @@ function Header({
             )}
           </div>
 
-          <button
+          <Button
             onClick={() => setPinnedOnly(!pinnedOnly)}
+            variant="outline"
             className={cn(
               'flex h-9 items-center gap-1.5 rounded-xl border px-3 text-sm font-medium transition-all',
               pinnedOnly
@@ -372,11 +378,13 @@ function Header({
           >
             <Pin className={cn('h-4 w-4', pinnedOnly && 'fill-current')} />
             <span className="hidden lg:inline">Pinned</span>
-          </button>
+          </Button>
 
           <div className="flex items-center rounded-xl border border-border-light/60 bg-surface-secondary/50 p-1">
-            <button
+            <Button
               onClick={() => setViewMode('grid')}
+              variant="ghost"
+              size="icon"
               className={cn(
                 'flex h-7 w-7 items-center justify-center rounded-lg text-sm transition-all',
                 viewMode === 'grid'
@@ -386,9 +394,11 @@ function Header({
               title="Grid view"
             >
               <Grid3X3 className="h-3.5 w-3.5" />
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => setViewMode('list')}
+              variant="ghost"
+              size="icon"
               className={cn(
                 'flex h-7 w-7 items-center justify-center rounded-lg text-sm transition-all',
                 viewMode === 'list'
@@ -398,7 +408,7 @@ function Header({
               title="List view"
             >
               <List className="h-3.5 w-3.5" />
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -543,108 +553,41 @@ function ChartActions({
   onTogglePin: () => void;
   isPinned: boolean;
 }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 });
-
-  const handleAction = (e: React.MouseEvent, action: () => void) => {
-    e.stopPropagation();
-    action();
-    setIsOpen(false);
-  };
-
-  useEffect(() => {
-    if (isOpen && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect();
-      setDropdownPosition({
-        top: rect.bottom + window.scrollY + 4,
-        right: window.innerWidth - rect.right - window.scrollX,
-      });
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node) &&
-        buttonRef.current &&
-        !buttonRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [isOpen]);
-
   return (
-    <>
-      <div className="relative flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-        <button
-          ref={buttonRef}
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsOpen(!isOpen);
-          }}
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
           className="rounded-lg p-1.5 text-text-tertiary opacity-0 transition-all hover:bg-surface-hover hover:text-text-primary group-hover:opacity-100"
           aria-label="Chart actions"
+          onClick={(e) => e.stopPropagation()}
         >
           <MoreVertical className="h-4 w-4" />
-        </button>
-      </div>
-
-      {isOpen &&
-        createPortal(
-          <>
-            <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-            <div
-              ref={dropdownRef}
-              className="fixed z-[100] w-44 overflow-hidden rounded-xl border border-border-light/60 bg-surface-primary shadow-xl ring-1 ring-black/5"
-              style={{
-                top: `${dropdownPosition.top}px`,
-                right: `${dropdownPosition.right}px`,
-              }}
-            >
-              <div className="p-1">
-                <button
-                  onClick={(e) => handleAction(e, onEdit)}
-                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-text-primary transition-colors hover:bg-surface-hover"
-                >
-                  <Sparkles className="h-4 w-4 text-text-secondary" />
-                  <span>Edit</span>
-                </button>
-                <button
-                  onClick={(e) => handleAction(e, onTogglePin)}
-                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-text-primary transition-colors hover:bg-surface-hover"
-                >
-                  <Pin className={cn('h-4 w-4 text-text-secondary', isPinned && 'fill-current text-primary')} />
-                  <span>{isPinned ? 'Unpin' : 'Pin'}</span>
-                </button>
-                <div className="my-1 h-px bg-border-light/60" />
-                <button
-                  onClick={(e) => handleAction(e, onDuplicate)}
-                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-text-primary transition-colors hover:bg-surface-hover"
-                >
-                  <Copy className="h-4 w-4 text-text-secondary" />
-                  <span>Duplicate</span>
-                </button>
-                <button
-                  onClick={(e) => handleAction(e, onDelete)}
-                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-destructive transition-colors hover:bg-destructive/10"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  <span>Delete</span>
-                </button>
-              </div>
-            </div>
-          </>,
-          document.body,
-        )}
-    </>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-44">
+        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(); }}>
+          <Sparkles className="h-4 w-4 text-text-secondary" />
+          <span>Edit</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onTogglePin(); }}>
+          <Pin className={cn('h-4 w-4 text-text-secondary', isPinned && 'fill-current text-primary')} />
+          <span>{isPinned ? 'Unpin' : 'Pin'}</span>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDuplicate(); }}>
+          <Copy className="h-4 w-4 text-text-secondary" />
+          <span>Duplicate</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          variant="destructive"
+          onClick={(e) => { e.stopPropagation(); onDelete(); }}
+        >
+          <Trash2 className="h-4 w-4" />
+          <span>Delete</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

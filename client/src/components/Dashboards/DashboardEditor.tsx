@@ -24,7 +24,7 @@ import type {
   IDashboardSettings,
   DashboardIcon,
 } from 'librechat-data-provider';
-import { OGDialog, OGDialogContent, Skeleton, useToastContext, Switch, Dropdown } from '@librechat/client';
+import { OGDialog, OGDialogContent, Skeleton, useToastContext, Switch, Dropdown, Button, Input, Textarea, Label, Separator } from '@librechat/client';
 import DashboardGrid from './DashboardGrid';
 import ChartLibrarySidebar from './ChartLibrarySidebar';
 import DashboardIconComponent from './DashboardIcon';
@@ -261,12 +261,13 @@ export default function DashboardEditor() {
             <X className="h-6 w-6 text-destructive" />
           </div>
           <p className="text-sm font-medium text-text-secondary">Failed to load dashboard</p>
-          <button
+          <Button
             onClick={() => navigate('/d/dashboards')}
-            className="mt-3 rounded-lg bg-primary/10 px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
+            variant="outline"
+            className="mt-3"
           >
             Back to Dashboards
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -276,14 +277,15 @@ export default function DashboardEditor() {
     <div className="flex h-screen w-full flex-col overflow-hidden bg-surface-primary-alt">
       <div className="flex h-16 flex-shrink-0 items-center justify-between border-b border-border-light/60 bg-surface-primary/80 px-4 backdrop-blur-xl">
         <div className="flex items-center gap-4">
-          <button
+          <Button
+            variant="ghost"
             onClick={() => navigate('/d/dashboards')}
             className="group flex items-center gap-2 text-sm text-text-secondary transition-colors hover:text-text-primary"
           >
             <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
             <span className="hidden sm:inline">Back</span>
-          </button>
-          <div className="h-5 w-px bg-border-light/60" />
+          </Button>
+          <Separator orientation="vertical" className="h-5 bg-border-light/60" />
           <div className="flex items-center gap-3">
             <div
               className="flex h-9 w-9 items-center justify-center rounded-xl"
@@ -307,29 +309,27 @@ export default function DashboardEditor() {
         </div>
 
         <div className="flex items-center gap-2">
-          <button
+          <Button
+            variant="outline"
             onClick={() => navigate(`/d/dashboards/${dashboardId}`)}
-            className="flex items-center gap-2 rounded-xl border border-border-light/60 bg-surface-secondary/50 px-3.5 py-2 text-sm font-medium text-text-secondary transition-all hover:border-border-medium hover:text-text-primary"
+            className="flex items-center gap-2"
           >
             <Eye className="h-4 w-4" />
             <span className="hidden sm:inline">Preview</span>
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="outline"
             onClick={() => setIsSettingsOpen(true)}
-            className="flex items-center gap-2 rounded-xl border border-border-light/60 bg-surface-secondary/50 px-3.5 py-2 text-sm font-medium text-text-secondary transition-all hover:border-border-medium hover:text-text-primary"
+            className="flex items-center gap-2"
           >
             <Settings className="h-4 w-4" />
             <span className="hidden sm:inline">Settings</span>
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleSaveLayout}
             disabled={!hasUnsavedChanges || updateLayoutMutation.isLoading}
-            className={cn(
-              'flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium shadow-sm transition-all',
-              hasUnsavedChanges
-                ? 'bg-primary text-white hover:bg-primary/90 hover:shadow-md'
-                : 'bg-surface-secondary text-text-tertiary',
-            )}
+            variant={hasUnsavedChanges ? 'submit' : 'outline'}
+            className="flex items-center gap-2"
           >
             {updateLayoutMutation.isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -337,12 +337,14 @@ export default function DashboardEditor() {
               <Save className="h-4 w-4" />
             )}
             <span className="hidden sm:inline">Save</span>
-          </button>
+          </Button>
         </div>
       </div>
 
       <div className="flex flex-1 overflow-hidden">
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
           className="absolute left-0 top-1/2 z-10 -translate-y-1/2 rounded-r-lg bg-surface-secondary p-2 text-text-secondary shadow-lg transition-all hover:bg-surface-hover hover:text-text-primary"
           style={{ left: isSidebarOpen ? '318px' : '0' }}
@@ -352,7 +354,7 @@ export default function DashboardEditor() {
           ) : (
             <PanelLeft className="h-4 w-4" />
           )}
-        </button>
+        </Button>
 
         <div
           className={cn(
@@ -426,35 +428,23 @@ function SettingsModal({
         <form onSubmit={handleSubmit}>
           <div className="flex items-center justify-between border-b border-border-light px-6 py-4">
             <h2 className="text-lg font-semibold text-text-primary">Dashboard Settings</h2>
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={() => onOpenChange(false)}
               className="rounded-sm p-1.5 opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-border-xheavy focus:ring-offset-2"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-5 w-5 text-text-primary"
-              >
-                <line x1="18" x2="6" y1="6" y2="18"></line>
-                <line x1="6" x2="18" y1="6" y2="18"></line>
-              </svg>
-            </button>
+              <X className="h-5 w-5 text-text-primary" />
+            </Button>
           </div>
 
           <div className="max-h-[60vh] overflow-y-auto">
             <div className="flex flex-col gap-3 p-1 text-sm text-text-primary">
               <div className="pb-3">
                 <div className="flex flex-col gap-2">
-                  <label className="text-sm text-text-primary">Name</label>
-                  <input
+                  <Label className="text-sm text-text-primary">Name</Label>
+                  <Input
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
@@ -465,8 +455,8 @@ function SettingsModal({
 
               <div className="pb-3">
                 <div className="flex flex-col gap-2">
-                  <label className="text-sm text-text-primary">Description</label>
-                  <textarea
+                  <Label className="text-sm text-text-primary">Description</Label>
+                  <Textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     rows={3}
@@ -477,12 +467,14 @@ function SettingsModal({
 
               <div className="pb-3">
                 <div className="flex items-center justify-between">
-                  <div>Icon</div>
+                  <Label className="text-sm text-text-primary">Icon</Label>
                   <div className="grid grid-cols-8 gap-1.5">
                     {DASHBOARD_ICONS.map(({ icon: iconValue, label }) => (
-                      <button
+                      <Button
                         key={iconValue}
                         type="button"
+                        variant="ghost"
+                        size="icon"
                         onClick={() => setIcon(iconValue)}
                         className={cn(
                           'flex h-9 w-9 items-center justify-center rounded-lg transition-all',
@@ -493,7 +485,7 @@ function SettingsModal({
                         title={label}
                       >
                         <DashboardIconComponent icon={iconValue} size={16} />
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 </div>
@@ -544,21 +536,22 @@ function SettingsModal({
           </div>
 
           <div className="flex justify-end gap-3 border-t border-border-light px-6 py-4">
-            <button
+            <Button
               type="button"
+              variant="outline"
               onClick={() => onOpenChange(false)}
-              className="rounded-lg px-4 py-2 text-sm font-medium text-text-secondary transition-all hover:bg-surface-hover hover:text-text-primary"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={isLoading}
-              className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-all hover:bg-primary/90 disabled:opacity-50"
+              variant="submit"
+              className="flex items-center gap-2"
             >
               {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
               Save Changes
-            </button>
+            </Button>
           </div>
         </form>
       </OGDialogContent>

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import {
@@ -13,6 +13,14 @@ import {
   Maximize,
 } from 'lucide-react';
 import type { IDashboardChartWithData, IDashboardChartItem } from 'librechat-data-provider';
+import {
+  Button,
+  Separator,
+  OGDialog,
+  OGDialogContent,
+  OGDialogHeader,
+  OGDialogTitle,
+} from '@librechat/client';
 import RechartsRenderer from '~/components/Charts/RechartsRenderer';
 import type { ChartConfig } from '~/components/Charts/RechartsRenderer';
 import { cn } from '~/utils';
@@ -65,13 +73,13 @@ const DraggableGridItem = React.memo(function DraggableGridItem({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
-  const [showResizeModal, setShowResizeModal] = useState(false);
+  const [showResizeDialog, setShowResizeDialog] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   const handleResize = (newW: number, newH: number) => {
     if (onResize) {
       onResize(layout.chartId, { w: newW, h: newH });
-      setShowResizeModal(false);
+      setShowResizeDialog(false);
     }
   };
 
@@ -80,7 +88,7 @@ const DraggableGridItem = React.memo(function DraggableGridItem({
   const chartConfig = item.chart.config as unknown as ChartConfig;
 
   // Update last refreshed time when data changes
-  useEffect(() => {
+  React.useEffect(() => {
     if (item.chart.dataSnapshot?.capturedAt) {
       setLastRefreshed(new Date(item.chart.dataSnapshot.capturedAt));
     }
@@ -167,12 +175,13 @@ const DraggableGridItem = React.memo(function DraggableGridItem({
         <div className="relative h-full w-full max-w-7xl rounded-2xl border border-border-light/60 bg-surface-primary p-6 shadow-2xl">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-lg font-semibold text-text-primary">{chartTitle}</h3>
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => setIsFullscreen(false)}
-              className="rounded-lg p-2 text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary"
             >
               <Minimize2 className="h-5 w-5" />
-            </button>
+            </Button>
           </div>
           <div className="h-[calc(100%-60px)]">
             <RechartsRenderer config={chartConfig} data={chartData} height={600} />
@@ -217,37 +226,45 @@ const DraggableGridItem = React.memo(function DraggableGridItem({
               <Loader2 className="h-4 w-4 animate-spin text-primary" />
             </div>
           ) : (
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={onRefresh}
               className="rounded-lg p-1.5 text-text-tertiary opacity-0 transition-all hover:bg-surface-hover hover:text-text-primary group-hover:opacity-100"
               title="Refresh"
             >
               <RefreshCw className="h-4 w-4" />
-            </button>
+            </Button>
           )}
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => setIsFullscreen(true)}
             className="rounded-lg p-1.5 text-text-tertiary opacity-0 transition-all hover:bg-surface-hover hover:text-text-primary group-hover:opacity-100"
             title="Fullscreen"
           >
             <Maximize2 className="h-4 w-4" />
-          </button>
+          </Button>
           {isEditing && (
             <>
-              <button
-                onClick={() => setShowResizeModal(true)}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowResizeDialog(true)}
                 className="rounded-lg p-1.5 text-text-tertiary opacity-0 transition-all hover:bg-surface-hover hover:text-text-primary group-hover:opacity-100"
                 title="Resize"
               >
                 <Maximize className="h-4 w-4" />
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={onRemove}
                 className="rounded-lg p-1.5 text-destructive opacity-0 transition-all hover:bg-destructive/10 group-hover:opacity-100"
                 title="Remove"
               >
                 <X className="h-4 w-4" />
-              </button>
+              </Button>
             </>
           )}
         </div>
@@ -261,15 +278,15 @@ const DraggableGridItem = React.memo(function DraggableGridItem({
               <AlertCircle className="h-6 w-6 text-destructive" />
             </div>
             <p className="text-sm font-medium">Failed to load chart</p>
-            <button
+            <Button
+              variant="link"
               onClick={() => {
                 setHasError(false);
                 onRefresh?.();
               }}
-              className="text-sm text-primary hover:underline"
             >
               Retry
-            </button>
+            </Button>
           </div>
         ) : chartData.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-3 text-text-secondary">
@@ -280,13 +297,15 @@ const DraggableGridItem = React.memo(function DraggableGridItem({
               <p className="text-sm font-medium text-text-primary">No data available</p>
               <p className="mt-1 text-xs text-text-tertiary">This chart has no data to display</p>
             </div>
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={onRefresh}
-              className="flex items-center gap-1.5 rounded-lg bg-surface-secondary px-3 py-1.5 text-xs text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary"
+              className="flex items-center gap-1.5"
             >
               <RefreshCw className="h-3.5 w-3.5" />
               Refresh data
-            </button>
+            </Button>
           </div>
         ) : (
           <RechartsRenderer
@@ -326,52 +345,36 @@ const DraggableGridItem = React.memo(function DraggableGridItem({
         </div>
       )}
 
-      {/* Resize Modal */}
-      {showResizeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="dark:bg-surface-primary-dark w-80 rounded-xl bg-surface-primary p-4 shadow-xl">
-            <h3 className="mb-4 text-sm font-semibold text-text-primary">Resize Chart</h3>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => handleResize(3, 2)}
-                className="dark:border-border-dark rounded-lg border border-border-light px-3 py-2 text-xs text-text-secondary hover:bg-surface-hover"
-              >
-                Small (3x2)
-              </button>
-              <button
-                onClick={() => handleResize(6, 2)}
-                className="dark:border-border-dark rounded-lg border border-border-light px-3 py-2 text-xs text-text-secondary hover:bg-surface-hover"
-              >
-                Medium (6x2)
-              </button>
-              <button
-                onClick={() => handleResize(6, 3)}
-                className="dark:border-border-dark rounded-lg border border-border-light px-3 py-2 text-xs text-text-secondary hover:bg-surface-hover"
-              >
-                Large (6x3)
-              </button>
-              <button
-                onClick={() => handleResize(12, 2)}
-                className="dark:border-border-dark rounded-lg border border-border-light px-3 py-2 text-xs text-text-secondary hover:bg-surface-hover"
-              >
-                Wide (12x2)
-              </button>
-              <button
-                onClick={() => handleResize(12, 3)}
-                className="dark:border-border-dark col-span-2 rounded-lg border border-border-light px-3 py-2 text-xs text-text-secondary hover:bg-surface-hover"
-              >
-                Full Width (12x3)
-              </button>
-            </div>
-            <button
-              onClick={() => setShowResizeModal(false)}
-              className="dark:bg-surface-secondary-dark mt-4 w-full rounded-lg bg-surface-secondary py-2 text-sm text-text-secondary hover:bg-surface-hover"
-            >
-              Cancel
-            </button>
+      {/* Resize Dialog */}
+      <OGDialog open={showResizeDialog} onOpenChange={setShowResizeDialog}>
+        <OGDialogContent className="sm:max-w-sm">
+          <OGDialogHeader>
+            <OGDialogTitle>Resize Chart</OGDialogTitle>
+          </OGDialogHeader>
+          <div className="grid grid-cols-2 gap-2 py-4">
+            <Button variant="outline" onClick={() => handleResize(3, 2)}>
+              Small (3x2)
+            </Button>
+            <Button variant="outline" onClick={() => handleResize(6, 2)}>
+              Medium (6x2)
+            </Button>
+            <Button variant="outline" onClick={() => handleResize(6, 3)}>
+              Large (6x3)
+            </Button>
+            <Button variant="outline" onClick={() => handleResize(12, 2)}>
+              Wide (12x2)
+            </Button>
+            <Button variant="outline" onClick={() => handleResize(12, 3)} className="col-span-2">
+              Full Width (12x3)
+            </Button>
           </div>
-        </div>
-      )}
+          <div className="flex justify-end">
+            <Button variant="outline" onClick={() => setShowResizeDialog(false)}>
+              Cancel
+            </Button>
+          </div>
+        </OGDialogContent>
+      </OGDialog>
     </div>
   );
 });

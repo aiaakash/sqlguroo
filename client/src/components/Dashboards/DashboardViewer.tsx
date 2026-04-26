@@ -23,7 +23,7 @@ import {
   useToggleDashboardStarMutation,
   useUpdateDashboardMutation,
 } from 'librechat-data-provider';
-import { Skeleton, OGDialog, OGDialogContent, useToastContext, Switch, Dropdown } from '@librechat/client';
+import { Skeleton, OGDialog, OGDialogContent, useToastContext, Switch, Dropdown, Button, Input, Separator } from '@librechat/client';
 import DashboardGrid from './DashboardGrid';
 import DashboardIcon from './DashboardIcon';
 import { cn } from '~/utils';
@@ -253,12 +253,13 @@ export default function DashboardViewer() {
             {isPublic ? 'This dashboard is not available' : 'Failed to load dashboard'}
           </p>
           {!isPublic && (
-            <button
+            <Button
               onClick={() => navigate('/d/dashboards')}
-              className="mt-3 rounded-lg bg-primary/10 px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
+              variant="outline"
+              className="mt-3"
             >
               Back to Dashboards
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -276,14 +277,15 @@ export default function DashboardViewer() {
         <div className="flex items-center gap-4">
           {!isPublic && (
             <>
-              <button
+              <Button
+                variant="ghost"
                 onClick={() => navigate('/d/dashboards')}
                 className="group flex items-center gap-2 text-sm text-text-secondary transition-colors hover:text-text-primary"
               >
                 <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
                 <span className="hidden sm:inline">Back</span>
-              </button>
-              <div className="h-5 w-px bg-border-light/60" />
+              </Button>
+              <Separator orientation="vertical" className="h-5 bg-border-light/60" />
             </>
           )}
           <div className="flex items-center gap-3">
@@ -331,18 +333,21 @@ export default function DashboardViewer() {
             className="z-50"
           />
 
-          <button
+          <Button
+            variant="outline"
             onClick={handleRefreshAll}
-            className="flex items-center gap-2 rounded-xl border border-border-light/60 bg-surface-secondary/50 px-3.5 py-2 text-sm font-medium text-text-secondary transition-all hover:border-border-medium hover:text-text-primary"
+            className="flex items-center gap-2"
             title="Refresh all"
           >
             <RefreshCw className="h-4 w-4" />
             <span className="hidden lg:inline">Refresh</span>
-          </button>
+          </Button>
 
           {!isPublic && (
             <>
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={handleToggleStar}
                 disabled={starMutation.isLoading}
                 className="rounded-xl p-2 text-text-secondary transition-all hover:bg-surface-hover hover:text-text-primary"
@@ -351,33 +356,37 @@ export default function DashboardViewer() {
                 <Star
                   className={cn('h-5 w-5', dashboard.starred && 'fill-amber-500 text-amber-500')}
                 />
-              </button>
+              </Button>
 
-              <button
+              <Button
+                variant="outline"
                 onClick={() => setIsShareModalOpen(true)}
-                className="flex items-center gap-2 rounded-xl border border-border-light/60 bg-surface-secondary/50 px-3.5 py-2 text-sm font-medium text-text-secondary transition-all hover:border-border-medium hover:text-text-primary"
+                className="flex items-center gap-2"
               >
                 <Share2 className="h-4 w-4" />
                 <span className="hidden lg:inline">Share</span>
-              </button>
+              </Button>
 
-              <button
+              <Button
                 onClick={() => navigate(`/d/dashboards/${dashboardId}/edit`)}
-                className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-primary/90 hover:shadow-md"
+                variant="submit"
+                className="flex items-center gap-2"
               >
                 <Edit2 className="h-4 w-4" />
                 <span className="hidden sm:inline">Edit</span>
-              </button>
+              </Button>
             </>
           )}
 
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={toggleFullscreen}
             className="rounded-xl p-2 text-text-secondary transition-all hover:bg-surface-hover hover:text-text-primary"
             title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
           >
             {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -444,26 +453,14 @@ function ShareModal({
       <OGDialogContent className="w-full max-w-md overflow-hidden rounded-xl rounded-b-lg bg-card p-0 shadow-2xl backdrop-blur-2xl">
         <div className="flex items-center justify-between border-b border-border-light px-6 py-4">
           <h2 className="text-lg font-semibold text-text-primary">Share Dashboard</h2>
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => onOpenChange(false)}
             className="rounded-sm p-1.5 opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-border-xheavy focus:ring-offset-2"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-5 w-5 text-text-primary"
-            >
-              <line x1="18" x2="6" y1="6" y2="18"></line>
-              <line x1="6" x2="18" y1="6" y2="18"></line>
-            </svg>
-          </button>
+            <X className="h-5 w-5 text-text-primary" />
+          </Button>
         </div>
 
         <div className="max-h-[60vh] overflow-y-auto p-6">
@@ -490,14 +487,16 @@ function ShareModal({
               <div className="pb-3">
                 <div className="flex items-center gap-2 rounded-xl border border-border-light/60 bg-surface-secondary/50 p-3">
                   <Link2 className="h-4 w-4 flex-shrink-0 text-text-tertiary" />
-                  <input
+                  <Input
                     type="text"
                     value={shareUrl}
                     readOnly
-                    className="min-w-0 flex-1 bg-transparent text-sm text-text-primary focus:outline-none"
+                    className="min-w-0 flex-1 border-0 bg-transparent text-sm text-text-primary focus:outline-none focus:ring-0"
                   />
-                  <button
+                  <Button
                     onClick={handleCopy}
+                    variant={copied ? 'outline' : 'default'}
+                    size="sm"
                     className={cn(
                       'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
                       copied
@@ -516,7 +515,7 @@ function ShareModal({
                         Copy
                       </>
                     )}
-                  </button>
+                  </Button>
                 </div>
 
                 <a
@@ -534,10 +533,11 @@ function ShareModal({
             <div className="pb-3">
               <div className="text-sm font-medium text-text-primary">Export</div>
               <div className="mt-2 flex gap-2">
-                <button
+                <Button
                   onClick={onExportPNG}
                   disabled={isExporting === 'png'}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-border-light/60 bg-surface-secondary/50 py-2.5 text-sm font-medium text-text-secondary transition-all hover:bg-surface-hover hover:text-text-primary disabled:opacity-50"
+                  variant="outline"
+                  className="flex flex-1 items-center justify-center gap-2 py-2.5"
                 >
                   {isExporting === 'png' ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -545,11 +545,12 @@ function ShareModal({
                     <Download className="h-4 w-4" />
                   )}
                   PNG
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={onExportPDF}
                   disabled={isExporting === 'pdf'}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-border-light/60 bg-surface-secondary/50 py-2.5 text-sm font-medium text-text-secondary transition-all hover:bg-surface-hover hover:text-text-primary disabled:opacity-50"
+                  variant="outline"
+                  className="flex flex-1 items-center justify-center gap-2 py-2.5"
                 >
                   {isExporting === 'pdf' ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -557,7 +558,7 @@ function ShareModal({
                     <Download className="h-4 w-4" />
                   )}
                   PDF
-                </button>
+                </Button>
               </div>
             </div>
           </div>

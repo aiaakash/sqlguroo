@@ -1,8 +1,15 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Star, MoreVertical, Copy, Trash2, Archive, LayoutDashboard } from 'lucide-react';
 import type { DashboardListItem } from 'librechat-data-provider';
+import {
+  Button,
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '@librechat/client';
 import DashboardIcon from './DashboardIcon';
 import { OrgBadge } from '~/components/Organization';
 import { cn } from '~/utils';
@@ -29,10 +36,6 @@ export default function DashboardCard({
   loadingActions = new Set(),
 }: DashboardCardProps) {
   const navigate = useNavigate();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 });
 
   const isDeleting = loadingActions.has(`delete-${dashboard._id}`);
   const isDuplicating = loadingActions.has(`duplicate-${dashboard._id}`);
@@ -47,36 +50,7 @@ export default function DashboardCard({
   const handleAction = (e: React.MouseEvent, action: () => void) => {
     e.stopPropagation();
     action();
-    setIsMenuOpen(false);
   };
-
-  useEffect(() => {
-    if (isMenuOpen && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect();
-      setDropdownPosition({
-        top: rect.bottom + window.scrollY + 4,
-        right: window.innerWidth - rect.right - window.scrollX,
-      });
-    }
-  }, [isMenuOpen]);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node) &&
-        buttonRef.current &&
-        !buttonRef.current.contains(event.target as Node)
-      ) {
-        setIsMenuOpen(false);
-      }
-    };
-
-    if (isMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [isMenuOpen]);
 
   if (viewMode === 'list') {
     return (
@@ -108,17 +82,12 @@ export default function DashboardCard({
         </div>
 
         <DashboardActions
-          isOpen={isMenuOpen}
-          setIsOpen={setIsMenuOpen}
-          buttonRef={buttonRef}
-          dropdownRef={dropdownRef}
-          dropdownPosition={dropdownPosition}
           dashboard={dashboard}
-          onEdit={onEdit}
-          onDelete={onDelete}
-          onDuplicate={onDuplicate}
-          onToggleStar={onToggleStar}
-          onArchive={onArchive}
+          onEdit={(e) => handleAction(e, onEdit)}
+          onDelete={(e) => handleAction(e, onDelete)}
+          onDuplicate={(e) => handleAction(e, onDuplicate)}
+          onToggleStar={(e) => handleAction(e, onToggleStar)}
+          onArchive={(e) => handleAction(e, onArchive)}
         />
       </div>
     );
@@ -167,17 +136,12 @@ export default function DashboardCard({
             <OrgBadge organizationId={dashboard.organizationId} />
           </div>
           <DashboardActions
-            isOpen={isMenuOpen}
-            setIsOpen={setIsMenuOpen}
-            buttonRef={buttonRef}
-            dropdownRef={dropdownRef}
-            dropdownPosition={dropdownPosition}
             dashboard={dashboard}
-            onEdit={onEdit}
-            onDelete={onDelete}
-            onDuplicate={onDuplicate}
-            onToggleStar={onToggleStar}
-            onArchive={onArchive}
+            onEdit={(e) => handleAction(e, onEdit)}
+            onDelete={(e) => handleAction(e, onDelete)}
+            onDuplicate={(e) => handleAction(e, onDuplicate)}
+            onToggleStar={(e) => handleAction(e, onToggleStar)}
+            onArchive={(e) => handleAction(e, onArchive)}
           />
         </div>
 
@@ -196,34 +160,11 @@ export default function DashboardCard({
           </span>
         </div>
       </div>
-
-      {isMenuOpen &&
-        createPortal(
-          <>
-            <div className="fixed inset-0 z-40" onClick={() => setIsMenuOpen(false)} />
-            <DropdownMenu
-              ref={dropdownRef}
-              position={dropdownPosition}
-              dashboard={dashboard}
-              onEdit={(e) => handleAction(e, onEdit)}
-              onDelete={(e) => handleAction(e, onDelete)}
-              onDuplicate={(e) => handleAction(e, onDuplicate)}
-              onToggleStar={(e) => handleAction(e, onToggleStar)}
-              onArchive={(e) => handleAction(e, onArchive)}
-            />
-          </>,
-          document.body,
-        )}
     </div>
   );
 }
 
 function DashboardActions({
-  isOpen,
-  setIsOpen,
-  buttonRef,
-  dropdownRef,
-  dropdownPosition,
   dashboard,
   onEdit,
   onDelete,
@@ -231,152 +172,50 @@ function DashboardActions({
   onToggleStar,
   onArchive,
 }: {
-  isOpen: boolean;
-  setIsOpen: (open: boolean) => void;
-  buttonRef: React.RefObject<HTMLButtonElement>;
-  dropdownRef: React.RefObject<HTMLDivElement>;
-  dropdownPosition: { top: number; right: number };
   dashboard: DashboardListItem;
-  onEdit: () => void;
-  onDelete: () => void;
-  onDuplicate: () => void;
-  onToggleStar: () => void;
-  onArchive: () => void;
+  onEdit: (e: React.MouseEvent) => void;
+  onDelete: (e: React.MouseEvent) => void;
+  onDuplicate: (e: React.MouseEvent) => void;
+  onToggleStar: (e: React.MouseEvent) => void;
+  onArchive: (e: React.MouseEvent) => void;
 }) {
-  const handleAction = (e: React.MouseEvent, action: () => void) => {
-    e.stopPropagation();
-    action();
-    setIsOpen(false);
-  };
-
   return (
-    <>
-      <div className="relative flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-        <button
-          ref={buttonRef}
-          onClick={() => setIsOpen(!isOpen)}
-          className="rounded-lg p-1.5 text-text-tertiary opacity-0 transition-all hover:bg-surface-hover hover:text-text-primary group-hover:opacity-100"
-        >
-          <MoreVertical className="h-4 w-4" />
-        </button>
-      </div>
-
-      {isOpen &&
-        createPortal(
-          <>
-            <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-            <div
-              ref={dropdownRef}
-              className="fixed z-[100] w-44 overflow-hidden rounded-xl border border-border-light/60 bg-surface-primary shadow-xl ring-1 ring-black/5"
-              style={{
-                top: `${dropdownPosition.top}px`,
-                right: `${dropdownPosition.right}px`,
-              }}
-            >
-              <div className="p-1">
-                <button
-                  onClick={(e) => handleAction(e, onEdit)}
-                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-text-primary transition-colors hover:bg-surface-hover"
-                >
-                  <LayoutDashboard className="h-4 w-4 text-text-secondary" />
-                  <span>Edit</span>
-                </button>
-                <button
-                  onClick={(e) => handleAction(e, onToggleStar)}
-                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-text-primary transition-colors hover:bg-surface-hover"
-                >
-                  <Star className={cn('h-4 w-4 text-text-secondary', dashboard.starred && 'fill-amber-500 text-amber-500')} />
-                  <span>{dashboard.starred ? 'Unstar' : 'Star'}</span>
-                </button>
-                <div className="my-1 h-px bg-border-light/60" />
-                <button
-                  onClick={(e) => handleAction(e, onDuplicate)}
-                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-text-primary transition-colors hover:bg-surface-hover"
-                >
-                  <Copy className="h-4 w-4 text-text-secondary" />
-                  <span>Duplicate</span>
-                </button>
-                <button
-                  onClick={(e) => handleAction(e, onArchive)}
-                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-text-primary transition-colors hover:bg-surface-hover"
-                >
-                  <Archive className="h-4 w-4 text-text-secondary" />
-                  <span>{dashboard.isArchived ? 'Unarchive' : 'Archive'}</span>
-                </button>
-                <div className="my-1 h-px bg-border-light/60" />
-                <button
-                  onClick={(e) => handleAction(e, onDelete)}
-                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-destructive transition-colors hover:bg-destructive/10"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  <span>Delete</span>
-                </button>
-              </div>
-            </div>
-          </>,
-          document.body,
-        )}
-    </>
+    <div className="relative flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-lg p-1.5 text-text-tertiary opacity-0 transition-all hover:bg-surface-hover hover:text-text-primary group-hover:opacity-100"
+          >
+            <MoreVertical className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-44">
+          <DropdownMenuItem onClick={onEdit}>
+            <LayoutDashboard className="h-4 w-4 text-text-secondary" />
+            <span>Edit</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={onToggleStar}>
+            <Star className={cn('h-4 w-4 text-text-secondary', dashboard.starred && 'fill-amber-500 text-amber-500')} />
+            <span>{dashboard.starred ? 'Unstar' : 'Star'}</span>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={onDuplicate}>
+            <Copy className="h-4 w-4 text-text-secondary" />
+            <span>Duplicate</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={onArchive}>
+            <Archive className="h-4 w-4 text-text-secondary" />
+            <span>{dashboard.isArchived ? 'Unarchive' : 'Archive'}</span>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem variant="destructive" onClick={onDelete}>
+            <Trash2 className="h-4 w-4" />
+            <span>Delete</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   );
 }
-
-const DropdownMenu = React.forwardRef<
-  HTMLDivElement,
-  {
-    position: { top: number; right: number };
-    dashboard: DashboardListItem;
-    onEdit: (e: React.MouseEvent) => void;
-    onDelete: (e: React.MouseEvent) => void;
-    onDuplicate: (e: React.MouseEvent) => void;
-    onToggleStar: (e: React.MouseEvent) => void;
-    onArchive: (e: React.MouseEvent) => void;
-  }
->(({ position, dashboard, onEdit, onDelete, onDuplicate, onToggleStar, onArchive }, ref) => (
-  <div
-    ref={ref}
-    className="fixed z-[100] w-44 overflow-hidden rounded-xl border border-border-light/60 bg-surface-primary shadow-xl ring-1 ring-black/5"
-    style={{ top: `${position.top}px`, right: `${position.right}px` }}
-  >
-    <div className="p-1">
-      <button
-        onClick={onEdit}
-        className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-text-primary transition-colors hover:bg-surface-hover"
-      >
-        <LayoutDashboard className="h-4 w-4 text-text-secondary" />
-        <span>Edit</span>
-      </button>
-      <button
-        onClick={onToggleStar}
-        className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-text-primary transition-colors hover:bg-surface-hover"
-      >
-        <Star className={cn('h-4 w-4 text-text-secondary', dashboard.starred && 'fill-amber-500 text-amber-500')} />
-        <span>{dashboard.starred ? 'Unstar' : 'Star'}</span>
-      </button>
-      <div className="my-1 h-px bg-border-light/60" />
-      <button
-        onClick={onDuplicate}
-        className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-text-primary transition-colors hover:bg-surface-hover"
-      >
-        <Copy className="h-4 w-4 text-text-secondary" />
-        <span>Duplicate</span>
-      </button>
-      <button
-        onClick={onArchive}
-        className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-text-primary transition-colors hover:bg-surface-hover"
-      >
-        <Archive className="h-4 w-4 text-text-secondary" />
-        <span>{dashboard.isArchived ? 'Unarchive' : 'Archive'}</span>
-      </button>
-      <div className="my-1 h-px bg-border-light/60" />
-      <button
-        onClick={onDelete}
-        className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-destructive transition-colors hover:bg-destructive/10"
-      >
-        <Trash2 className="h-4 w-4" />
-        <span>Delete</span>
-      </button>
-    </div>
-  </div>
-));
-
-DropdownMenu.displayName = 'DropdownMenu';

@@ -22,7 +22,7 @@ import {
   useToggleDashboardStarMutation,
   useUpdateDashboardMutation,
 } from 'librechat-data-provider';
-import { Skeleton, useToastContext } from '@librechat/client';
+import { Skeleton, useToastContext, Button, Input, Separator } from '@librechat/client';
 import DashboardCard from './DashboardCard';
 import CreateDashboardModal from './CreateDashboardModal';
 import { cn } from '~/utils';
@@ -227,13 +227,13 @@ export default function DashboardsView() {
           {state.description}
         </p>
         {activeTab === 'my' && (
-          <button
+          <Button
             onClick={() => setIsCreateModalOpen(true)}
             className="group flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-primary/90 hover:shadow-md"
           >
             <Plus className="h-4 w-4 transition-transform group-hover:scale-110" />
             New Dashboard
-          </button>
+          </Button>
         )}
       </div>
     );
@@ -271,13 +271,13 @@ export default function DashboardsView() {
           <p className="mb-6 max-w-md text-center text-sm leading-relaxed text-text-secondary">
             Combine multiple charts into beautiful, interactive dashboards.
           </p>
-          <button
+          <Button
             onClick={() => setIsCreateModalOpen(true)}
             className="group flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-primary/90 hover:shadow-md"
           >
             <Plus className="h-4 w-4 transition-transform group-hover:scale-110" />
             New Dashboard
-          </button>
+          </Button>
         </div>
         <CreateDashboardModal
           open={isCreateModalOpen}
@@ -329,12 +329,13 @@ export default function DashboardsView() {
               <X className="h-6 w-6 text-destructive" />
             </div>
             <p className="text-sm font-medium text-destructive">Failed to load dashboards</p>
-            <button
+            <Button
               onClick={() => window.location.reload()}
-              className="mt-3 rounded-lg bg-primary/10 px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
+              variant="outline"
+              className="mt-3"
             >
               Retry
-            </button>
+            </Button>
           </div>
         ) : dashboards.length === 0 ? (
           searchTerm ? (
@@ -342,12 +343,13 @@ export default function DashboardsView() {
               <p className="text-sm text-text-secondary">
                 No dashboards found matching &quot;{searchTerm}&quot;
               </p>
-              <button
+              <Button
                 onClick={() => setSearchTerm('')}
-                className="mt-3 rounded-lg bg-primary/10 px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
+                variant="outline"
+                className="mt-3"
               >
                 Clear search
-              </button>
+              </Button>
             </div>
           ) : (
             renderEmptyState()
@@ -394,27 +396,31 @@ export default function DashboardsView() {
             {Math.min(currentPage * pageSize, totalCount)} of {totalCount}
           </div>
           <div className="flex items-center gap-2">
-            <button
+            <Button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="flex items-center gap-1 rounded-lg border border-border-light/60 bg-surface-secondary/50 px-3 py-1.5 text-sm font-medium text-text-secondary transition-all hover:bg-surface-hover disabled:opacity-50"
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-1"
             >
               <ChevronLeft className="h-4 w-4" />
               Previous
-            </button>
+            </Button>
             <span className="text-sm text-text-secondary">
               Page {currentPage} of {Math.ceil(totalCount / pageSize)}
             </span>
-            <button
+            <Button
               onClick={() =>
                 setCurrentPage((p) => Math.min(Math.ceil(totalCount / pageSize), p + 1))
               }
               disabled={currentPage >= Math.ceil(totalCount / pageSize)}
-              className="flex items-center gap-1 rounded-lg border border-border-light/60 bg-surface-secondary/50 px-3 py-1.5 text-sm font-medium text-text-secondary transition-all hover:bg-surface-hover disabled:opacity-50"
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-1"
             >
               Next
               <ChevronRight className="h-4 w-4" />
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -473,7 +479,7 @@ function Header({
             <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
             <span className="hidden text-sm font-medium sm:inline">{localize('com_ui_back_to_chat')}</span>
           </a>
-          <div className="h-5 w-px shrink-0 bg-border-light/60" />
+          <Separator orientation="vertical" className="h-5 bg-border-light/60" />
           <div className="flex items-center gap-3">
             <h1 className="text-lg font-semibold text-text-primary">Dashboards Library</h1>
             {totalCount > 0 && (
@@ -487,7 +493,7 @@ function Header({
         <div className="flex items-center gap-2.5">
           <div className="relative hidden sm:block">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-tertiary" />
-            <input
+            <Input
               type="text"
               placeholder="Search dashboards..."
               value={searchTerm}
@@ -506,9 +512,10 @@ function Header({
 
           <div className="hidden items-center gap-1.5 md:flex">
             {tabs.map((tab) => (
-              <button
+              <Button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as FilterTab)}
+                variant="outline"
                 className={cn(
                   'flex h-9 items-center gap-1.5 rounded-xl border px-3 text-sm font-medium transition-all',
                   activeTab === tab.id
@@ -518,21 +525,23 @@ function Header({
               >
                 <tab.icon className={cn('h-4 w-4', activeTab === tab.id && 'fill-current')} />
                 <span className="hidden lg:inline">{tab.label}</span>
-              </button>
+              </Button>
             ))}
           </div>
 
-          <button
+          <Button
             onClick={onCreateClick}
             className="flex h-9 items-center gap-1.5 rounded-xl bg-primary px-3 text-sm font-medium text-white shadow-sm transition-all hover:bg-primary/90 hover:shadow-md"
           >
             <Plus className="h-4 w-4" />
             <span className="hidden sm:inline">New</span>
-          </button>
+          </Button>
 
           <div className="flex items-center rounded-xl border border-border-light/60 bg-surface-secondary/50 p-1">
-            <button
+            <Button
               onClick={() => setViewMode('grid')}
+              variant="ghost"
+              size="icon"
               className={cn(
                 'flex h-7 w-7 items-center justify-center rounded-lg text-sm transition-all',
                 viewMode === 'grid'
@@ -542,9 +551,11 @@ function Header({
               title="Grid view"
             >
               <Grid3X3 className="h-3.5 w-3.5" />
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => setViewMode('list')}
+              variant="ghost"
+              size="icon"
               className={cn(
                 'flex h-7 w-7 items-center justify-center rounded-lg text-sm transition-all',
                 viewMode === 'list'
@@ -554,7 +565,7 @@ function Header({
               title="List view"
             >
               <List className="h-3.5 w-3.5" />
-            </button>
+            </Button>
           </div>
         </div>
       </div>
