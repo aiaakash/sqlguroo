@@ -478,7 +478,7 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
                     <div>
                       <SectionHeader icon={BarChart3} label="Visualization" />
                       <div className="grid grid-cols-2 gap-2">
-                        {CHART_TYPES.map(({ type, label, icon: Icon, description }) => (
+                        {CHART_TYPES.map(({ type, label, icon: Icon }) => (
                           <button
                             key={type}
                             onClick={() => setChartType(type)}
@@ -505,9 +505,6 @@ export default function ChartEditorModal({ chartId, open, onOpenChange }: ChartE
                                 )}
                               >
                                 {label}
-                              </div>
-                              <div className="mt-0.5 text-[10px] leading-tight text-text-tertiary">
-                                {description}
                               </div>
                             </div>
                             {chartType === type && (
